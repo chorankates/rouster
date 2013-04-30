@@ -14,19 +14,19 @@ class Rouster
     # no key is specified
     if @sshkey.nil?
       if @passthrough.eql?(true)
-        # ask Vagrant for the path to the key
-      else
         raise Rouster::InternalError, 'must specify key when using a passthrough host'
+      else
+        # ask Vagrant for the path to the key
       end
 
     end
 
     # confirm found/specified key exists
-    unless File.exists?(@sshkey)
+    if @sshkey.nil? or ! File.exists?(@sshkey)
       raise Rouster::InternalError, "specified key [#{@sshkey}] does not exist"
     end
 
-    unless File.exists?(@vagrantfile)
+    if ! File.exists?(@vagrantfile)
       raise Rouster::InternalError, "specified Vagrantfile [#{@vagrantfile}] does not exist"
     end
 
