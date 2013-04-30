@@ -70,14 +70,6 @@ class Rouster
   end
 
   ## truly internal methods
-  def error(index = 0)
-    # return index'th error in LIFO order
-  end
-
-  def error?
-    # return true|false if last command|function executed had an error
-  end
-
   def output(index = 0)
     # return index'th array of output in LIFO order
   end
