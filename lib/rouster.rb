@@ -4,11 +4,12 @@ class Rouster
   attr_accessor :verbosity
 
   def initialize (name = 'unknown', verbosity = 0, vagrantfile = nil, sshkey = nil, passthrough = false)
-    @name = name
+    @name        = name
     @passthrough = passthrough
-    @sshkey = sshkey
-    @vagrantfile = sprintf('%s/Vagrantfile', Dir.pwd) # assume it is local (to the repo, not the library)
-    @vagrantdir = '' # do some path manipulation here
+    @sshkey      = sshkey
+    @vagrantfile = vagrantfile.nil? ? sprintf('%s/Vagrantfile', Dir.pwd) : vagrantfile
+    @vagrantdir  = File.dirname(@vagrantfile)
+    @verbosity   = verbosity
 
     # no key is specified
     if @sshkey.nil?
@@ -89,7 +90,8 @@ class Rouster::RemoteExecutionError < StandardError
   # thrown by run()
 end
 
-
+# TODO port this to an actual script
+# for now, ~ caller() hack
 if __FILE__ == $0
 
   app = Rouster.new(:name => 'app')
