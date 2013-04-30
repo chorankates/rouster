@@ -1,4 +1,4 @@
-class SalesforceVagrant
+class Rouster
 
   attr_reader :name, :passthrough, :sshkey, :vagrantfile
   attr_accessor :verbosity
@@ -60,31 +60,36 @@ class SalesforceVagrant
 end
 
 # custom exceptions
-class SalesforceVagrant::InternalError < StandardError
-  # thrown by most (if not all) SalesforceVagrant methods
+class Rouster::InternalError < StandardError
+  # thrown by most (if not all) Rouster methods
 end
 
-class SalesforceVagrant::FileTransferError < StandardError
+class Rouster::FileTransferError < StandardError
   # thrown by get() and put()
 end
 
-class SalesforceVagrant::RemoteExecutionError < StandardError
+class Rouster::RemoteExecutionError < StandardError
   # thrown by run()
 end
 
 
 if __FILE__ == $0
 
-  app = SalesforceVagrant.new(:name => 'app')
-  ppm = SalesforceVagrant.new(:name => 'ppm', :verbosity => 4, :vagrantfile => '../piab/Vagrantfile')
+  app = Rouster.new(:name => 'app')
+  ppm = Rouster.new(:name => 'ppm', :verbosity => 4, :vagrantfile => '../piab/Vagrantfile')
 
   # passthrough boxes do not need to specify a name
-  lpt = SalesforceVagrant.new(:passthrough => 'local', :verbosity => 4)
-  rpt = SalesforceVagrant.new(:passthrough => 'remote', :verbosity => 4, :sshkey => '~/.ssh/id_dsa')
+  lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
+  rpt = Rouster.new(:passthrough => 'remote', :verbosity => 4, :sshkey => '~/.ssh/id_dsa')
 
   workers = [app, ppm, lpt]
 
   workers.each do |v|
+
+    p "%s config: " % v.name
+    p "passthrough: %s" % v.passthrough
+    p "sshkey:      %s" % v.sshkey
+    p "vagrantfile: %s" % v.vagrantfile
 
     v.up()
 
@@ -111,7 +116,6 @@ if __FILE__ == $0
     # output should be the same
     p v.run('uname -a')
     p v.output()
-
 
     # tear the box down
     v.destroy()
