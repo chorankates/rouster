@@ -13,7 +13,7 @@ class Rouster
 
     # no key is specified
     if @sshkey.nil?
-      if @passthrough.nil?
+      if @passthrough.eql?(true)
         # ask Vagrant for the path to the key
       else
         raise Rouster::InternalError, 'must specify key when using a passthrough host'
@@ -88,56 +88,4 @@ end
 
 class Rouster::RemoteExecutionError < StandardError
   # thrown by run()
-end
-
-# TODO port this to an actual script
-# for now, ~ caller() hack
-if __FILE__ == $0
-
-  app = Rouster.new(:name => 'app')
-  ppm = Rouster.new(:name => 'ppm', :verbosity => 4, :vagrantfile => '../piab/Vagrantfile')
-
-  # passthrough boxes do not need to specify a name
-  lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
-  rpt = Rouster.new(:passthrough => 'remote', :verbosity => 4, :sshkey => '~/.ssh/id_dsa')
-
-  workers = [app, ppm, lpt]
-
-  workers.each do |v|
-
-    p '%s config: ' % v.name
-    p 'passthrough: %s' % v.passthrough
-    p 'sshkey:      %s' % v.sshkey
-    p 'vagrantfile: %s' % v.vagrantfile
-
-    v.up()
-
-    p '%s status: %s' % v, v.status()
-    p '%s available via ssh: %s' % v, v.available_via_ssh?()
-
-    v.suspend()
-
-    p '%s status: %s' % v, v.status()
-    p '%s available via ssh: %s' % v, v.available_via_ssh?()
-
-    v.up()
-
-    p '%s available via ssh: %s' % v, v.available_via_ssh?()
-
-    # put a file on the box and then bring it back
-    v.put(__FILE__, '/tmp/foobar')
-    v.get('/tmp/foobar', 'foobar_from_piab_host')
-
-    # output should be the same
-    p '%s uname -a via run:    %s' % v, v.run('uname -a')
-    p '%s uname -a via output: %s' % v, v.output()
-
-    # tear the box down
-    v.destroy()
-
-    p '%s status: %s' % v, v.status()
-    p '%s available via ssh: %s' % v, v.available_via_ssh?()
-
-  end
-
 end
