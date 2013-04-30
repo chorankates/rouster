@@ -105,40 +105,38 @@ if __FILE__ == $0
 
   workers.each do |v|
 
-    p "%s config: " % v.name
-    p "passthrough: %s" % v.passthrough
-    p "sshkey:      %s" % v.sshkey
-    p "vagrantfile: %s" % v.vagrantfile
+    p '%s config: ' % v.name
+    p 'passthrough: %s' % v.passthrough
+    p 'sshkey:      %s' % v.sshkey
+    p 'vagrantfile: %s' % v.vagrantfile
 
     v.up()
 
-    p "%s errors: %s" % v, v.error()
-    p "%s error?: %s" % v, v.error?()
-    p "%s status: %s" % v, v.status()
-    p "%s available via ssh: %s" % v, v.available_via_ssh?()
+    p '%s status: %s' % v, v.status()
+    p '%s available via ssh: %s' % v, v.available_via_ssh?()
 
     v.suspend()
 
-    p "%s errors: %s" % v, v.error()
-    p "%s error?: %s" % v, v.error?()
-    p "%s status: %s" % v, v.status()
-    p "%s available via ssh: %s" % v, v.available_via_ssh?()
+    p '%s status: %s' % v, v.status()
+    p '%s available via ssh: %s' % v, v.available_via_ssh?()
 
     v.up()
 
-    p "%s available via ssh: %s" % v, v.available_via_ssh?()
+    p '%s available via ssh: %s' % v, v.available_via_ssh?()
 
     # put a file on the box and then bring it back
     v.put(__FILE__, '/tmp/foobar')
     v.get('/tmp/foobar', 'foobar_from_piab_host')
 
     # output should be the same
-    p v.run('uname -a')
-    p v.output()
+    p '%s uname -a via run:    %s' % v, v.run('uname -a')
+    p '%s uname -a via output: %s' % v, v.output()
 
     # tear the box down
     v.destroy()
 
+    p '%s status: %s' % v, v.status()
+    p '%s available via ssh: %s' % v, v.available_via_ssh?()
 
   end
 
