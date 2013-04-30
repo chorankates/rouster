@@ -4,7 +4,32 @@ class Rouster
   attr_accessor :verbosity
 
   def initialize (name = 'unknown', verbosity = 0, vagrantfile = nil, sshkey = nil, passthrough = false)
-    # need a hook that if no sshkey is specified, we determine from `vagrant ssh-config` using the vagrantfile - if neither is specified, need to throw an exception
+    @name = name
+    @passthrough = passthrough
+    @sshkey = sshkey
+    @vagrantfile = sprintf('%s/Vagrantfile', Dir.pwd) # assume it is local (to the repo, not the library)
+    @vagrantdir = '' # do some path manipulation here
+
+    # no key is specified
+    if @sshkey.nil?
+      if @passthrough.nil?
+        # ask Vagrant for the path to the key
+      else
+        raise Rouster::InternalError, 'must specify key when using a passthrough host'
+      end
+
+    end
+
+    # confirm found/specified key exists
+    unless File.exists?(@sshkey)
+      raise Rouster::InternalError, "specified key [#{@sshkey}] does not exist"
+    end
+
+    unless File.exists?(@vagrantfile)
+      raise Rouster::InternalError, "specified Vagrantfile [#{@vagrantfile}] does not exist"
+    end
+
+
   end
 
   ## Vagrant methods
