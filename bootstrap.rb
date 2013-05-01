@@ -6,10 +6,10 @@ app = Rouster.new(:name => 'app')
 ppm = Rouster.new(:name => 'ppm', :verbosity => 4, :vagrantfile => '../piab/Vagrantfile')
 
 # passthrough boxes do not need to specify a name
-lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
+#lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
 #rpt = Rouster.new(:passthrough => 'remote', :verbosity => 4, :sshkey => '~/.ssh/id_dsa')
 
-workers = [app, ppm, lpt]
+workers = [app, ppm]
 
 workers.each do |w|
 
