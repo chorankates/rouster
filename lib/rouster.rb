@@ -92,6 +92,18 @@ class Rouster
   def available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
     # ssh and run uname or something similarly harmless and test exit code (? or use something internal to vagrant?)
+
+    # refactor this later
+    cmd_prefix = self.get_ssh_command()
+    cmd = '%s -t uname -a' % cmd_prefix
+
+    begin
+      self._run(cmd)
+    rescue Rouster::SSHConnectionError
+      false
+    end
+
+    true
   end
 
   def log(msg, level=NOTICE)
@@ -120,7 +132,7 @@ class Rouster
     output = `#{cmd}`
 
     unless $?.success?
-      raise Rouster::LocalExecutionError 'command [%s] exited with [%i]' % cmd, $?.to_i()
+      raise Rouster::LocalExecutionError 'command [%s] exited with [%s]' % cmd, $?.to_i()
     end
 
     output
@@ -128,6 +140,31 @@ class Rouster
   end
 
   ## truly internal methods
+  def get_ssh_command
+    output = self.run_vagrant("ssh-config #{self.name}")
+    hash   = Hash.new
+
+    output.each_line do |line|
+      if line =~ /HostName (.*?)$/
+        hash[:hostname] = $1
+      elsif line =~ /User (\w*?)$/
+        hash[:user] = $1
+      elsif line =~ /Port (\d+)$/
+        hash[:port] = $1
+      elsif line =~ /IdentityFile (.*?)$/
+        hash[:sshkey] = $1
+      end
+    end
+
+    sprintf(
+        'ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s',
+        hash[:port],
+        hash[:sshkey],
+        hash[:user],
+        hash[:hostname]
+    )
+  end
+
   def output(index = 0)
     # return index'th array of output in LIFO order
   end
@@ -141,6 +178,10 @@ end
 
 class Rouster::FileTransferError < StandardError
   # thrown by get() and put()
+end
+
+class Rouster::SSHConnectionError < StandardError
+  # thrown by available_via_ssh() -- and potentially _run()
 end
 
 class Rouster::LocalExecutionError < StandardError

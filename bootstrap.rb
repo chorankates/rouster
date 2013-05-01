@@ -20,33 +20,33 @@ workers.each do |w|
   p 'upping the box'
   w.up()
 
-  p '%s status: %s' % w, w.status()
-  p '%s available via ssh: %s' % w, w.available_via_ssh?()
+  p sprintf('%s status: %s', w.name, w.status())
+  p sprintf('%s available via ssh: %s', w.name, w.available_via_ssh?())
 
   p 'suspending the box'
   w.suspend()
 
-  p '%s status: %s' % w, w.status()
-  p '%s available via ssh: %s' % w, w.available_via_ssh?()
+  p sprintf('%s status: %s', w.name, w.status())
+  p sprintf('%s available via ssh: %s', w.name, w.available_via_ssh?())
 
   p 'bringing the box back'
   w.up()
 
-  p '%s status: %s' % w, w.status()
-  p '%s available via ssh: %s' % w, w.available_via_ssh?()
+  p sprintf('%s status: %s' % w.name, w.status())
+  p sprintf('%s available via ssh: %s', w.name, w.available_via_ssh?())
 
   # put a file on the box and then bring it back
   w.put(__FILE__, '/tmp/foobar')
   w.get('/tmp/foobar', 'foobar_from_piab_host')
 
   # output should be the same
-  p '%s uname -a via run:    %s' % w, w.run('uname -a')
-  p '%s uname -a via output: %s' % w, w.output()
+  p sprintf('%s uname -a via run:    %s', w.name, w.run('uname -a'))
+  p sprintf('%s uname -a via output: %s', w.name, w.output())
 
   # tear the box down
   w.destroy()
 
-  p '%s status: %s' % w, w.status()
-  p '%s available via ssh: %s' % w, w.available_via_ssh?()
+  p sprintf('%s status: %s', w.name, w.status())
+  p sprintf('%s available via ssh: %s', w, w.available_via_ssh?())
 
 end
