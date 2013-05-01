@@ -1,9 +1,10 @@
 require 'rubygems'
 require 'lib/rouster'
 
-
-app = Rouster.new(:name => 'app')
-ppm = Rouster.new(:name => 'ppm', :verbosity => 4, :vagrantfile => '../piab/Vagrantfile')
+# want to be able to instantiate like this
+#app = Rouster.new(:name => 'app', :sshkey => sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']))
+app = Rouster.new('app', 0, nil, sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']), false)
+ppm = Rouster.new('ppm', 0, nil, sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']), false)
 
 # passthrough boxes do not need to specify a name
 #lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
@@ -12,24 +13,26 @@ ppm = Rouster.new(:name => 'ppm', :verbosity => 4, :vagrantfile => '../piab/Vagr
 workers = [app, ppm]
 
 workers.each do |w|
-
   p '%s config: ' % w.name
-  p 'passthrough: %s' % w.passthrough
-  p 'sshkey:      %s' % w.sshkey
-  p 'wagrantfile: %s' % w.vagrantfile
+  p w
 
+  p 'status: %s' % w.status()
+  p 'upping the box'
   w.up()
 
   p '%s status: %s' % w, w.status()
   p '%s available via ssh: %s' % w, w.available_via_ssh?()
 
+  p 'suspending the box'
   w.suspend()
 
   p '%s status: %s' % w, w.status()
   p '%s available via ssh: %s' % w, w.available_via_ssh?()
 
+  p 'bringing the box back'
   w.up()
 
+  p '%s status: %s' % w, w.status()
   p '%s available via ssh: %s' % w, w.available_via_ssh?()
 
   # put a file on the box and then bring it back
