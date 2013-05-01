@@ -62,7 +62,7 @@ class Rouster
     #  - but here, we could potentially (probably?) use Vagrant itself to do the work
 
     # either way, abstracting it here
-    if self.passthrough?
+    if self.is_passthrough?
       # TODO figure out how to abstract logging properly
       # could be cool to use self.log.info(<msg>)
       self.log('vagrant(%s) is a no-op for passthrough workers' % command, INFO)
@@ -82,7 +82,7 @@ class Rouster
   end
 
   # there has _got_ to be a more rubyish way to do this
-  def passthrough?
+  def is_passthrough?
     self.passthrough eq false ? false : true
   end
 
