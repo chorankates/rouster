@@ -1,13 +1,13 @@
 class Rouster
 
-  attr_reader :name, :passthrough, :sshkey, :vagrantfile
+  attr_reader :name, :passthrough, :sshkey, :vagrantdir, :vagrantfile
   attr_accessor :verbosity
 
   def initialize (name = 'unknown', verbosity = 0, vagrantfile = nil, sshkey = nil, passthrough = false)
     @name        = name
     @passthrough = passthrough
     @sshkey      = sshkey
-    @vagrantfile = vagrantfile.nil? ? sprintf('%s/Vagrantfile', Dir.pwd) : vagrantfile
+    @vagrantfile = vagrantfile.nil? ? sprintf('%s/Vagrantfile', Dir.pwd) : vagrantfile # doing it here so the instantiation line isn't too long
     @vagrantdir  = File.dirname(@vagrantfile)
     @verbosity   = verbosity
 
@@ -16,7 +16,11 @@ class Rouster
       if @passthrough.eql?(true)
         raise Rouster::InternalError, 'must specify key when using a passthrough host'
       else
+        # TODO do this via the vagrant library
         # ask Vagrant for the path to the key
+        res = self.vagrant("ssh-config #{self.name}")
+
+        @sshkey = $1 if res.grep(/IdentityFile\s(.*)$/)
       end
 
     end
@@ -26,7 +30,7 @@ class Rouster
       raise Rouster::InternalError, "specified key [#{@sshkey}] does not exist"
     end
 
-    if ! File.exists?(@vagrantfile)
+    unless File.exists?(@vagrantfile)
       raise Rouster::InternalError, "specified Vagrantfile [#{@vagrantfile}] does not exist"
     end
 
@@ -34,22 +38,52 @@ class Rouster
   end
 
   ## Vagrant methods
+  # currently implemented as `vagrant` shell outs
   def up
-
+    self.vagrant("up #{self.name}")
   end
 
   def destroy
+    self.vagrant("destroy -f #{self.name}")
+  end
 
+  def status
+    self.vagrant("status #{self.name}")
   end
 
   def suspend
-
+    self.vagrant("suspend #{self.name}")
   end
 
   ## internal methods
+  def vagrant(command)
+    # not sure how we should actually call this
+    #  - in Salesforce::Vagrant, we cd to the Vagrantfile directory
+    #  - but here, we could potentially (probably?) use Vagrant itself to do the work
+
+    # either way, abstracting it here
+    if self.passthrough?
+      # TODO figure out how to abstract logging properly
+      # could be cool to use self.log.info(<msg>)
+      self.log('vagrant(%s) is a no-op for passthrough workers' % command, INFO)
+    else
+      self.run(sprintf('cd %s; vagrant %s', self.vagrantdir, command))
+    end
+
+  end
 
   def available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
+    # ssh and run uname or something similarly harmless
+  end
+
+  def log(msg, level=NOTICE)
+
+  end
+
+  # there has _got_ to be a more rubyish way to do this
+  def passthrough?
+    self.passthrough eq false ? false : true
   end
 
   def rebuild(wait = 120)
@@ -63,11 +97,6 @@ class Rouster
 
   def run(command)
 
-  end
-
-  def status
-    # return Vagrant box status
-    # should we parse the output of `vagrant status <self.boxname>`? or use something internal to Vagrant?
   end
 
   ## truly internal methods
