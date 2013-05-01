@@ -1,6 +1,9 @@
+require 'rubygems'
+#require 'vagrant'
+
 class Rouster
 
-  attr_reader :name, :passthrough, :sshkey, :vagrantdir, :vagrantfile
+  attr_reader :name, :passthrough, :sshkey, :vagrant, :vagrantdir, :vagrantfile
   attr_accessor :verbosity
 
   def initialize (name = 'unknown', verbosity = 0, vagrantfile = nil, sshkey = nil, passthrough = false)
@@ -18,7 +21,7 @@ class Rouster
       else
         # TODO do this via the vagrant library
         # ask Vagrant for the path to the key
-        res = self.vagrant("ssh-config #{self.name}")
+        res = self.run_vagrant("ssh-config #{self.name}")
 
         @sshkey = $1 if res.grep(/IdentityFile\s(.*)$/)
       end
@@ -34,29 +37,43 @@ class Rouster
       raise Rouster::InternalError, "specified Vagrantfile [#{@vagrantfile}] does not exist"
     end
 
+    # instantiate a Vagrant worker (or 2 or 3) here
+    # need to run commands over ssh tunnel, sned files, get files
+    #@vagrant =
 
   end
 
   ## Vagrant methods
   # currently implemented as `vagrant` shell outs
   def up
-    self.vagrant("up #{self.name}")
+    self.run_vagrant("up #{self.name}")
   end
 
   def destroy
-    self.vagrant("destroy -f #{self.name}")
+    self.run_vagrant("destroy -f #{self.name}")
   end
 
   def status
-    self.vagrant("status #{self.name}")
+    res = self.run_vagrant("status #{self.name}")
+
+    if res =~ /#{self.name}\s*(.*?)$/
+      $1
+    else
+      raise Rouster::InternalError, 'unable to parse result from `vagrant status`: [%s]' % res
+    end
+
   end
 
   def suspend
-    self.vagrant("suspend #{self.name}")
+    self.run_vagrant("suspend #{self.name}")
   end
 
   ## internal methods
-  def vagrant(command)
+  def run(command)
+    # runs a command inside the Vagrant VM
+  end
+
+  def run_vagrant(command)
     # not sure how we should actually call this
     #  - in Salesforce::Vagrant, we cd to the Vagrantfile directory
     #  - but here, we could potentially (probably?) use Vagrant itself to do the work
@@ -67,14 +84,14 @@ class Rouster
       # could be cool to use self.log.info(<msg>)
       self.log('vagrant(%s) is a no-op for passthrough workers' % command, INFO)
     else
-      self.run(sprintf('cd %s; vagrant %s', self.vagrantdir, command))
+      self._run(sprintf('cd %s; vagrant %s', self.vagrantdir, command))
     end
 
   end
 
   def available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
-    # ssh and run uname or something similarly harmless
+    # ssh and run uname or something similarly harmless and test exit code (? or use something internal to vagrant?)
   end
 
   def log(msg, level=NOTICE)
@@ -83,7 +100,7 @@ class Rouster
 
   # there has _got_ to be a more rubyish way to do this
   def is_passthrough?
-    self.passthrough eq false ? false : true
+    self.passthrough.eql?(false) ? false : true
   end
 
   def rebuild(wait = 120)
@@ -95,7 +112,18 @@ class Rouster
     # how do we do this in a generic way? shutdown -rf works for Unix, but not Solaris
   end
 
-  def run(command)
+  def _run(command)
+    # shells out and executes a command locally on the system, different than run(), which operates in the VM
+    # returns STDOUT|STDERR, raises Rouster::LocalExecutionError on non 0 exit code
+
+    cmd    = sprintf('%s', command)
+    output = `#{cmd}`
+
+    unless $?.success?
+      raise Rouster::LocalExecutionError 'command [%s] exited with [%i]' % cmd, $?.to_i()
+    end
+
+    output
 
   end
 
@@ -106,13 +134,17 @@ class Rouster
 
 end
 
-# custom exceptions
+# custom exceptions -- what else do we want them to include/do?
 class Rouster::InternalError < StandardError
   # thrown by most (if not all) Rouster methods
 end
 
 class Rouster::FileTransferError < StandardError
   # thrown by get() and put()
+end
+
+class Rouster::LocalExecutionError < StandardError
+  # thrown by _run()
 end
 
 class Rouster::RemoteExecutionError < StandardError
