@@ -35,13 +35,21 @@ class Rouster
     # no key is specified
     if @sshkey.nil?
       if @passthrough.eql?(true)
-        raise Rouster::InternalError, 'must specify key when using a passthrough host'
+        raise Rouster::InternalError, 'must specify sshkey when using a passthrough host'
       else
         # TODO do this via the vagrant library
         # ask Vagrant for the path to the key
-        res = self.run_vagrant("ssh-config #{self.name}")
+        begin
+          res = self.run_vagrant("ssh-config #{self.name}")
+        rescue Rouster::LocalExecutionError => e
+          raise Rouster::InternalError, 'unable to query Vagrant for sshkey'
+        end
 
-        @sshkey = $1 if res.grep(/IdentityFile\s(.*)$/)
+        # TODO need to wrap this into the get_ssh_prefix / get_scp_prefix pattern so we aren't parsing it everywhere
+        if res =~ /IdentityFile\s*(.*?)$/
+          @sshkey = $1
+        end
+
       end
 
     end
