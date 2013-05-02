@@ -3,8 +3,8 @@ require 'lib/rouster'
 
 # want to be able to instantiate like this
 #app = Rouster.new(:name => 'app', :sshkey => sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']))
-app = Rouster.new('app', 0, nil, sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']), false)
-ppm = Rouster.new('ppm', 0, nil, sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']), false)
+app = Rouster.new('app', 0, nil, nil, false)
+ppm = Rouster.new('ppm', 0, nil, nil, false)
 
 # passthrough boxes do not need to specify a name
 #lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
