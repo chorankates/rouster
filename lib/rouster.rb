@@ -1,13 +1,13 @@
 require 'rubygems'
 
 # TODO be smarter about this
-#require '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/vagrant'
+$LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/'
+require 'vagrant'
 
-# TODO combine/refactor the get_scp_command(), get_ssh_command() synergies
-
-# need to install log4r before can do above
 # -- looks like vagrant/cli will be one that we want -> env = Vagrant::Environment.new({}); env.cli(ARGV)
 # -- and vagrant/ssh will be the other -> ssh = Vagrant::SSH.new(vm) <-- need to see if that is actually correct
+
+# TODO combine/refactor the get_scp_command(), get_ssh_command() synergies
 
 class Rouster
 
@@ -20,7 +20,6 @@ class Rouster
   WARN   = 2
   INFO   = 3
   DEBUG  = 4
-
 
   def initialize (name = 'unknown', verbosity = 0, vagrantfile = nil, sshkey = nil, sudo = true, passthrough = false)
     @name        = name
