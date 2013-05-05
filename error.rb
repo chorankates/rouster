@@ -2,7 +2,7 @@ require 'rubygems'
 require 'lib/rouster'
 
 begin
-  badkey = Rouster.new('whatever', 4, __FILE__, 'foo', false)
+  badkey = Rouster.new(:name => 'whatever', :verbosity => 4, :sshkey => __FILE__)
 rescue Rouster::InternalError => e
   p "caught #{e.class}: #{e.message}"
 rescue => e
@@ -11,8 +11,9 @@ end
 
 p badkey
 
+# TODO need to do some work here, Vagrant unceremoniously appends 'Vagrantfile' into our list of vagrantfiles, when we actually want to trip an exception
 begin
-  badvagrantfile = Rouster.new('likehesaid', 4, 'foo', __FILE__, false)
+  badvagrantfile = Rouster.new(:name => 'likehesaid', :vagrantfile => 'dne')
 rescue Rouster::InternalError => e
   p "caught #{e.class}: #{e.message}"
 rescue => e
@@ -22,9 +23,9 @@ end
 p badvagrantfile
 
 begin
-  good = Rouster.new('app', 4, nil, '/Users/choran-kates/.vagrant.d/insecure_private_key', false)
+  good = Rouster.new(:name => 'app', verbosity => 4)
 rescue => e
-  p "caught #{e.class}: #{e.message}"
+  p "caught unexpected exception #{e.class}: #{e.message}"
 end
 
 p good

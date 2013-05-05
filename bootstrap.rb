@@ -1,16 +1,14 @@
 require 'rubygems'
 require 'lib/rouster'
 
-# want to be able to instantiate like this
-#app = Rouster.new(:name => 'app', :sshkey => sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']))
-app = Rouster.new('app', 0, nil, nil, false)
-ppm = Rouster.new('ppm', 0, nil, nil, false)
+app = Rouster.new(:name => 'app', :verbosity => 2, :sudo => false)
+#ppm = Rouster.new(:name => 'ppm', :verbosity => 4, :sudo => true)
 
 # passthrough boxes do not need to specify a name
 #lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
 #rpt = Rouster.new(:passthrough => 'remote', :verbosity => 4, :sshkey => '~/.ssh/id_dsa')
 
-workers = [app, ppm]
+workers = [app]
 
 workers.each do |w|
   p '%s config: ' % w.name

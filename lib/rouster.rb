@@ -16,24 +16,27 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :_env, :name, :output, :passthrough, :sudo, :_ssh, :vagrantfile, :_vm
-  attr_accessor :verbosity
+  attr_reader :_env, :name, :output, :passthrough, :sudo, :_ssh, :vagrantfile, :verbosity, :_vm, :_vm_config
 
-  # TODO -- we should use vagrants global logger instead of our own logr4
-  NOTICE = 0
-  ERROR  = 1
-  WARN   = 2
-  INFO   = 3
-  DEBUG  = 4
-
-  def initialize (name = 'unknown', verbosity = 0, vagrantfile = nil, sudo = true,  passthrough = false, sshkey = nil)
-    @name        = name # since we're constantly calling .to_sym on this, might want to just start there
-    @output      = Array.new
-    @passthrough = passthrough
-    @sshkey      = sshkey
-    @sudo        = (sudo.nil? or @passthrough.eql?(true)) ? false : true
+  def initialize(opts = nil)
+    # process hash keys passed
+    @name        = opts[:name] # since we're constantly calling .to_sym on this, might want to just start there
+    @passthrough = opts.has_key?(:passthrough) ? false : opts[:passthrough]
+    @sshkey      = opts[:sshkey]
+    @sudo        = (opts.has_key?(:sudo) or @passthrough.eql?(true)) ? false : true
     @vagrantfile = vagrantfile.nil? ? sprintf('%s/Vagrantfile', Dir.pwd) : vagrantfile
-    @verbosity   = verbosity
+    @verbosity   = (opts.has_key?(:verbosity) and opts[:verbosity].is_a?(Integer)) ? opts[:verbosity] : 0
+
+    @output      = Array.new
+
+    # set up logging
+    require 'log4r/config'
+    Log4r.define_levels(*Log4r::Log4rConfig::LogLevels)
+
+    @log            = Log4r::Logger.new('rouster')
+    @log.outputters = Log4r::Outputter.stderr
+    @log.level      = @verbosity # all, fatal, error, warn, info, debug, off
+
 
     @_env = Vagrant::Environment.new({:vagrantfile_name => @vagrantfile})
     # ["action_registry", "action_runner", "boxes", "boxes_path", "cli", "config",
@@ -48,7 +51,11 @@ class Rouster
 
     raise InternalError.new(sprintf('specified VM name [%s] not found in specified Vagrantfile', @name)) unless @_config.for_vm(@name.to_sym)
 
-    @_vm = Vagrant::VM.new(@name, @_env, @_config.for_vm(@name.to_sym))
+    # need to set base MAC here, not sure why we have never had to specify this previously
+    @_vm_config = @_config.for_vm(@name.to_sym)
+    @_vm_config.vm.base_mac = '0a:00:27:00:42:42'
+
+    @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
     # ["box", "channel", "config", "created?", "destroy", "driver", "env",
     # "guest", "halt", "load_guest!", "package", "provision", "reload",
     # "reload!", "resume", "run_action", "ssh", "start", "state", "suspend", "ui",
@@ -65,7 +72,7 @@ class Rouster
     end
 
     # confirm found/specified key exists
-    if @sshkey.nil? or ! @_vm.ssh.check_key_permissions(@sshkey)
+    if @sshkey.nil? or @_vm.ssh.check_key_permissions(@sshkey)
       raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
     end
 
@@ -76,6 +83,18 @@ class Rouster
     # TODO need to confirm validity before we go on
     # in Salesforce::Vagrant we constantly checked whether an object was 'valid' and then again at its 'status' -- not doing that again
 
+  end
+
+  def inspect
+    "name [#{@name}]:
+      passthrough[#{@passthrough}],
+      sshkey[#{@sshkey}],
+      sudo[#{@sudo}],
+      vagrantfile[#{@vagrantfile}],
+      verbosity[#{verbosity}],
+      Vagrant Environment object[#{@_env.class}],
+      Vagrant Configuration object[#{@_config.class}],
+      Vagrant VM object[#{@_vm.class}]\n"
   end
 
   ## Vagrant methods
@@ -99,8 +118,12 @@ class Rouster
   ## internal methods
   def run(command)
     # runs a command inside the Vagrant VM
+
+    # TODO finish the conversion over to @_vm.ssh
+
     cmd     = sprintf('%s -t %s%s', self.get_ssh_prefix(), self.uses_sudo? ? 'sudo ' : '', command)
     self._run(cmd)
+    #@_vm.ssh.execute(cmd)
   end
 
   def run_vagrant(command)
@@ -112,7 +135,7 @@ class Rouster
     if self.is_passthrough?
       # TODO figure out how to abstract logging properly
       # could be cool to use self.log.info(<msg>)
-      self.log('vagrant(%s) is a no-op for passthrough workers' % command, INFO)
+      @log.info('vagrant(%s) is a no-op for passthrough workers' % command)
     else
       self._run(sprintf('cd %s; vagrant %s', self.vagrantdir, command))
     end
@@ -122,6 +145,8 @@ class Rouster
   def available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
 
+    # TODO use @_vm.ssh to test this
+
     begin
       self.run('uname -a')
     rescue Rouster::SSHConnectionError
@@ -129,11 +154,6 @@ class Rouster
     end
 
     true
-  end
-
-  def log(msg, level=NOTICE)
-    #raise NotImplementedError.new()
-    puts "#{level}: #{msg}\n"
   end
 
   def get(remote_file, local_file=nil)
@@ -196,9 +216,8 @@ class Rouster
 
   def rebuild()
     # destroys/reups a Vagrant machine
-
-    self.run_vagrant('destroy')
-    self.run_vagrant('up')
+    @_vm.destroy
+    @_vm.up
 
   end
 
@@ -220,6 +239,8 @@ class Rouster
     tmp_file = sprintf('/tmp/rouster.%s.%s', Time.now.to_i, $$)
     cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file)
     res      = `#{cmd}` # what does this actually hold?
+
+    @log.debug(sprintf('running: [%s]', cmd)) # should this be an 'info'?
 
     output = File.read(tmp_file)
     File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))

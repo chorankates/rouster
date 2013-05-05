@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'lib/rouster'
 
-a = Rouster.new('ppm')
+a = Rouster.new(:name => ppm)
 
 p 'DBGZ' if nil.nil?
 
