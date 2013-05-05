@@ -1,13 +1,8 @@
 require 'rubygems'
 
-#
-
 # TODO be smarter about this
 $LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/'
 require 'vagrant'
-
-# -- looks like vagrant/cli will be one that we want -> env = Vagrant::Environment.new({}); env.cli(ARGV)
-# -- and vagrant/ssh will be the other -> ssh = Vagrant::SSH.new(vm) <-- need to see if that is actually correct
 
 # TODO combine/refactor the get_scp_command(), get_ssh_command() synergies
 
@@ -21,9 +16,10 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :name, :output, :passthrough, :sshkey, :sudo, :vagrant, :vagrantdir, :vagrantfile
+  attr_reader :_env, :name, :output, :passthrough, :sshkey, :sudo, :_ssh, :vagrantdir, :vagrantfile
   attr_accessor :sshinfo, :verbosity
 
+  # TODO -- should we use vagrants global logger instead of our own logr4
   # poor man logging values for now
   NOTICE = 0
   ERROR  = 1
@@ -40,6 +36,17 @@ class Rouster
     @vagrantfile = vagrantfile.nil? ? sprintf('%s/Vagrantfile', Dir.pwd) : vagrantfile
     @vagrantdir  = File.dirname(@vagrantfile)
     @verbosity   = verbosity
+
+    @_env = Vagrant::Environment.new({}) # print @_env.pretty_inspect
+    # ["action_registry", "action_runner", "boxes", "boxes_path", "cli", "config",
+    # "copy_insecure_private_key", "cwd", "default_private_key_path", "dotfile_path",
+    # "find_vagrantfile", "gems_path", "global_data", "home_path", "host", "load!",
+    # "load_config!", "load_plugins", "load_vms!", "loaded?", "local_data", "lock",
+    # "lock_path", "multivm?", "primary_vm", "reload!", "root_path", "setup_home_path",
+    # "tmp_path", "ui", "vagrantfile_name", "vms", "vms_ordered"]
+
+    @_ssh = Vagrant::SSH.new(@_env)
+    # ["check_key_permissions", "exec", "info", "safe_exec"]
 
     # no key is specified
     if @sshkey.nil?
