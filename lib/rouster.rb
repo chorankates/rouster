@@ -9,35 +9,33 @@ require 'vagrant'
 class Rouster
   # custom exceptions -- what else do we want them to include/do?
   #   - should append the name of the box to the exception message
-  class NotImplementedError < StandardError; end # could have sworn there was a built in 'not implemented' exception.. guess this'll do just as well
-  class FileTransferError < StandardError; end # thrown by get() and put()
-  class InternalError < StandardError; end # thrown by most (if not all) Rouster methods
-  class LocalExecutionError < StandardError; end # thrown by _run()
+  class NotImplementedError  < StandardError; end # could have sworn there was a built in 'not implemented' exception.. guess this'll do just as well
+  class FileTransferError    < StandardError; end # thrown by get() and put()
+  class InternalError        < StandardError; end # thrown by most (if not all) Rouster methods
+  class LocalExecutionError  < StandardError; end # thrown by _run()
   class RemoteExecutionError < StandardError; end # thrown by run()
-  class SSHConnectionError < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
+  class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :_env, :name, :output, :passthrough, :sshkey, :sudo, :_ssh, :vagrantdir, :vagrantfile
-  attr_accessor :sshinfo, :verbosity
+  attr_reader :_env, :name, :output, :passthrough, :sudo, :_ssh, :vagrantfile, :_vm
+  attr_accessor :verbosity
 
-  # TODO -- should we use vagrants global logger instead of our own logr4
-  # poor man logging values for now
+  # TODO -- we should use vagrants global logger instead of our own logr4
   NOTICE = 0
   ERROR  = 1
   WARN   = 2
   INFO   = 3
   DEBUG  = 4
 
-  def initialize (name = 'unknown', verbosity = 0, vagrantfile = nil, sshkey = nil, sudo = true, passthrough = false)
-    @name        = name
+  def initialize (name = 'unknown', verbosity = 0, vagrantfile = nil, sudo = true,  passthrough = false, sshkey = nil)
+    @name        = name # since we're constantly calling .to_sym on this, might want to just start there
     @output      = Array.new
     @passthrough = passthrough
     @sshkey      = sshkey
     @sudo        = (sudo.nil? or @passthrough.eql?(true)) ? false : true
     @vagrantfile = vagrantfile.nil? ? sprintf('%s/Vagrantfile', Dir.pwd) : vagrantfile
-    @vagrantdir  = File.dirname(@vagrantfile)
     @verbosity   = verbosity
 
-    @_env = Vagrant::Environment.new({}) # print @_env.pretty_inspect
+    @_env = Vagrant::Environment.new({:vagrantfile_name => @vagrantfile})
     # ["action_registry", "action_runner", "boxes", "boxes_path", "cli", "config",
     # "copy_insecure_private_key", "cwd", "default_private_key_path", "dotfile_path",
     # "find_vagrantfile", "gems_path", "global_data", "home_path", "host", "load!",
@@ -45,34 +43,30 @@ class Rouster
     # "lock_path", "multivm?", "primary_vm", "reload!", "root_path", "setup_home_path",
     # "tmp_path", "ui", "vagrantfile_name", "vms", "vms_ordered"]
 
-    @_ssh = Vagrant::SSH.new(@_env)
-    # ["check_key_permissions", "exec", "info", "safe_exec"]
+    @_config = @_env.load_config!
+    # ["for_vm", "global", "vms"]
+
+    raise InternalError.new(sprintf('specified VM name [%s] not found in specified Vagrantfile', @name)) unless @_config.for_vm(@name.to_sym)
+
+    @_vm = Vagrant::VM.new(@name, @_env, @_config.for_vm(@name.to_sym))
+    # ["box", "channel", "config", "created?", "destroy", "driver", "env",
+    # "guest", "halt", "load_guest!", "package", "provision", "reload",
+    # "reload!", "resume", "run_action", "ssh", "start", "state", "suspend", "ui",
+    # "up", "uuid", "uuid=", "vm"]
 
     # no key is specified
     if @sshkey.nil?
       if @passthrough.eql?(true)
         raise InternalError.new('must specify sshkey when using a passthrough host')
       else
-        # TODO do this via the vagrant library
-        # ask Vagrant for the path to the key
-        begin
-          res = self.run_vagrant("ssh-config #{self.name}")
-        rescue Rouster::LocalExecutionError => e
-          raise InternalError.new('unable to query Vagrant for sshkey')
-        end
-
-        # TODO need to wrap this into the get_ssh_prefix / get_scp_prefix pattern so we aren't parsing it everywhere
-        if res =~ /IdentityFile\s*(.*?)$/
-          @sshkey = $1
-        end
-
+        # ask Vagrant where the key is
+        @sshkey = @_env.default_private_key_path
       end
-
     end
 
     # confirm found/specified key exists
-    if @sshkey.nil? or ! File.exists?(@sshkey)
-      raise InternalError.new("specified key [#{@sshkey}] does not exist")
+    if @sshkey.nil? or ! @_vm.ssh.check_key_permissions(@sshkey)
+      raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
     end
 
     unless File.exists?(@vagrantfile)
@@ -82,36 +76,24 @@ class Rouster
     # TODO need to confirm validity before we go on
     # in Salesforce::Vagrant we constantly checked whether an object was 'valid' and then again at its 'status' -- not doing that again
 
-
-    # instantiate a Vagrant worker (or 2 or 3) here
-    # need to run commands over ssh tunnel, sned files, get files
-    #@vagrant =
-
   end
 
   ## Vagrant methods
   # currently implemented as `vagrant` shell outs
   def up
-    self.run_vagrant("up #{self.name}")
+    @_vm.up
   end
 
   def destroy
-    self.run_vagrant("destroy -f #{self.name}")
+    @_vm.destroy
   end
 
   def status
-    res = self.run_vagrant("status #{self.name}")
-
-    if res =~ /#{self.name}\s*(.*?)$/
-      $1
-    else
-      raise InternalError.new(sprintf('unable to parse result from `vagrant status`: [%s]', res))
-    end
-
+    @_vm.state.to_s
   end
 
   def suspend
-    self.run_vagrant("suspend #{self.name}")
+    @_vm.suspend
   end
 
   ## internal methods
