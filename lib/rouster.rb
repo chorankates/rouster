@@ -1,5 +1,7 @@
 require 'rubygems'
 
+#
+
 # TODO be smarter about this
 $LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/'
 require 'vagrant'
@@ -10,6 +12,14 @@ require 'vagrant'
 # TODO combine/refactor the get_scp_command(), get_ssh_command() synergies
 
 class Rouster
+  # custom exceptions -- what else do we want them to include/do?
+  #   - should append the name of the box to the exception message
+  class NotImplementedError < StandardError; end # could have sworn there was a built in 'not implemented' exception.. guess this'll do just as well
+  class FileTransferError < StandardError; end # thrown by get() and put()
+  class InternalError < StandardError; end # thrown by most (if not all) Rouster methods
+  class LocalExecutionError < StandardError; end # thrown by _run()
+  class RemoteExecutionError < StandardError; end # thrown by run()
+  class SSHConnectionError < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_reader :name, :output, :passthrough, :sshkey, :sudo, :vagrant, :vagrantdir, :vagrantfile
   attr_accessor :sshinfo, :verbosity
@@ -34,14 +44,14 @@ class Rouster
     # no key is specified
     if @sshkey.nil?
       if @passthrough.eql?(true)
-        raise Rouster::InternalError, 'must specify sshkey when using a passthrough host'
+        raise InternalError.new('must specify sshkey when using a passthrough host')
       else
         # TODO do this via the vagrant library
         # ask Vagrant for the path to the key
         begin
           res = self.run_vagrant("ssh-config #{self.name}")
         rescue Rouster::LocalExecutionError => e
-          raise Rouster::InternalError, 'unable to query Vagrant for sshkey'
+          raise InternalError.new('unable to query Vagrant for sshkey')
         end
 
         # TODO need to wrap this into the get_ssh_prefix / get_scp_prefix pattern so we aren't parsing it everywhere
@@ -55,11 +65,11 @@ class Rouster
 
     # confirm found/specified key exists
     if @sshkey.nil? or ! File.exists?(@sshkey)
-      raise Rouster::InternalError, "specified key [#{@sshkey}] does not exist"
+      raise InternalError.new("specified key [#{@sshkey}] does not exist")
     end
 
     unless File.exists?(@vagrantfile)
-      raise Rouster::InternalError, "specified Vagrantfile [#{@vagrantfile}] does not exist"
+      raise InternalError.new("specified Vagrantfile [#{@vagrantfile}] does not exist")
     end
 
     # TODO need to confirm validity before we go on
@@ -88,7 +98,7 @@ class Rouster
     if res =~ /#{self.name}\s*(.*?)$/
       $1
     else
-      raise Rouster::InternalError, 'unable to parse result from `vagrant status`: [%s]' % res
+      raise InternalError.new(sprintf('unable to parse result from `vagrant status`: [%s]', res))
     end
 
   end
@@ -133,7 +143,7 @@ class Rouster
   end
 
   def log(msg, level=NOTICE)
-    #raise Rouster::NotImplementedError
+    #raise NotImplementedError.new()
     puts "#{level}: #{msg}\n"
   end
 
@@ -142,7 +152,7 @@ class Rouster
 
     res = self.status()
 
-    raise Rouster::SSHConnectionError sprintf('unable to get [%s], box is in status [%s]', remote_file, res) unless res.eql?('running')
+    raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [%s]', remote_file, res)) unless res.eql?('running')
 
     cmd = sprintf(
       '%s %s@%s:%s %s',
@@ -157,7 +167,7 @@ class Rouster
       # assuming this doesn't fail, does the return of this method get passed back up the stack?
       self._run(cmd)
     rescue Rouster::LocalExecutionError => e
-      raise Rouster::SSHConnectionError sprintf('unable to get [%s], command [%s] returned [%s]', remote_file, cmd, self.get_output())
+      raise SSHConnectionError.new(sprintf('unable to get [%s], command [%s] returned [%s]', remote_file, cmd, self.get_output()))
     end
 
   end
@@ -166,7 +176,7 @@ class Rouster
     remote_file = remote_file.nil? ? File.basename(local_file) : remote_file
 
     res = self.status()
-    raise Rouster::SSHConnectionError sprintf('unable to get [%s], box is in status [5s]', local_file, res) unless res.eql?('running')
+    raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [5s]', local_file, res)) unless res.eql?('running')
 
     cmd = sprintf(
       '%s %s %s@%s:%s',
@@ -180,7 +190,7 @@ class Rouster
     begin
       self._run(cmd)
     rescue Rouster::LocalExecutionError
-      raise Rouster::SSHConnectionError sprintf('unable to get [%s], command [%s] returned [%s]', local_file, cmd, self.get_output())
+      raise SSHConnectionError.new(sprintf('unable to get [%s], command [%s] returned [%s]', local_file, cmd, self.get_output()))
     end
 
   end
@@ -200,8 +210,6 @@ class Rouster
 
     self.run_vagrant('destroy')
     self.run_vagrant('up')
-
-    # TODO decide what the return from this should be.. nothing? only throw exceptions when you need to?
 
   end
 
@@ -225,10 +233,10 @@ class Rouster
     res      = `#{cmd}` # what does this actually hold?
 
     output = File.read(tmp_file)
-    File.delete(tmp_file) or raise Rouster::InternalError sprintf('unable to delete [%s]: %s', tmp_file, $!)
+    File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))
 
     unless $?.success?
-      raise Rouster::LocalExecutionError sprintf('command [%s] exited with code [%s], output [%s]', cmd, $?.to_i(), output)
+      raise LocalExecutionError.new(sprintf('command [%s] exited with code [%s], output [%s]', cmd, $?.to_i(), output))
     end
 
     self.output.push(output)
@@ -307,27 +315,3 @@ class Rouster
 
 end
 
-# custom exceptions -- what else do we want them to include/do?   should append the name of the box to the exception message
-class Rouster::NotImplementedError < StandardError
-  # could have sworn there was a built in 'not implemented' exception.. guess this'll do just as well
-end
-
-class Rouster::FileTransferError < StandardError
-  # thrown by get() and put()
-end
-
-class Rouster::InternalError < StandardError
-  # thrown by most (if not all) Rouster methods
-end
-
-class Rouster::LocalExecutionError < StandardError
-  # thrown by _run()
-end
-
-class Rouster::RemoteExecutionError < StandardError
-  # thrown by run()
-end
-
-class Rouster::SSHConnectionError < StandardError
-  # thrown by available_via_ssh() -- and potentially _run()
-end
