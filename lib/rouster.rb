@@ -17,7 +17,7 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :_env, :exitcode, :name, :output, :passthrough, :sudo, :_ssh, :vagrantfile, :verbosity, :_vm, :_vm_config
+  attr_reader :_env, :exitcode, :name, :output, :passthrough, :sudo, :_ssh, :sshinfo, :vagrantfile, :verbosity, :_vm, :_vm_config
 
   def initialize(opts = nil)
     # process hash keys passed
@@ -83,8 +83,11 @@ class Rouster
       raise InternalError.new("specified Vagrantfile [#{@vagrantfile}] does not exist")
     end
 
-    # TODO need to confirm validity before we go on
-    # in Salesforce::Vagrant we constantly checked whether an object was 'valid' and then again at its 'status' -- not doing that again
+    config_keys = @_vm_config.keys
+    self.sshinfo[:host] = config_keys[:ssh].host
+    self.sshinfo[:port] = config_keys[:ssh].port
+    self.sshinfo[:user] = config_keys[:ssh].username
+    self.sshinfo[:key]  = @sshkey
 
   end
 
@@ -124,7 +127,16 @@ class Rouster
 
     # TODO finish the conversion over to @_vm.ssh
     @log.info(sprintf('running [%s]', command))
-    cmd     = sprintf('%s -t %s%s', self.get_ssh_prefix(), self.uses_sudo? ? 'sudo ' : '', command)
+
+    cmd = sprintf(
+        'ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s -t -t %s%s',
+        self.sshinfo[:port],
+        self.sshinfo[:sshkey],
+        self.sshinfo[:user],
+        self.sshinfo[:hostname],
+        self.uses_sudo? ? 'sudo ' : '',
+        command
+    )
     self._run(cmd)
     #@_vm.ssh.execute(cmd)
   end
@@ -167,8 +179,9 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [%s]', remote_file, res)) unless res.eql?('running')
 
     cmd = sprintf(
-      '%s %s@%s:%s %s',
-      self.get_scp_prefix(),
+      'scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s:%s %s',
+      self.sshinfo[:port],
+      self.sshinfo[:key],
       self.sshinfo[:user],
       self.sshinfo[:hostname],
       remote_file,
@@ -191,8 +204,9 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [5s]', local_file, res)) unless res.eql?('running')
 
     cmd = sprintf(
-      '%s %s %s@%s:%s',
-      self.get_scp_prefix(),
+      'scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s %s@%s:%s',
+      self.sshinfo[:port],
+      self.sshinfo[:key],
       local_file,
       self.sshinfo[:user],
       self.sshinfo[:hostname],
@@ -303,35 +317,6 @@ class Rouster
     )
   end
 
-  def get_scp_prefix
-
-    if self.sshinfo.nil?
-      hash   = Hash.new
-      output = self.run_vagrant("ssh-config #{self.name}")
-
-      output.each_line do |line|
-        if line =~ /HostName (.*?)$/
-          hash[:hostname] = $1
-        elsif line =~ /User (\w*?)$/
-          hash[:user] = $1
-        elsif line =~ /Port (\d*?)$/
-          hash[:port] = $1
-        elsif line =~ /IdentityFile (.*?)$/
-          hash[:sshkey] = $1
-        end
-      end
-
-      self.sshinfo = hash
-    end
-
-    a = sprintf(
-      'scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s',
-      self.sshinfo[:port],
-      self.sshinfo[:sshkey]
-    )
-
-    a
-  end
 
   def get_output(index = 0)
     # return index'th array of output in LIFO order
