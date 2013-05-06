@@ -1,7 +1,8 @@
 require 'rubygems'
 
 # TODO be smarter about this
-$LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/'
+$LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/' # just vagrant
+$LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/' # vagrant dependencies <-- did not fix problem
 require 'vagrant'
 
 # TODO combine/refactor the get_scp_command(), get_ssh_command() synergies
@@ -22,19 +23,28 @@ class Rouster
   def initialize(opts = nil)
     # process hash keys passed
     @name        = opts[:name] # since we're constantly calling .to_sym on this, might want to just start there
-    @passthrough = opts.has_key?(:passthrough) ? false : opts[:passthrough]
+    @passthrough = opts.has_key?(:passthrough) and ! opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey      = opts[:sshkey]
-    @sudo        = (opts.has_key?(:sudo) or @passthrough.eql?(true)) ? false : true
     @vagrantfile = vagrantfile.nil? ? sprintf('%s/Vagrantfile', Dir.pwd) : vagrantfile
-    @verbosity   = (opts.has_key?(:verbosity) and opts[:verbosity].is_a?(Integer)) ? opts[:verbosity] : 0
+    @verbosity   = (opts.has_key?(:verbosity) and opts[:verbosity].is_a?(Integer)) ? opts[:verbosity] : 5 # default to error
+
+    if opts.has_key?(:sudo)
+      @sudo = opts[:sudo]
+    elsif @passthrough.eql?(true)
+      @sudo = false
+    else
+      @sudo = true
+    end
+
 
     @output      = Array.new
+    @sshinfo     = Hash.new
 
     # set up logging
     require 'log4r/config'
     Log4r.define_levels(*Log4r::Log4rConfig::LogLevels)
 
-    @log            = Log4r::Logger.new('rouster')
+    @log            = Log4r::Logger.new(sprintf('rouster:%s', @name))
     @log.outputters = Log4r::Outputter.stderr
     @log.level      = @verbosity # all, fatal, error, warn, info, debug, off
 
@@ -55,7 +65,7 @@ class Rouster
 
     # need to set base MAC here, not sure why we have never had to specify this previously
     @_vm_config = @_config.for_vm(@name.to_sym)
-    @_vm_config.vm.base_mac = '0a:00:27:00:42:42'
+    @_vm_config.vm.base_mac = 'b88d12044242' # causes a fatal error with VboxManage if colons are left in
 
     @log.debug('instantiating Vagrant::VM')
     @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
@@ -79,7 +89,7 @@ class Rouster
       raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
     end
 
-    unless File.exists?(@vagrantfile)
+    unless File.file?(@vagrantfile) or File.symlink?(@vagrantfile)
       raise InternalError.new("specified Vagrantfile [#{@vagrantfile}] does not exist")
     end
 

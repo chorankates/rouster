@@ -47,7 +47,7 @@ class TestRun < Test::Unit::TestCase
   end
 
   def teardown
-    # TODO we should suspend if any test failed for triage
+    # TODO we should suspend instead if any test failed for triage
     @app.destroy()
     @acs.destroy()
   end

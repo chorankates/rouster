@@ -2,14 +2,14 @@ require '../path_helper'
 require 'rouster'
 
 app = Rouster.new(:name => 'app', :verbosity => 2, :sudo => false)
-ppm = Rouster.new(:name => 'ppm', :verbosity => 4, :sudo => true)
+ppm = Rouster.new(:name => 'ppm', :verbosity => 1, :sudo => true)
 
 # passthrough boxes do not need to specify a name
 # commented out currently because passthrough is not MVP
 #lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
 #rpt = Rouster.new(:passthrough => 'remote', :verbosity => 4, :sshkey => '~/.ssh/id_dsa')
 
-workers = [app, ppm]
+workers = [ppm]
 
 workers.each do |w|
   p '%s config: ' % w.name
