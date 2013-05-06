@@ -1,10 +1,19 @@
 Rouster
 ==
-
+```
 Rouster.is\_a?('abstraction layer for interacting with Vagrant managed virtual machines')
+
 => true
+```
 
 It was conceived as the functional test answer to RSpec when Salesforce began rolling out [Puppet](http://www.puppetlabs.com), as many examples and comments will attest, but it can be used for much more.
+
+```
+app = Rouster.new({:name => 'app' })
+app.up()
+p app.run('/sbin/service puppet once -t')
+app.destroy()
+```
 
 The first implementation was in Perl, called [Salesforce::Vagrant](http://github.com/forcedotcom/SalesforceVagrant). Salesforce::Vagrant is functional, but new functionality may or may not be ported back.
 
@@ -31,17 +40,17 @@ Rouster supports many of the vagrant faces:
 require 'rouster'
 
 # the value for the 'name' attribute should be a name shown when you execute `vagrant status`
-app = Rouster.new({:name => 'app' });
+app = Rouster.new({:name => 'app' })
 
 # equivalent to `vagrant up app`
-app.up();
+app.up()
 
 # STD(OUT|ERR) of this is available in app.get_output()
-app.run('cat /etc/hosts');
-app.put('new-foo', '/tmp/foo');
-app.get('/tmp/foo');
+app.run('cat /etc/hosts')
+app.put('new-foo', '/tmp/foo')
+app.get('/tmp/foo')
 
-app.destroy
+app.destroy()
 ```
 
 ### functional puppet test
