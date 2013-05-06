@@ -59,7 +59,7 @@ class TestPuppetRun < Test::Unit::TestCase
 
   def test_it
 
-    workers = [ppm, app]
+    workers = [@ppm, @app]
 
     workers.each do |w|
       # tear them down and build back up for clean run
@@ -69,7 +69,7 @@ class TestPuppetRun < Test::Unit::TestCase
       res = nil
 
       begin
-        res = w.run('puppet agent -t --environment development');
+        res = w.run('puppet agent -t --environment development')
       rescue Rouster::RemoteExecutionError
         # puppet gives a 2 exit code if a resource changes, need to catch the exception
         unless w.exitcode.eql?(2)
