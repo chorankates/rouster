@@ -5,8 +5,14 @@
 # this gets us Rouster, still need to figure out how to find vagrant
 $LOAD_PATH << File.join([File.dirname(__FILE__), "lib"])
 
-require 'rubygems'
 
+irbrc = File.join(ENV['HOME'], '.irbrc')
+
+if File.readable?(irbrc)
+  require irbrc
+end
+
+require 'rubygems'
 ## this is really optional, so don't die if we don't have it
 begin
   require 'ruby-debug'

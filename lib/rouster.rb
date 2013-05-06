@@ -37,7 +37,7 @@ class Rouster
     @log.outputters = Log4r::Outputter.stderr
     @log.level      = @verbosity # all, fatal, error, warn, info, debug, off
 
-
+    @log.debug('instantiating Vagrant::Environment')
     @_env = Vagrant::Environment.new({:vagrantfile_name => @vagrantfile})
     # ["action_registry", "action_runner", "boxes", "boxes_path", "cli", "config",
     # "copy_insecure_private_key", "cwd", "default_private_key_path", "dotfile_path",
@@ -46,6 +46,7 @@ class Rouster
     # "lock_path", "multivm?", "primary_vm", "reload!", "root_path", "setup_home_path",
     # "tmp_path", "ui", "vagrantfile_name", "vms", "vms_ordered"]
 
+    @log.debug('loading Vagrantfile configuration')
     @_config = @_env.load_config!
     # ["for_vm", "global", "vms"]
 
@@ -55,6 +56,7 @@ class Rouster
     @_vm_config = @_config.for_vm(@name.to_sym)
     @_vm_config.vm.base_mac = '0a:00:27:00:42:42'
 
+    @log.debug('instantiating Vagrant::VM')
     @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
     # ["box", "channel", "config", "created?", "destroy", "driver", "env",
     # "guest", "halt", "load_guest!", "package", "provision", "reload",
@@ -120,7 +122,7 @@ class Rouster
     # runs a command inside the Vagrant VM
 
     # TODO finish the conversion over to @_vm.ssh
-
+    @log.info(sprintf('running [%s]', command))
     cmd     = sprintf('%s -t %s%s', self.get_ssh_prefix(), self.uses_sudo? ? 'sudo ' : '', command)
     self._run(cmd)
     #@_vm.ssh.execute(cmd)
