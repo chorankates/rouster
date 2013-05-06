@@ -1,5 +1,4 @@
-require 'rubygems'
-require 'lib/rouster'
+require '../spec_helper'
 
 begin
   badkey = Rouster.new(:name => 'whatever', :verbosity => 4, :sshkey => __FILE__)

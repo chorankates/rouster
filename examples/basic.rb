@@ -1,5 +1,7 @@
-require 'rubygems'
-require 'lib/rouster'
+require '../spec_helper'
+
+require 'rouster'
+require 'test/unit'
 
 a = Rouster.new(:name => ppm)
 
