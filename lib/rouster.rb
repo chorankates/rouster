@@ -7,6 +7,8 @@ require 'vagrant'
 # TODO combine/refactor the get_scp_command(), get_ssh_command() synergies
 
 class Rouster
+  VERSION = 0.1
+
   # custom exceptions -- what else do we want them to include/do?
   #   - should append the name of the box to the exception message
   class NotImplementedError  < StandardError; end # could have sworn there was a built in 'not implemented' exception.. guess this'll do just as well
