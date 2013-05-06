@@ -79,7 +79,7 @@ class TestPuppetRun < Test::Unit::TestCase
         res = w.get_output()
 
         assert_equal(0 or 2, w.exitcode, "exit code [#{w.exitcode}] considered success")
-        assert_contains(/Finished catalog/, res, 'output contains \'Finished catalog\')
+        assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
 
       end
     end
@@ -91,6 +91,4 @@ class TestPuppetRun < Test::Unit::TestCase
   end
 
 end
-
-}
 ```
