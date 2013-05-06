@@ -286,38 +286,6 @@ class Rouster
   end
 
   ## truly internal methods
-  def get_ssh_prefix
-    # TODO replace this with something Vagranty
-
-    if self.sshinfo.nil?
-      hash   = Hash.new
-      output = self.run_vagrant("ssh-config #{self.name}")
-
-      output.each_line do |line|
-        if line =~ /HostName (.*?)$/
-          hash[:hostname] = $1
-        elsif line =~ /User (\w*?)$/
-          hash[:user] = $1
-        elsif line =~ /Port (\d*?)$/
-          hash[:port] = $1
-        elsif line =~ /IdentityFile (.*?)$/
-          hash[:sshkey] = $1
-        end
-      end
-
-      self.sshinfo = hash
-    end
-
-    sprintf(
-      'ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s',
-      self.sshinfo[:port],
-      self.sshinfo[:sshkey],
-      self.sshinfo[:user],
-      self.sshinfo[:hostname]
-    )
-  end
-
-
   def get_output(index = 0)
     # return index'th array of output in LIFO order
 
