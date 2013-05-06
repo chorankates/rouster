@@ -5,7 +5,7 @@ Rouster.is_a?('abstraction layer for controlling with Vagrant virtual machines')
 => true
 ```
 
-It was conceived as the functional test answer to RSpec when Salesforce began rolling out [Puppet](http://www.puppetlabs.com), as many examples and comments will attest, but it can be used for much more.
+It was conceived as the missing piece needed to functionally test Puppet manifests; while RSpec is nice (and _much_ faster), compiling a catalog and applying it are 2 distinct operations
 
 ```
 app = Rouster.new({:name => 'app' })
