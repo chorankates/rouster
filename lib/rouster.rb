@@ -11,7 +11,6 @@ class Rouster
 
   # custom exceptions -- what else do we want them to include/do?
   #   - should append the name of the box to the exception message
-  class NotImplementedError  < StandardError; end # could have sworn there was a built in 'not implemented' exception.. guess this'll do just as well
   class FileTransferError    < StandardError; end # thrown by get() and put()
   class InternalError        < StandardError; end # thrown by most (if not all) Rouster methods
   class LocalExecutionError  < StandardError; end # thrown by _run()
@@ -209,14 +208,17 @@ class Rouster
   end
 
   def is_dir?(dir)
+    # TODO implement this
     raise NotImplementedError.new()
   end
 
   def is_file?(file)
+    # TODO implement this
     raise NotImplementedError.new()
   end
 
   def is_in_file?(file, regex, scp=0)
+    # TODO implement this
     raise NotImplementedError.new()
   end
 
