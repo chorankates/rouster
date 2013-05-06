@@ -1,4 +1,4 @@
-require '../spec_helper'
+require '../path_helper'
 
 require 'rouster'
 require 'test/unit'

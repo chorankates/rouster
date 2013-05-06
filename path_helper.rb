@@ -12,3 +12,4 @@ begin
   require 'ruby-debug'
 rescue LoadError
 end
+

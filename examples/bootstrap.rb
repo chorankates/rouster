@@ -1,4 +1,4 @@
-require '../spec_helper'
+require '../path_helper'
 require 'rouster'
 
 app = Rouster.new(:name => 'app', :verbosity => 2, :sudo => false)

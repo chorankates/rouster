@@ -1,4 +1,5 @@
-require '../spec_helper'
+require '../path_helper'
+require 'rouster'
 
 begin
   badkey = Rouster.new(:name => 'whatever', :verbosity => 4, :sshkey => __FILE__)
