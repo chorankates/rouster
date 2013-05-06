@@ -16,7 +16,7 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :_env, :name, :output, :passthrough, :sudo, :_ssh, :vagrantfile, :verbosity, :_vm, :_vm_config
+  attr_reader :_env, :exitcode, :name, :output, :passthrough, :sudo, :_ssh, :vagrantfile, :verbosity, :_vm, :_vm_config
 
   def initialize(opts = nil)
     # process hash keys passed
@@ -250,6 +250,7 @@ class Rouster
     end
 
     self.output.push(output)
+    self.exitcode = $?.to_i()
     output
   end
 
