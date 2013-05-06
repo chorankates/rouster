@@ -34,6 +34,16 @@ Rouster supports many of the vagrant faces:
 * status()
 * up()
 
+As well as some custom methods:
+* get(\<vm\_file\_path\>, [local\_file\_path])
+* is\_dir(\<dir\>)
+* is\_file(\<file\>, [MD5])
+* is\_in\_file(\<file\>, \<regex\>, \[scp\_boolean\])
+* put(\<local\_file\_path\>,[vm\_file\_path])
+* rebuild()
+* restart()
+* run(\<command\>)
+
 ### basic instantiation and usage
 
 ```
@@ -106,5 +116,8 @@ end
 ## Methods
 ```
 irb(main):003:0> (Rouster.new({:name => 'app'}).methods - Object.methods).sort
-=> ["_env", "_run", "_ssh", "_vm", "_vm_config", "available_via_ssh?", "destroy", "exitcode", "get", "get_output", "get_scp_prefix", "get_ssh_prefix", "is_dir?", "is_file?", "is_in_file?", "is_passthrough?", "output", "passthrough", "put", "rebuild", "restart", "run", "run_vagrant", "status", "sudo", "suspend", "up", "uses_sudo?", "vagrantfile", "verbosity"]
+=> ["_env", "_run", "_ssh", "_vm", "_vm_config", "available_via_ssh?", "destroy", "exitcode", "get", "get_output",
+"get_scp_prefix", "get_ssh_prefix", "is_dir?", "is_file?", "is_in_file?", "is_passthrough?", "output", "passthrough",
+"put", "rebuild", "restart", "run", "run_vagrant", "status", "sudo", "suspend", "up", "uses_sudo?", "vagrantfile",
+"verbosity"]
 ```
