@@ -2,14 +2,14 @@ require '../path_helper'
 require 'rouster'
 
 app = Rouster.new(:name => 'app', :verbosity => 2, :sudo => false)
-#ppm = Rouster.new(:name => 'ppm', :verbosity => 4, :sudo => true)
+ppm = Rouster.new(:name => 'ppm', :verbosity => 4, :sudo => true)
 
 # passthrough boxes do not need to specify a name
 # commented out currently because passthrough is not MVP
 #lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
 #rpt = Rouster.new(:passthrough => 'remote', :verbosity => 4, :sshkey => '~/.ssh/id_dsa')
 
-workers = [app]
+workers = [app, ppm]
 
 workers.each do |w|
   p '%s config: ' % w.name
@@ -22,20 +22,17 @@ workers.each do |w|
   p sprintf('%s status: %s', w.name, w.status())
   p sprintf('%s available via ssh: %s', w.name, w.available_via_ssh?())
 
-  # saving battery life
-  if false
-    p 'suspending the box'
-    w.suspend()
+  p 'suspending the box'
+  w.suspend()
 
-    p sprintf('%s status: %s', w.name, w.status())
-    p sprintf('%s available via ssh: %s', w.name, w.available_via_ssh?())
+  p sprintf('%s status: %s', w.name, w.status())
+  p sprintf('%s available via ssh: %s', w.name, w.available_via_ssh?())
 
-    p 'bringing the box back'
-    w.up()
+  p 'bringing the box back'
+  w.up()
 
-    p sprintf('%s status: %s' % w.name, w.status())
-    p sprintf('%s available via ssh: %s', w.name, w.available_via_ssh?())
-  end
+  p sprintf('%s status: %s' % w.name, w.status())
+  p sprintf('%s available via ssh: %s', w.name, w.available_via_ssh?())
 
   # put a file on the box and then bring it back
   w.put(__FILE__, '/tmp/foobar')
