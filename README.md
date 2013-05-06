@@ -11,6 +11,7 @@ It was conceived as the missing piece needed to functionally test Puppet manifes
 app = Rouster.new({:name => 'app' })
 app.up()
 p app.run('/sbin/service puppet once -t')
+raise RemoteExecutionError.new(app.get_output()) unless app.exitcode.eql?(2)
 app.destroy()
 ```
 
@@ -99,4 +100,11 @@ class TestPuppetRun < Test::Unit::TestCase
   end
 
 end
+```
+
+
+## Methods
+```
+irb(main):003:0> (Rouster.new({:name => 'app'}).methods - Object.methods).sort
+=> ["_env", "_run", "_ssh", "_vm", "_vm_config", "available_via_ssh?", "destroy", "exitcode", "get", "get_output", "get_scp_prefix", "get_ssh_prefix", "is_dir?", "is_file?", "is_in_file?", "is_passthrough?", "output", "passthrough", "put", "rebuild", "restart", "run", "run_vagrant", "status", "sudo", "suspend", "up", "uses_sudo?", "vagrantfile", "verbosity"]
 ```
