@@ -23,9 +23,9 @@ class Rouster
   def initialize(opts = nil)
     # process hash keys passed
     @name        = opts[:name] # since we're constantly calling .to_sym on this, might want to just start there
-    @passthrough = opts.has_key?(:passthrough) and ! opts[:passthrough].nil? ? false : opts[:passthrough]
+    @passthrough = (opts.has_key?(:passthrough) and ! opts[:passthrough].nil?) ? false : opts[:passthrough]
     @sshkey      = opts[:sshkey]
-    @vagrantfile = vagrantfile.nil? ? sprintf('%s/Vagrantfile', Dir.pwd) : vagrantfile
+    @vagrantfile = vagrantfile.nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : vagrantfile
     @verbosity   = (opts.has_key?(:verbosity) and opts[:verbosity].is_a?(Integer)) ? opts[:verbosity] : 5 # default to error
 
     if opts.has_key?(:sudo)
@@ -36,9 +36,9 @@ class Rouster
       @sudo = true
     end
 
-
     @output      = Array.new
     @sshinfo     = Hash.new
+    @exitcode    = nil
 
     # set up logging
     require 'log4r/config'
@@ -47,6 +47,10 @@ class Rouster
     @log            = Log4r::Logger.new(sprintf('rouster:%s', @name))
     @log.outputters = Log4r::Outputter.stderr
     @log.level      = @verbosity # all, fatal, error, warn, info, debug, off
+
+    unless File.file?(@vagrantfile)
+      raise InternalError.new("specified Vagrantfile [#{@vagrantfile}] does not exist") unless File.file?(@vagrantfile)
+    end
 
     @log.debug('instantiating Vagrant::Environment')
     @_env = Vagrant::Environment.new({:vagrantfile_name => @vagrantfile})
@@ -87,10 +91,6 @@ class Rouster
     # confirm found/specified key exists
     if @sshkey.nil? or @_vm.ssh.check_key_permissions(@sshkey)
       raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
-    end
-
-    unless File.file?(@vagrantfile) or File.symlink?(@vagrantfile)
-      raise InternalError.new("specified Vagrantfile [#{@vagrantfile}] does not exist")
     end
 
     config_keys = @_vm_config.keys
@@ -296,6 +296,26 @@ class Rouster
   end
 
   ## truly internal methods
+  def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
+
+    raise InternalError.new('must specify a filename') if filename.nil?
+
+    dirs  = startdir.split('/')
+    count = 0
+
+    while count < levels and ! dirs.nil?
+
+      potential = sprintf('%s/Vagrantfile', dirs.join('/'))
+
+      if File.file?(potential)
+        return potential
+      end
+
+      dirs.pop()
+      count += 1
+    end
+  end
+
   def get_output(index = 0)
     # return index'th array of output in LIFO order
 
