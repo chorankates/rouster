@@ -45,7 +45,7 @@ class Rouster
 
     @log            = Log4r::Logger.new(sprintf('rouster:%s', @name))
     @log.outputters = Log4r::Outputter.stderr
-    @log.level      = @verbosity # all, fatal, error, warn, info, debug, off
+    @log.level      = @verbosity # DEBUG (1) < INFO (2) < WARN < ERROR < FATAL (5)
 
     unless File.file?(@vagrantfile)
       raise InternalError.new("specified Vagrantfile [#{@vagrantfile}] does not exist") unless File.file?(@vagrantfile)
@@ -115,10 +115,12 @@ class Rouster
   ## Vagrant methods
   # currently implemented as `vagrant` shell outs
   def up
+    @log.info('up()')
     @_vm.up
   end
 
   def destroy
+    @log.info('destroy()')
     @_vm.destroy
   end
 
@@ -127,6 +129,7 @@ class Rouster
   end
 
   def suspend
+    @log.info('suspend()')
     @_vm.suspend
   end
 
