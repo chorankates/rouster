@@ -7,10 +7,10 @@ class TestRun < Test::Unit::TestCase
 
   def setup
     @app = Rouster.new({:name => 'app'})
-    @acs = Rouster.new({:name => 'acs', :sudo => false})
+    @ppm = Rouster.new({:name => 'ppm', :sudo => false})
 
     @app.up()
-    @acs.up()
+    @ppm.up()
   end
 
   def test_happy_path
@@ -40,15 +40,15 @@ class TestRun < Test::Unit::TestCase
   end
 
   def test_sudo_disabled
-    res = @acs.run('ls -l /root')
+    res = @ppm.run('ls -l /root')
 
-    assert_not_equal(0, @acs.exitcode, 'got expected non-0 exit code')
-    assert_match(/Permission denied/i, @acs.get_output(), 'output matches expectations')
+    assert_not_equal(0, @ppm.exitcode, 'got expected non-0 exit code')
+    assert_match(/Permission denied/i, @ppm.get_output(), 'output matches expectations')
   end
 
   def teardown
     # TODO we should suspend instead if any test failed for triage
     @app.destroy()
-    @acs.destroy()
+    @ppm.destroy()
   end
 end
