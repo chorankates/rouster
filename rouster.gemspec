@@ -15,9 +15,11 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = '>= 1.3.6' # not sure about this
   s.rubyforge_project         = 'Rouster' # need to create this
- 
-  s.add_dependency 'vagrant', '~> 1.0.5'
+
   s.add_dependency 'log4r',   '~> 1.1.9'
+  s.add_dependency 'net-scp'
+  s.add_dependency 'net-ssh'
+  s.add_dependency 'vagrant', '~> 1.0.5'
 
   s.add_development_dependency 'rake'
   s.add_development_dependency 'test/unit'

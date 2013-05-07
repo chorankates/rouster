@@ -1,4 +1,5 @@
-require '../path_helper'
+require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
+
 require 'rouster'
 
 app = Rouster.new(:name => 'app', :verbosity => 2, :sudo => false)

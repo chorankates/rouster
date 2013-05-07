@@ -2,7 +2,6 @@ require 'rubygems'
 
 # TODO be smarter about this
 $LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/' # just vagrant
-$LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/' # vagrant dependencies <-- did not fix problem
 require 'vagrant'
 
 # TODO combine/refactor the get_scp_command(), get_ssh_command() synergies
