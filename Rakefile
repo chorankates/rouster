@@ -1,6 +1,5 @@
 require 'rubygems'
 
-# TODO better
 task :test do
   Dir['test/**/*.rb'].each do |test|
     sh "ruby #{test}"
