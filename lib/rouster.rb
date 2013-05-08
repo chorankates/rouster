@@ -1,5 +1,6 @@
 require 'rubygems'
 
+require 'json'
 # TODO be smarter about this
 $LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/' # just vagrant
 require 'vagrant'
@@ -22,9 +23,9 @@ class Rouster
   def initialize(opts = nil)
     # process hash keys passed
     @name        = opts[:name] # since we're constantly calling .to_sym on this, might want to just start there
-    @passthrough = (opts.has_key?(:passthrough) and ! opts[:passthrough].nil?) ? false : opts[:passthrough]
+    @passthrough = opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey      = opts[:sshkey]
-    @vagrantfile = vagrantfile.nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : vagrantfile
+    @vagrantfile = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
     @verbosity   = (opts.has_key?(:verbosity) and opts[:verbosity].is_a?(Integer)) ? opts[:verbosity] : 5 # default to error
 
     if opts.has_key?(:sudo)
@@ -76,6 +77,24 @@ class Rouster
     # "guest", "halt", "load_guest!", "package", "provision", "reload",
     # "reload!", "resume", "run_action", "ssh", "start", "state", "suspend", "ui",
     # "up", "uuid", "uuid=", "vm"]
+
+    # TODO get the filename from @_env object
+    if File.exists?('.vagrant')
+
+      @log.info('.vagrant file found, parsing for existing VMs')
+
+      contents = File.read('.vagrant')
+      created_vms = JSON.parse(contents)
+
+      if created_vms['active']
+        if created_vms['active'][@name]
+          uuid = created_vms['active'][@name]
+          @log.info(sprintf('.vagrant contained an active VM with same name, using UUID [%s]', uuid))
+          @_vm.uuid = uuid
+        end
+      end
+
+    end
 
     # no key is specified
     if @sshkey.nil?
@@ -186,8 +205,8 @@ class Rouster
   def get(remote_file, local_file=nil)
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
 
+    # TODO should we switch this over to
     res = self.status()
-
     raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [%s]', remote_file, res)) unless res.eql?('running')
 
     cmd = sprintf(
