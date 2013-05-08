@@ -78,24 +78,6 @@ class Rouster
     # "reload!", "resume", "run_action", "ssh", "start", "state", "suspend", "ui",
     # "up", "uuid", "uuid=", "vm"]
 
-    # TODO get the filename from @_env object
-    if File.exists?('.vagrant')
-
-      @log.info('.vagrant file found, parsing for existing VMs')
-
-      contents = File.read('.vagrant')
-      created_vms = JSON.parse(contents)
-
-      if created_vms['active']
-        if created_vms['active'][@name]
-          uuid = created_vms['active'][@name]
-          @log.info(sprintf('.vagrant contained an active VM with same name, using UUID [%s]', uuid))
-          @_vm.uuid = uuid
-        end
-      end
-
-    end
-
     # no key is specified
     if @sshkey.nil?
       if @passthrough.eql?(true)
@@ -132,7 +114,6 @@ class Rouster
   end
 
   ## Vagrant methods
-  # currently implemented as `vagrant` shell outs
   def up
     @log.info('up()')
     @_vm.up
