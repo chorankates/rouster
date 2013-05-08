@@ -26,7 +26,7 @@ class Rouster
     @passthrough = opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey      = opts[:sshkey]
     @vagrantfile = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
-    @verbosity   = (opts.has_key?(:verbosity) and opts[:verbosity].is_a?(Integer)) ? opts[:verbosity] : 5 # default to error
+    @verbosity   = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 5
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]
@@ -54,16 +54,9 @@ class Rouster
 
     @log.debug('instantiating Vagrant::Environment')
     @_env = Vagrant::Environment.new({:vagrantfile_name => @vagrantfile})
-    # ["action_registry", "action_runner", "boxes", "boxes_path", "cli", "config",
-    # "copy_insecure_private_key", "cwd", "default_private_key_path", "dotfile_path",
-    # "find_vagrantfile", "gems_path", "global_data", "home_path", "host", "load!",
-    # "load_config!", "load_plugins", "load_vms!", "loaded?", "local_data", "lock",
-    # "lock_path", "multivm?", "primary_vm", "reload!", "root_path", "setup_home_path",
-    # "tmp_path", "ui", "vagrantfile_name", "vms", "vms_ordered"]
 
     @log.debug('loading Vagrantfile configuration')
     @_config = @_env.load_config!
-    # ["for_vm", "global", "vms"]
 
     raise InternalError.new(sprintf('specified VM name [%s] not found in specified Vagrantfile', @name)) unless @_config.for_vm(@name.to_sym)
 
@@ -73,10 +66,6 @@ class Rouster
 
     @log.debug('instantiating Vagrant::VM')
     @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
-    # ["box", "channel", "config", "created?", "destroy", "driver", "env",
-    # "guest", "halt", "load_guest!", "package", "provision", "reload",
-    # "reload!", "resume", "run_action", "ssh", "start", "state", "suspend", "ui",
-    # "up", "uuid", "uuid=", "vm"]
 
     # no key is specified
     if @sshkey.nil?
@@ -116,7 +105,7 @@ class Rouster
   ## Vagrant methods
   def up
     @log.info('up()')
-    @_vm.up
+    @_vm.up unless self.status().eql?('running')
   end
 
   def destroy
@@ -152,6 +141,7 @@ class Rouster
       # non-0 exit code, this is fatal for Vagrant, but not for us
       output        = e.message
       @exitcode = 1 # TODO get the actual exit code
+      raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}]")
     end
 
     @exitcode ||= 0
