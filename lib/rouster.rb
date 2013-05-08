@@ -136,57 +136,32 @@ class Rouster
   ## internal methods
   def run(command)
     # runs a command inside the Vagrant VM
+    output = nil
 
-    # TODO finish the conversion over to @_vm.ssh
-    @log.info(sprintf('running [%s]', command))
-
-    cmd = sprintf(
-        'ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s -t -t %s%s',
-        self.sshinfo[:port],
-        self.sshinfo[:sshkey],
-        self.sshinfo[:user],
-        self.sshinfo[:hostname],
-        self.uses_sudo? ? 'sudo ' : '',
-        command
-    )
-    self._run(cmd)
-    #@_vm.ssh.execute(cmd)
-  end
-
-  def run_vagrant(command)
-    # not sure how we should actually call this
-    #  - in Salesforce::Vagrant, we cd to the Vagrantfile directory
-    #  - but here, we could potentially (probably?) use Vagrant itself to do the work
-
-    # either way, abstracting it here
-    if self.is_passthrough?
-      # TODO figure out how to abstract logging properly
-      # could be cool to use self.log.info(<msg>)
-      @log.info('vagrant(%s) is a no-op for passthrough workers' % command)
-    else
-      self._run(sprintf('cd %s; vagrant %s', self.vagrantdir, command))
+    # TODO use @_vm.channel.sudo here
+    if self.uses_sudo? and ! command.match(/^sudo/)
+      command = sprintf('sudo %s', command)
     end
 
+    @_vm.channel.execute(command) do |type,data|
+      output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
+      output += data
+    end
+
+    # need to set exit code here
+
+    output
   end
 
   def available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
-
-    # TODO use @_vm.ssh to test this
-
-    begin
-      self.run('uname -a')
-    rescue Rouster::SSHConnectionError
-      false
-    end
-
-    true
+    @_vm.channel.ready?()
   end
 
   def get(remote_file, local_file=nil)
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
 
-    # TODO should we switch this over to
+    # TODO should we switch this over to self.created?
     res = self.status()
     raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [%s]', remote_file, res)) unless res.eql?('running')
 
@@ -234,17 +209,14 @@ class Rouster
   end
 
   def is_dir?(dir)
-    # TODO implement this
     raise NotImplementedError.new()
   end
 
   def is_file?(file)
-    # TODO implement this
     raise NotImplementedError.new()
   end
 
   def is_in_file?(file, regex, scp=0)
-    # TODO implement this
     raise NotImplementedError.new()
   end
 
