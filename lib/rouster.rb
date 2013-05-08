@@ -143,13 +143,19 @@ class Rouster
       command = sprintf('sudo %s', command)
     end
 
-    @_vm.channel.execute(command) do |type,data|
-      output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
-      output += data
+    begin
+      @_vm.channel.execute(command) do |type,data|
+        output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
+        output += data
+      end
+    rescue Vagrant::Errors::VagrantError => e
+      # non-0 exit code, this is fatal for Vagrant, but not for us
+      output        = e.message
+      @exitcode = 1 # TODO get the actual exit code
     end
 
-    # need to set exit code here
-
+    @exitcode ||= 0
+    self.output.push(output)
     output
   end
 
@@ -265,7 +271,7 @@ class Rouster
     end
 
     self.output.push(output)
-    self.exitcode = $?.to_i()
+    @exitcode = $?.to_i()
     output
   end
 
