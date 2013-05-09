@@ -32,7 +32,7 @@ workers.each do |w|
   p 'bringing the box back'
   w.up()
 
-  p sprintf('%s status: %s' % w.name, w.status())
+  p sprintf('%s status: %s', w.name, w.status())
   p sprintf('%s available via ssh: %s', w.name, w.available_via_ssh?())
 
   # put a file on the box and then bring it back
