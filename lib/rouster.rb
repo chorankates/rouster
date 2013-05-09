@@ -90,8 +90,10 @@ class Rouster
 
   def inspect
     "name [#{@name}]:
+      created[#{@_vm.created?}],
       passthrough[#{@passthrough}],
       sshkey[#{@sshkey}],
+      status[#{self.status()}]
       sudo[#{@sudo}],
       vagrantfile[#{@vagrantfile}],
       verbosity[#{verbosity}],
@@ -108,6 +110,13 @@ class Rouster
       self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
     else
       @_vm.up
+    end
+
+    ## if the VM hasn't been created yet, we don't know the port
+    @_config.for_vm(@name.to_sym).keys[:vm].forwarded_ports.each do |f|
+      if f[:name].eql?('ssh')
+        self.sshinfo[:port] = f[:hostport]
+      end
     end
 
   end
