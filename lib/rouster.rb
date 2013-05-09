@@ -103,7 +103,13 @@ class Rouster
   ## Vagrant methods
   def up
     @log.info('up()')
-    @_vm.up unless self.status().eql?('running')
+
+    if @_vm.created?
+      self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
+    else
+      @_vm.up
+    end
+
   end
 
   def destroy
@@ -129,6 +135,8 @@ class Rouster
     if self.uses_sudo? and ! command.match(/^sudo/)
       command = sprintf('sudo %s', command)
     end
+
+    @log.info(sprintf('vm running: [%s]', command))
 
     begin
       @_vm.channel.execute(command) do |type,data|
@@ -230,9 +238,10 @@ class Rouster
     @_vm.up
   end
 
-  def restart(wait = 120)
+  def restart()
     # restarts a Vagrant machine, wait time is same as rebuild()
     # how do we do this in a generic way? shutdown -rf works for Unix, but not Solaris
+    #   we can ask Vagrant what kind of machine this is, but how far down this hole do we really want to go?
 
     # MVP
     self.run('/sbin/shutdown -rf now')
@@ -249,7 +258,7 @@ class Rouster
     cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file)
     res      = `#{cmd}` # what does this actually hold?
 
-    @log.debug(sprintf('running: [%s]', cmd)) # should this be an 'info'?
+    @log.info(sprintf('host running: [%s]', cmd))
 
     output = File.read(tmp_file)
     File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))
