@@ -10,10 +10,11 @@ class Rouster
     if res.grep(/No such file or directory/)
       return false
     elsif res.grep(/Permission denied/)
+      self.log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
       return false
     else
       # TODO need to mimic Salesforce::piab::_get_properties() behavior somehow
-      # stick it in self somewhere, but .. where?
+      # stick it in self somewhere, but .. where? get_output()? it wouldn't be a string, we'd parse it into a hash
       true
     end
   end
@@ -26,6 +27,7 @@ class Rouster
     res = self.run(sprintf('ls -l %s', file))
 
     if res.grep(/No such file or directory/)
+      self.log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
       return false
     elsif res.grep(/Permission denied/)
       return false
