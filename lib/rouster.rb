@@ -140,17 +140,20 @@ class Rouster
     # runs a command inside the Vagrant VM
     output = nil
 
-    # TODO use @_vm.channel.sudo here
-    if self.uses_sudo? and ! command.match(/^sudo/)
-      command = sprintf('sudo %s', command)
-    end
-
     @log.info(sprintf('vm running: [%s]', command))
 
     begin
-      @_vm.channel.execute(command) do |type,data|
-        output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
-        output += data
+      # TODO use a lambda here instead
+      if self.uses_sudo?
+        @vm.channel.sudo(command) do |type,data|
+          output ||= ""
+          output += data
+        end
+      else
+        @_vm.channel.execute(command) do |type,data|
+          output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
+          output += data
+        end
       end
     rescue Vagrant::Errors::VagrantError => e
       # non-0 exit code, this is fatal for Vagrant, but not for us

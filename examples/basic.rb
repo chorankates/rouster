@@ -2,14 +2,11 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 
 require 'rouster'
 require 'rouster/puppet'
-require 'rouster/test'
+require 'rouster/tests'
 
 p = Rouster.new(:name => 'app', :verbosity => 1)
 
-unless p.status.eql?('running')
-  p.up()
-end
-
+p.up()
 p.run('uname -a')
 print "output: #{p.get_output()} / exitcode: #{p.exitcode}\n"
 
