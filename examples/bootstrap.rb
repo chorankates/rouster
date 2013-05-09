@@ -10,7 +10,7 @@ ppm = Rouster.new(:name => 'ppm', :verbosity => 1, :sudo => true)
 #lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
 #rpt = Rouster.new(:passthrough => 'remote', :verbosity => 4, :sshkey => '~/.ssh/id_dsa')
 
-workers = [ppm]
+workers = [app]
 
 workers.each do |w|
   p '%s config: ' % w.name

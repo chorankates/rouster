@@ -4,6 +4,22 @@ require 'rouster'
 
 p = Rouster.new(:name => 'app', :verbosity => 1)
 
+unless p.status.eql?('running')
+  p.up()
+end
+
+p.run('uname -a')
+print "output: #{p.get_output()} / exitcode: #{p.exitcode}\n"
+
+begin
+  p.run('fizzbang')
+  print "output: #{p.get_output()} / exitcode: #{p.exitcode}\n"
+rescue Rouster::RemoteExecutionError => e
+  print "caught an exception: #{e}"
+end
+
+exit
+
 p.up()
 p p.status()
 p.suspend()
