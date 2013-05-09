@@ -5,11 +5,15 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 class Rouster
 
   def is_dir?(dir)
-    res = self.run(sprintf('ls -l %s', dir))
+    begin
+      res = self.run(sprintf('ls -ld %s', dir))
+    rescue RemoteExecutionError
+      # noop, process output instead of exit code
+    end
 
-    if res.grep(/No such file or directory/)
+    if res.match(/No such file or directory/)
       return false
-    elsif res.grep(/Permission denied/)
+    elsif res.match(/Permission denied/)
       self.log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
       return false
     else
@@ -24,12 +28,16 @@ class Rouster
   end
 
   def is_file?(file)
-    res = self.run(sprintf('ls -l %s', file))
+    begin
+      res = self.run(sprintf('ls -l %s', file))
+    rescue RemoteExecutionError
+      # noop, process output
+    end
 
-    if res.grep(/No such file or directory/)
+    if res.match(/No such file or directory/)
       self.log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
       return false
-    elsif res.grep(/Permission denied/)
+    elsif res.match(/Permission denied/)
       return false
     else
       true
