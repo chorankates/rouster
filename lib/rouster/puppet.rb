@@ -1,7 +1,6 @@
-require '../path_helper'
+require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
-module Rouster
-  class Puppet
+class Puppet < Rouster
 
     def compile_catalog(hostname)
       # TODO determine what our inputs should be
@@ -25,5 +24,4 @@ module Rouster
       raise NotImplementedError.new()
     end
 
-  end
 end
