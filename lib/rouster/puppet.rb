@@ -1,6 +1,6 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
-class Puppet < Rouster
+class Rouster
 
     def compile_catalog(hostname)
       # TODO determine what our inputs should be

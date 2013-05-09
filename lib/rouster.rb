@@ -5,8 +5,6 @@ require 'json'
 $LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/'
 require 'vagrant'
 
-# TODO combine/refactor the get_scp_command(), get_ssh_command() synergies
-
 class Rouster
   VERSION = 0.1
 

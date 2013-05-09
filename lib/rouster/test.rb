@@ -3,7 +3,7 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 # TODO reconsider the name - maybe this should be 'files'
 #  and then move is_file(), is_in_file() and is_dir() out of rouster and into here
 
-class Test < Rouster
+class Rouster
 
   def is_executable?(filename)
     raise NotImplementedError.new()
