@@ -3,15 +3,20 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 require 'rouster'
 require 'test/unit'
 
+@app = Rouster.new(:name => 'app')
+@ppm = Rouster.new(:name => 'ppm', :sudo => false)
+
+@app.up()
+
 class TestRun < Test::Unit::TestCase
 
-  def setup
-    @app = Rouster.new({:name => 'app'})
-    @ppm = Rouster.new({:name => 'ppm', :sudo => false})
-
-    @app.up()
-    @ppm.up()
-  end
+  ##def setup
+  #  @app = Rouster.new({:name => 'app'})
+  #  @ppm = Rouster.new({:name => 'ppm', :sudo => false})
+  #
+  #  @app.up()
+  #  @ppm.up()
+  #end
 
   def test_happy_path
     res = @app.run('ls -l')
@@ -40,15 +45,16 @@ class TestRun < Test::Unit::TestCase
   end
 
   def test_sudo_disabled
+    @ppm.up()
     res = @ppm.run('ls -l /root')
 
     assert_not_equal(0, @ppm.exitcode, 'got expected non-0 exit code')
     assert_match(/Permission denied/i, @ppm.get_output(), 'output matches expectations')
   end
 
-  def teardown
-    # TODO we should suspend instead if any test failed for triage
-    @app.destroy()
-    @ppm.destroy()
-  end
+  #def teardown
+  #  # TODO we should suspend instead if any test failed for triage
+  #  @app.destroy()
+  #  @ppm.destroy()
+  #end
 end
