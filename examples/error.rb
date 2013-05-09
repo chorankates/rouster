@@ -1,4 +1,4 @@
-require '../path_helper'
+require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 require 'rouster'
 
 begin
@@ -11,7 +11,6 @@ end
 
 p badkey
 
-# TODO need to do some work here, Vagrant unceremoniously appends 'Vagrantfile' into our list of vagrantfiles, when we actually want to trip an exception
 begin
   badvagrantfile = Rouster.new(:name => 'likehesaid', :vagrantfile => 'dne')
 rescue Rouster::InternalError => e

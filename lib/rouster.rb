@@ -1,6 +1,7 @@
 require 'rubygems'
 
-# TODO be smarter about this
+require 'json'
+
 $LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/'
 require 'vagrant'
 
@@ -17,52 +18,54 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :_env, :exitcode, :name, :output, :passthrough, :sudo, :_ssh, :vagrantfile, :verbosity, :_vm, :_vm_config
+  attr_reader :_env, :exitcode, :name, :output, :passthrough, :sudo, :_ssh, :sshinfo, :vagrantfile, :verbosity, :_vm, :_vm_config
 
   def initialize(opts = nil)
     # process hash keys passed
     @name        = opts[:name] # since we're constantly calling .to_sym on this, might want to just start there
-    @passthrough = opts.has_key?(:passthrough) ? false : opts[:passthrough]
+    @passthrough = opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey      = opts[:sshkey]
-    @sudo        = (opts.has_key?(:sudo) or @passthrough.eql?(true)) ? false : true
-    @vagrantfile = vagrantfile.nil? ? sprintf('%s/Vagrantfile', Dir.pwd) : vagrantfile
-    @verbosity   = (opts.has_key?(:verbosity) and opts[:verbosity].is_a?(Integer)) ? opts[:verbosity] : 0
+    @vagrantfile = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
+    @verbosity   = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 5
+
+    if opts.has_key?(:sudo)
+      @sudo = opts[:sudo]
+    elsif @passthrough.eql?(true)
+      @sudo = false
+    else
+      @sudo = true
+    end
 
     @output      = Array.new
+    @sshinfo     = Hash.new
+    @exitcode    = nil
 
     # set up logging
     require 'log4r/config'
     Log4r.define_levels(*Log4r::Log4rConfig::LogLevels)
 
-    @log            = Log4r::Logger.new('rouster')
+    @log            = Log4r::Logger.new(sprintf('rouster:%s', @name))
     @log.outputters = Log4r::Outputter.stderr
-    @log.level      = @verbosity # all, fatal, error, warn, info, debug, off
+    @log.level      = @verbosity # DEBUG (1) < INFO (2) < WARN < ERROR < FATAL (5)
+
+    unless File.file?(@vagrantfile)
+      raise InternalError.new("specified Vagrantfile [#{@vagrantfile}] does not exist") unless File.file?(@vagrantfile)
+    end
 
     @log.debug('instantiating Vagrant::Environment')
     @_env = Vagrant::Environment.new({:vagrantfile_name => @vagrantfile})
-    # ["action_registry", "action_runner", "boxes", "boxes_path", "cli", "config",
-    # "copy_insecure_private_key", "cwd", "default_private_key_path", "dotfile_path",
-    # "find_vagrantfile", "gems_path", "global_data", "home_path", "host", "load!",
-    # "load_config!", "load_plugins", "load_vms!", "loaded?", "local_data", "lock",
-    # "lock_path", "multivm?", "primary_vm", "reload!", "root_path", "setup_home_path",
-    # "tmp_path", "ui", "vagrantfile_name", "vms", "vms_ordered"]
 
     @log.debug('loading Vagrantfile configuration')
     @_config = @_env.load_config!
-    # ["for_vm", "global", "vms"]
 
     raise InternalError.new(sprintf('specified VM name [%s] not found in specified Vagrantfile', @name)) unless @_config.for_vm(@name.to_sym)
 
     # need to set base MAC here, not sure why we have never had to specify this previously
     @_vm_config = @_config.for_vm(@name.to_sym)
-    @_vm_config.vm.base_mac = '0a:00:27:00:42:42'
+    @_vm_config.vm.base_mac = 'b88d12044242' # causes a fatal error with VboxManage if colons are left in
 
     @log.debug('instantiating Vagrant::VM')
     @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
-    # ["box", "channel", "config", "created?", "destroy", "driver", "env",
-    # "guest", "halt", "load_guest!", "package", "provision", "reload",
-    # "reload!", "resume", "run_action", "ssh", "start", "state", "suspend", "ui",
-    # "up", "uuid", "uuid=", "vm"]
 
     # no key is specified
     if @sshkey.nil?
@@ -79,12 +82,11 @@ class Rouster
       raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
     end
 
-    unless File.exists?(@vagrantfile)
-      raise InternalError.new("specified Vagrantfile [#{@vagrantfile}] does not exist")
-    end
-
-    # TODO need to confirm validity before we go on
-    # in Salesforce::Vagrant we constantly checked whether an object was 'valid' and then again at its 'status' -- not doing that again
+    config_keys = @_vm_config.keys
+    self.sshinfo[:host] = config_keys[:ssh].host
+    self.sshinfo[:port] = config_keys[:ssh].port
+    self.sshinfo[:user] = config_keys[:ssh].username
+    self.sshinfo[:key]  = @sshkey
 
   end
 
@@ -101,12 +103,13 @@ class Rouster
   end
 
   ## Vagrant methods
-  # currently implemented as `vagrant` shell outs
   def up
-    @_vm.up
+    @log.info('up()')
+    @_vm.up unless self.status().eql?('running')
   end
 
   def destroy
+    @log.info('destroy()')
     @_vm.destroy
   end
 
@@ -115,60 +118,53 @@ class Rouster
   end
 
   def suspend
+    @log.info('suspend()')
     @_vm.suspend
   end
 
   ## internal methods
   def run(command)
     # runs a command inside the Vagrant VM
+    output = nil
 
-    # TODO finish the conversion over to @_vm.ssh
-    @log.info(sprintf('running [%s]', command))
-    cmd     = sprintf('%s -t %s%s', self.get_ssh_prefix(), self.uses_sudo? ? 'sudo ' : '', command)
-    self._run(cmd)
-    #@_vm.ssh.execute(cmd)
-  end
-
-  def run_vagrant(command)
-    # not sure how we should actually call this
-    #  - in Salesforce::Vagrant, we cd to the Vagrantfile directory
-    #  - but here, we could potentially (probably?) use Vagrant itself to do the work
-
-    # either way, abstracting it here
-    if self.is_passthrough?
-      # TODO figure out how to abstract logging properly
-      # could be cool to use self.log.info(<msg>)
-      @log.info('vagrant(%s) is a no-op for passthrough workers' % command)
-    else
-      self._run(sprintf('cd %s; vagrant %s', self.vagrantdir, command))
+    # TODO use @_vm.channel.sudo here
+    if self.uses_sudo? and ! command.match(/^sudo/)
+      command = sprintf('sudo %s', command)
     end
 
+    begin
+      @_vm.channel.execute(command) do |type,data|
+        output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
+        output += data
+      end
+    rescue Vagrant::Errors::VagrantError => e
+      # non-0 exit code, this is fatal for Vagrant, but not for us
+      output        = e.message
+      @exitcode = 1 # TODO get the actual exit code
+      raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}]")
+    end
+
+    @exitcode ||= 0
+    self.output.push(output)
+    output
   end
 
   def available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
-
-    # TODO use @_vm.ssh to test this
-
-    begin
-      self.run('uname -a')
-    rescue Rouster::SSHConnectionError
-      false
-    end
-
-    true
+    @_vm.channel.ready?()
   end
 
   def get(remote_file, local_file=nil)
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
 
+    # TODO should we switch this over to self.created?
     res = self.status()
-
     raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [%s]', remote_file, res)) unless res.eql?('running')
 
     cmd = sprintf(
-      '%s %s@%s:%s %s',
-      self.get_scp_prefix(),
+      'scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s:%s %s',
+      self.sshinfo[:port],
+      self.sshinfo[:key],
       self.sshinfo[:user],
       self.sshinfo[:hostname],
       remote_file,
@@ -191,8 +187,9 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [5s]', local_file, res)) unless res.eql?('running')
 
     cmd = sprintf(
-      '%s %s %s@%s:%s',
-      self.get_scp_prefix(),
+      'scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s %s@%s:%s',
+      self.sshinfo[:port],
+      self.sshinfo[:key],
       local_file,
       self.sshinfo[:user],
       self.sshinfo[:hostname],
@@ -208,17 +205,14 @@ class Rouster
   end
 
   def is_dir?(dir)
-    # TODO implement this
     raise NotImplementedError.new()
   end
 
   def is_file?(file)
-    # TODO implement this
     raise NotImplementedError.new()
   end
 
   def is_in_file?(file, regex, scp=0)
-    # TODO implement this
     raise NotImplementedError.new()
   end
 
@@ -267,70 +261,29 @@ class Rouster
     end
 
     self.output.push(output)
-    self.exitcode = $?.to_i()
+    @exitcode = $?.to_i()
     output
   end
 
   ## truly internal methods
-  def get_ssh_prefix
-    # TODO replace this with something Vagranty
+  def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
 
-    if self.sshinfo.nil?
-      hash   = Hash.new
-      output = self.run_vagrant("ssh-config #{self.name}")
+    raise InternalError.new('must specify a filename') if filename.nil?
 
-      output.each_line do |line|
-        if line =~ /HostName (.*?)$/
-          hash[:hostname] = $1
-        elsif line =~ /User (\w*?)$/
-          hash[:user] = $1
-        elsif line =~ /Port (\d*?)$/
-          hash[:port] = $1
-        elsif line =~ /IdentityFile (.*?)$/
-          hash[:sshkey] = $1
-        end
+    dirs  = startdir.split('/')
+    count = 0
+
+    while count < levels and ! dirs.nil?
+
+      potential = sprintf('%s/Vagrantfile', dirs.join('/'))
+
+      if File.file?(potential)
+        return potential
       end
 
-      self.sshinfo = hash
+      dirs.pop()
+      count += 1
     end
-
-    sprintf(
-      'ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s',
-      self.sshinfo[:port],
-      self.sshinfo[:sshkey],
-      self.sshinfo[:user],
-      self.sshinfo[:hostname]
-    )
-  end
-
-  def get_scp_prefix
-
-    if self.sshinfo.nil?
-      hash   = Hash.new
-      output = self.run_vagrant("ssh-config #{self.name}")
-
-      output.each_line do |line|
-        if line =~ /HostName (.*?)$/
-          hash[:hostname] = $1
-        elsif line =~ /User (\w*?)$/
-          hash[:user] = $1
-        elsif line =~ /Port (\d*?)$/
-          hash[:port] = $1
-        elsif line =~ /IdentityFile (.*?)$/
-          hash[:sshkey] = $1
-        end
-      end
-
-      self.sshinfo = hash
-    end
-
-    a = sprintf(
-      'scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s',
-      self.sshinfo[:port],
-      self.sshinfo[:sshkey]
-    )
-
-    a
   end
 
   def get_output(index = 0)
