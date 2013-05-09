@@ -210,18 +210,6 @@ class Rouster
 
   end
 
-  def is_dir?(dir)
-    raise NotImplementedError.new()
-  end
-
-  def is_file?(file)
-    raise NotImplementedError.new()
-  end
-
-  def is_in_file?(file, regex, scp=0)
-    raise NotImplementedError.new()
-  end
-
   # there has _got_ to be a more rubyish way to do this
   def is_passthrough?
     self.passthrough.eql?(true)
