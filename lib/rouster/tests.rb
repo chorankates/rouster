@@ -121,8 +121,30 @@ class Rouster
     raise NotImplementedError.new('this will require deltas.rb functionality')
   end
 
-  def is_in_file?(file, regex, scp=0)
-    raise NotImplementedError.new()
+  def is_in_file?(file, regex, scp=false)
+
+    if scp
+      # download the file to a temporary directory
+      # typically used if you're going to make a lot of greps against it, since we have to ssh in each time
+
+      # although this isn't exactly true anymore, once vagrant connects once, it leaves the pipe open
+
+      # not implementing as part of MVP
+
+    end
+
+    begin
+      command = sprintf("grep -c '%s' %s", regex, file)
+    rescue RemoteExecutionError
+      false
+    end
+
+    if res.grep(/^0/)
+      false
+    else
+      true
+    end
+
   end
 
   def is_in_path?(filename)
