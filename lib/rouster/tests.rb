@@ -224,7 +224,11 @@ class Rouster
   end
 
   # deltas.rb reimplementation
-  def get_groups
+  def get_groups(use_cache=true)
+    if use_cache and ! self.deltas[:groups].nil?
+      self.deltas[:groups]
+    end
+
     res = Hash.new()
 
     raw = self.run('cat /etc/group')
@@ -243,10 +247,18 @@ class Rouster
       res[group]['users'] = users
     end
 
+    if use_cache
+      self.deltas[:groups] = res
+    end
+
     res
   end
 
-  def get_packages
+  def get_packages(use_cache=true)
+    if use_cache and ! self.deltas[:packages].nil?
+      self.deltas[:packages]
+    end
+
     res = Hash.new()
 
     # TODO ask Vagrant for this information
@@ -270,10 +282,18 @@ class Rouster
       raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
     end
 
+    if use_cache
+      self.deltas[:packages] = res
+    end
+
     res
   end
 
-  def get_users
+  def get_users(use_cache=true)
+    if use_cache and ! self.deltas[:users].nil?
+      self.deltas[:users]
+    end
+
     res = Hash.new()
 
     raw = self.run('cat /etc/passwd')
@@ -291,10 +311,18 @@ class Rouster
       res[user]['uid']   = data[2]
     end
 
+    if use_cache
+      self.deltas[:users] = res
+    end
+
     res
   end
 
-  def get_services
+  def get_services(use_cache=true)
+    if use_cache and ! self.deltas[:services].nil?
+      self.deltas[:services]
+    end
+
     res = Hash.new()
 
     # TODO ask Vagrant for this information
@@ -317,6 +345,10 @@ class Rouster
 
     else
       raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
+    end
+
+    if use_cache
+      self.deltas[:services] = res
     end
 
     res
