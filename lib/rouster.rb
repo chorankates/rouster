@@ -16,7 +16,7 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :_env, :exitcode, :log, :name, :output, :passthrough, :sudo, :_ssh, :sshinfo, :vagrantfile, :verbosity, :_vm, :_vm_config
+  attr_reader :deltas, :_env, :exitcode, :log, :name, :output, :passthrough, :sudo, :_ssh, :sshinfo, :vagrantfile, :verbosity, :_vm, :_vm_config
 
   def initialize(opts = nil)
     # process hash keys passed
@@ -36,6 +36,7 @@ class Rouster
 
     @output      = Array.new
     @sshinfo     = Hash.new
+    @deltas      = Hash.new # should probably rename this, but container for tests.rb/get_*
     @exitcode    = nil
 
     # set up logging

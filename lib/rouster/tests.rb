@@ -47,54 +47,6 @@ class Rouster
 
   end
 
-  def is_readable?(filename, level='u')
-
-    res = is_file?(filename)
-
-    if res
-      array = res[:readable?]
-
-      case level
-        when 'u', 'U', 'user'
-          array[0]
-        when 'g', 'G', 'group'
-          array[1]
-        when 'o', 'O', 'other'
-          array[2]
-        else
-          raise InternalError.new(sprintf('unknown level[%s]'))
-      end
-
-    else
-      false
-    end
-
-  end
-
-  def is_writeable?(filename, level='u')
-
-    res = is_file?(filename)
-
-    if res
-      array = res[:writeable?]
-
-      case level
-        when 'u', 'U', 'user'
-          array[0]
-        when 'g', 'G', 'group'
-          array[1]
-        when 'o', 'O', 'other'
-          array[2]
-        else
-          raise InternalError.new(sprintf('unknown level[%s]'))
-      end
-
-    else
-      false
-    end
-
-  end
-
   def is_file?(file)
     begin
       res = self.run(sprintf('ls -l %s', file))
@@ -161,8 +113,64 @@ class Rouster
     raise NotImplementedError.new('this will require deltas.rb functionality')
   end
 
+  def is_readable?(filename, level='u')
+
+    res = is_file?(filename)
+
+    if res
+      array = res[:readable?]
+
+      case level
+        when 'u', 'U', 'user'
+          array[0]
+        when 'g', 'G', 'group'
+          array[1]
+        when 'o', 'O', 'other'
+          array[2]
+        else
+          raise InternalError.new(sprintf('unknown level[%s]'))
+      end
+
+    else
+      false
+    end
+
+  end
+
+  def is_service?(service)
+    raise NotImplementedError.new('this will require deltas.rb functionality')
+  end
+
+  def is_service_running?(service)
+    raise NotImplementedError.new('this will require deltas.rb functionality')
+  end
+
   def is_user?(user)
     raise NotImplementedError.new('this will require deltas.rb functionality')
+  end
+
+  def is_writeable?(filename, level='u')
+
+    res = is_file?(filename)
+
+    if res
+      array = res[:writeable?]
+
+      case level
+        when 'u', 'U', 'user'
+          array[0]
+        when 'g', 'G', 'group'
+          array[1]
+        when 'o', 'O', 'other'
+          array[2]
+        else
+          raise InternalError.new(sprintf('unknown level[%s]'))
+      end
+
+    else
+      false
+    end
+
   end
 
   # non-test, helper methods
@@ -211,6 +219,105 @@ class Rouster
     res[:executable?] = [ tokens[0][3].chr.eql?('x'), tokens[0][6].chr.eql?('x'), tokens[0][9].chr.eql?('x') || tokens[0][9].chr.eql?('t') ]
     res[:readable?]   = [ tokens[0][2].chr.eql?('w'), tokens[0][5].chr.eql?('w'), tokens[0][8].chr.eql?('w') ]
     res[:writeable?]  = [ tokens[0][1].chr.eql?('r'), tokens[0][4].chr.eql?('r'), tokens[0][7].chr.eql?('r') ]
+
+    res
+  end
+
+  # deltas.rb reimplementation
+  def get_groups
+    res = Hash.new()
+
+    raw = self.run('cat /etc/group')
+
+    raw.split("\n").each do |line|
+      next if line.grep(/\w+:\w+:\w+/).empty?
+
+      data = line.split(':')
+
+      group = data[0]
+      gid   = data[2]
+      users = data[3].nil? ? ['NONE'] : data[3].split(',')
+
+      res[group] = Hash.new() # i miss autovivification
+      res[group]['gid']   = gid
+      res[group]['users'] = users
+    end
+
+    res
+  end
+
+  def get_packages
+    res = Hash.new()
+
+    # TODO ask Vagrant for this information
+    uname = self.run('uname -a')
+
+    if uname =~ /darwin/
+      raise NotImplementedError.new('no OSX support yet')
+    elsif uname =~ /SunOS/
+      raise NotImplementedError.new('no Solaris support yet')
+    elsif uname =~ /Ubuntu/
+      raise NotImplementedError.new('no Ubuntu support yet')
+    elsif self.is_file?('/etc/redhat-release')
+
+      raw = self.run('rpm -qa')
+      raw.split("\n").each do |line|
+        next if line.grep(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
+        res[$1] = $2
+      end
+
+    else
+      raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
+    end
+
+    res
+  end
+
+  def get_users
+    res = Hash.new()
+
+    raw = self.run('cat /etc/passwd')
+
+    raw.split("\n").each do |line|
+      next if line.grep(/(\w+)(?::\w+){3,}/).empty?
+
+      user = $1
+      data = line.split(":")
+
+      res[user] = Hash.new()
+      res[user]['shell'] = data[-1]
+      res[user]['home']  = data[-2]
+      #res[user]['home_exists'] = self.is_directory?(data[-2]) # do we really want this?
+      res[user]['uid']   = data[2]
+    end
+
+    res
+  end
+
+  def get_services
+    res = Hash.new()
+
+    # TODO ask Vagrant for this information
+    uname = self.run('uname -a')
+
+    if uname =~ /darwin/
+      raise NotImplementedError.new('no OSX support yet')
+    elsif uname =~ /SunOS/
+      raise NotImplementedError.new('no Solaris support yet')
+    elsif uname =~ /Ubuntu/
+      raise NotImplementedError.new('no Ubuntu support yet')
+    elsif self.is_file?('/etc/redhat-release')
+
+      raw = self.run('/sbin/service --status-all')
+      raw.split("\n").each do |line|
+        #next if line.grep(/([\w\s-]+?)\sis\s(\w*?)/).empty?
+        next if line.grep(/^([^\s]*).*\s(\w*)\.?$/).empty?
+        services[$1] = $2
+      end
+
+    else
+      raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
+    end
 
     res
   end
