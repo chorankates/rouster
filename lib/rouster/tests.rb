@@ -1,7 +1,5 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
-# TODO need to move validate_* out, no need to contribute to the namespace confusion
-
 class Rouster
 
   def is_dir?(dir)
@@ -17,9 +15,8 @@ class Rouster
       self.log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
       return false
     else
-      # TODO need to mimic Salesforce::piab::_get_properties() behavior somehow
-      # stick it in self somewhere, but .. where? get_output()? it wouldn't be a string, we'd parse it into a hash
-      true
+      #true
+      parse_ls_string(res)
     end
   end
 
@@ -40,7 +37,8 @@ class Rouster
     elsif res.match(/Permission denied/)
       return false
     else
-      true
+      #true
+      parse_ls_string(res)
     end
 
   end
@@ -65,12 +63,50 @@ class Rouster
     raise NotImplementedError.new()
   end
 
-  def validate_file(filename, options)
-    raise NotImplementedError.new()
+  # non-test, helper methods
+  def parse_ls_string(string)
+
+    res = Hash.new()
+
+    #drwx------ 2 vagrant vagrant  4096 May 10 19:13 ssh-elQYXX1676
+    #-rw-r--r-- 1 root    root        0 Dec  6 07:56 vagrant-ifcfg-eth1
+
+    tokens = string.split(/\s+/)
+
+    # eww
+    modes = [ tokens[0][1..4], tokens[0][4..7], tokens[0][7..10] ]
+    mode  = nil
+
+    for i in 0..modes.size do
+      value   = 0
+      element = modes[i]
+
+      for j in 0..element.length do
+        chr = element[j]
+        case chr
+          when 'r'
+            value += 4
+          when 'w'
+            value += 2
+          when 'x', 't'
+            # is 't' really right here? copying Salesforce::piab
+            value += 1
+        end
+
+      end
+
+      mode = sprintf('0%s', value)
+    end
+
+    res[:dir]   = mode_str[0].chr.eql?('d') ? true : false
+    res[:mode]  = mode
+    res[:owner] = tokens[1]
+    res[:group] = tokens[2]
+    res[:size]  = tokens[3]
+
+    res
   end
 
-  def validate_package(package, options)
-    raise NotImplementedError.new()
-  end
+
 
 end
