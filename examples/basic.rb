@@ -14,8 +14,8 @@ print p.is_dir?('/tmp').pretty_inspect
 print p.is_dir?('/tmp/').pretty_inspect
 print p.is_dir?('/bang').pretty_inspect
 
-print p.is_file('/etc/hosts').pretty_inspect
-print p.is_file('foo').pretty_inspect
+print p.is_file?('/etc/hosts').pretty_inspect
+print p.is_file?('foo').pretty_inspect
 
 begin
   p.run('fizzbang')
