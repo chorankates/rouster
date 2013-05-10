@@ -9,7 +9,10 @@ class Rouster
       # noop, process output instead of exit code
     end
 
-    if res.match(/No such file or directory/)
+    if res.nil?
+      # TODO resolve this issue - need to get run() to return STDERR when a non-0 exit code is returned
+      return false
+    elsif res.match(/No such file or directory/)
       return false
     elsif res.match(/Permission denied/)
       self.log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
@@ -20,8 +23,76 @@ class Rouster
     end
   end
 
-  def is_executable?(filename)
-    raise NotImplementedError.new()
+  def is_executable?(filename, level='u')
+
+    res = is_file?(filename)
+
+    if res
+      array = res[:executable?]
+
+      case level
+        when 'u', 'U', 'user'
+          array[0]
+        when 'g', 'G', 'group'
+          array[1]
+        when 'o', 'O', 'other'
+          array[2]
+        else
+          raise InternalError.new(sprintf('unknown level[%s]'))
+      end
+
+    else
+      return false
+    end
+
+  end
+
+  def is_readable?(filename, level='u')
+
+    res = is_file?(filename)
+
+    if res
+      array = res[:readable?]
+
+      case level
+        when 'u', 'U', 'user'
+          array[0]
+        when 'g', 'G', 'group'
+          array[1]
+        when 'o', 'O', 'other'
+          array[2]
+        else
+          raise InternalError.new(sprintf('unknown level[%s]'))
+      end
+
+    else
+      false
+    end
+
+  end
+
+  def is_writeable?(filename, level='u')
+
+    res = is_file?(filename)
+
+    if res
+      array = res[:writeable?]
+
+      case level
+        when 'u', 'U', 'user'
+          array[0]
+        when 'g', 'G', 'group'
+          array[1]
+        when 'o', 'O', 'other'
+          array[2]
+        else
+          raise InternalError.new(sprintf('unknown level[%s]'))
+      end
+
+    else
+      false
+    end
+
   end
 
   def is_file?(file)
@@ -31,7 +102,10 @@ class Rouster
       # noop, process output
     end
 
-    if res.match(/No such file or directory/)
+    if res.nil?
+      # TODO remove this when run() can return STDERR on non-0 exit codes
+      return false
+    elsif res.match(/No such file or directory/)
       self.log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
       return false
     elsif res.match(/Permission denied/)
@@ -44,7 +118,7 @@ class Rouster
   end
 
   def is_group?(group)
-    raise NotImplementedError.new()
+    raise NotImplementedError.new('this will require deltas.rb functionality')
   end
 
   def is_in_file?(file, regex, scp=0)
@@ -56,11 +130,11 @@ class Rouster
   end
 
   def is_package?(package)
-    raise NotImplementedError.new()
+    raise NotImplementedError.new('this will require deltas.rb functionality')
   end
 
   def is_user?(user)
-    raise NotImplementedError.new()
+    raise NotImplementedError.new('this will require deltas.rb functionality')
   end
 
   # non-test, helper methods
@@ -99,15 +173,18 @@ class Rouster
       mode = sprintf('%s%s', mode, value)
     end
 
-    res[:dir]   = tokens[0][0].chr.eql?('d') ? true : false
     res[:mode]  = mode
     res[:owner] = tokens[2]
     res[:group] = tokens[3]
     res[:size]  = tokens[4]
 
+    # TODO you are smarter than this. build some tests and then rewrite this with confidence
+    res[:directory?]  = tokens[0][0].chr.eql?('d')
+    res[:executable?] = [ tokens[0][3].chr.eql?('x'), tokens[0][6].chr.eql?('x'), tokens[0][9].chr.eql?('x') || tokens[0][9].chr.eql?('t') ]
+    res[:readable?]   = [ tokens[0][2].chr.eql?('w'), tokens[0][5].chr.eql?('w'), tokens[0][8].chr.eql?('w') ]
+    res[:writeable?]  = [ tokens[0][1].chr.eql?('r'), tokens[0][4].chr.eql?('r'), tokens[0][7].chr.eql?('r') ]
+
     res
   end
-
-
 
 end
