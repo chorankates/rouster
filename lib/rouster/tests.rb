@@ -74,15 +74,16 @@ class Rouster
     tokens = string.split(/\s+/)
 
     # eww
-    modes = [ tokens[0][1..4], tokens[0][4..7], tokens[0][7..10] ]
-    mode  = nil
+    modes = [ tokens[0][1..3], tokens[0][4..6], tokens[0][7..9] ]
+    mode  = 0
 
-    for i in 0..modes.size do
+    # can't use modes.size here (or could, but would have to -1)
+    for i in 0..2 do
       value   = 0
       element = modes[i]
 
-      for j in 0..element.length do
-        chr = element[j]
+      for j in 0..2 do
+        chr = element[j].chr
         case chr
           when 'r'
             value += 4
@@ -95,14 +96,14 @@ class Rouster
 
       end
 
-      mode = sprintf('0%s', value)
+      mode = sprintf('%s%s', mode, value)
     end
 
-    res[:dir]   = mode_str[0].chr.eql?('d') ? true : false
+    res[:dir]   = tokens[0][0].chr.eql?('d') ? true : false
     res[:mode]  = mode
-    res[:owner] = tokens[1]
-    res[:group] = tokens[2]
-    res[:size]  = tokens[3]
+    res[:owner] = tokens[2]
+    res[:group] = tokens[3]
+    res[:size]  = tokens[4]
 
     res
   end
