@@ -126,7 +126,13 @@ class Rouster
   end
 
   def is_in_path?(filename)
-    raise NotImplementedError.new()
+    begin
+      res = self.run(sprintf('which %s', filename))
+    rescue RemoteExecutionError
+      false
+    end
+
+    true
   end
 
   def is_package?(package)
