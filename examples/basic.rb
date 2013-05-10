@@ -10,12 +10,12 @@ p.up()
 p.run('uname -a')
 print "output: #{p.get_output()} / exitcode: #{p.exitcode}\n"
 
-print p.is_dir?('/tmp')
-print p.is_dir?('/tmp/')
-print p.is_dir?('/bang')
+print p.is_dir?('/tmp').pretty_inspect
+print p.is_dir?('/tmp/').pretty_inspect
+print p.is_dir?('/bang').pretty_inspect
 
-print p.is_file('/etc/hosts')
-print p.is_file('foo')
+print p.is_file('/etc/hosts').pretty_inspect
+print p.is_file('foo').pretty_inspect
 
 begin
   p.run('fizzbang')
