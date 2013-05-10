@@ -70,7 +70,8 @@ class Rouster
   end
 
   def is_group?(group)
-    raise NotImplementedError.new('this will require deltas.rb functionality')
+    groups = self.get_groups()
+    groups.has_key?(group)
   end
 
   def is_in_file?(file, regex, scp=false)
@@ -110,7 +111,8 @@ class Rouster
   end
 
   def is_package?(package)
-    raise NotImplementedError.new('this will require deltas.rb functionality')
+    packages = self.get_packages()
+    packages.has_key?(package)
   end
 
   def is_readable?(filename, level='u')
@@ -138,15 +140,21 @@ class Rouster
   end
 
   def is_service?(service)
-    raise NotImplementedError.new('this will require deltas.rb functionality')
+    services = self.get_services()
+    services.has_key?(service)
   end
 
   def is_service_running?(service)
-    raise NotImplementedError.new('this will require deltas.rb functionality')
+    services = self.get_services()
+
+    if services.has_key?(service)
+      services[service].grep(/running|enabled|started/)
+    end
   end
 
   def is_user?(user)
-    raise NotImplementedError.new('this will require deltas.rb functionality')
+    users = self.get_users()
+    users.has_key?(user)
   end
 
   def is_writeable?(filename, level='u')
@@ -340,7 +348,7 @@ class Rouster
       raw.split("\n").each do |line|
         #next if line.grep(/([\w\s-]+?)\sis\s(\w*?)/).empty?
         next if line.grep(/^([^\s]*).*\s(\w*)\.?$/).empty?
-        services[$1] = $2
+        res[$1] = $2
       end
 
     else
