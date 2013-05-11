@@ -186,9 +186,6 @@ class Rouster
 
     res = Hash.new()
 
-    #drwx------ 2 vagrant vagrant  4096 May 10 19:13 ssh-elQYXX1676
-    #-rw-r--r-- 1 root    root        0 Dec  6 07:56 vagrant-ifcfg-eth1
-
     tokens = string.split(/\s+/)
 
     # eww
@@ -273,11 +270,39 @@ class Rouster
     uname = self.run('uname -a')
 
     if uname =~ /darwin/
-      raise NotImplementedError.new('no OSX support yet')
+
+      raw = self.run('pkgutil --pkgs')
+      raw.split("\n").each do |line|
+        # can get actual version with 'pkgutil --pkg-info=#{line}', but do we really want to? is there a better way?
+        res[line] = '?'
+      end
+
     elsif uname =~ /SunOS/
-      raise NotImplementedError.new('no Solaris support yet')
+
+      raw = self.run('pkginfo')
+      raw.split("\n").each do |line|
+        # can get actual version with 'pkginfo -c #{package}', but do we really want to?
+        next if line.grep(/(.*?)\s+(.*?)\s(.*)$/).empty?
+
+        category = $1
+        package  = $2
+        name     = $3
+
+        res[category] = Hash.new() if res[category].nil?
+        res[category][package] = name
+
+        end
+
     elsif uname =~ /Ubuntu/
-      raise NotImplementedError.new('no Ubuntu support yet')
+
+      raw = self.run('dpkg --get-selections')
+      raw.split("\n").each do |line|
+        # can get actual version with 'dpkg -s #{package}'
+        next if line.grep(/^(.*?)\s/).empty?
+
+        res[package] = '?'
+      end
+
     elsif self.is_file?('/etc/redhat-release')
 
       raw = self.run('rpm -qa')
