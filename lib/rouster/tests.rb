@@ -11,12 +11,12 @@ class Rouster
 
     if res.nil?
       # TODO resolve this issue - need to get run() to return STDERR when a non-0 exit code is returned
-      return false
+      false
     elsif res.match(/No such file or directory/)
-      return false
+      false
     elsif res.match(/Permission denied/)
       self.log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
-      return false
+      false
     else
       #true
       parse_ls_string(res)
@@ -42,7 +42,7 @@ class Rouster
       end
 
     else
-      return false
+      false
     end
 
   end
@@ -56,12 +56,12 @@ class Rouster
 
     if res.nil?
       # TODO remove this when run() can return STDERR on non-0 exit codes
-      return false
+      false
     elsif res.match(/No such file or directory/)
       self.log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
-      return false
+      false
     elsif res.match(/Permission denied/)
-      return false
+      false
     else
       #true
       parse_ls_string(res)
@@ -76,18 +76,16 @@ class Rouster
 
   def is_in_file?(file, regex, scp=false)
 
+    res = nil
+
     if scp
       # download the file to a temporary directory
-      # typically used if you're going to make a lot of greps against it, since we have to ssh in each time
-
-      # although this isn't exactly true anymore, once vagrant connects once, it leaves the pipe open
-
       # not implementing as part of MVP
-
     end
 
     begin
       command = sprintf("grep -c '%s' %s", regex, file)
+      res     = self.run(command)
     rescue RemoteExecutionError
       false
     end
@@ -102,7 +100,7 @@ class Rouster
 
   def is_in_path?(filename)
     begin
-      res = self.run(sprintf('which %s', filename))
+      self.run(sprintf('which %s', filename))
     rescue RemoteExecutionError
       false
     end
@@ -207,6 +205,8 @@ class Rouster
           when 'x', 't'
             # is 't' really right here? copying Salesforce::piab
             value += 1
+          else
+            raise InternalError.new(sprintf('unexpected character[%s]', value))
         end
 
       end
