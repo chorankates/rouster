@@ -362,11 +362,45 @@ class Rouster
     uname = self.run('uname -a')
 
     if uname =~ /darwin/
-      raise NotImplementedError.new('no OSX support yet')
+
+      raw = self.run('launchctl') # TODO is this really what we're looking for?
+      raw.split("\n").each do |line|
+        next if line.grep(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).empty
+
+        service = $2
+        mode    = $1 # this is either '-', '0', or '-9'
+
+        res[service] = mode
+      end
+
     elsif uname =~ /SunOS/
-      raise NotImplementedError.new('no Solaris support yet')
+
+      raw = self.run('svcs') # TODO ensure that this is giving all services, not just those that are started
+      raw.split("\n").each do |line|
+        next if line.grep(/(.*?)\s+(?:.*?)\s+(.*?)$/).empty?
+
+        service = $2
+        mode    = $1
+
+        res[service] = mode
+
+      end
+
     elsif uname =~ /Ubuntu/
-      raise NotImplementedError.new('no Ubuntu support yet')
+
+      raw = self.run('service --status-all 2>&1')
+      raw.split("\n").each do |line|
+        next if line.grep(/\[(.*?)\]\s+(.*)$/).empty?
+        mode    = $1
+        service = $2
+
+        mode = 'stopped' if mode.match('-')
+        mode = 'running' if mode.match('\+')
+        mode = 'unsure'  if mode.match('\?')
+
+        res[service] = mode
+      end
+
     elsif self.is_file?('/etc/redhat-release')
 
       raw = self.run('/sbin/service --status-all')
