@@ -5,13 +5,12 @@ Rouster.is_a?('abstraction layer for controlling with Vagrant virtual machines')
 => true
 ```
 
-It was conceived as the missing piece needed to functionally test Puppet manifests; while RSpec is nice (and _much_ faster), compiling a catalog and applying it are 2 distinct operations
+It was conceived as the missing piece needed to functionally test Puppet manifests: while RSpec is nice (and _much_ faster), compiling a catalog and applying it are 2 distinct operations
 
 ```
-app = Rouster.new({:name => 'app' })
+app = Rouster.new(:name => 'app' )
 app.up()
 p app.run('/sbin/service puppet once -t')
-raise RemoteExecutionError.new(app.get_output()) unless app.exitcode.eql?(2)
 app.destroy()
 ```
 
@@ -34,15 +33,39 @@ Rouster supports many of the vagrant faces:
 * status()
 * up()
 
-As well as some custom methods:
-* get(\<vm\_file\_path\>, [local\_file\_path])
-* is\_dir(\<dir\>)
-* is\_file(\<file\>, [MD5])
-* is\_in\_file(\<file\>, \<regex\>, \[scp\_boolean\])
-* put(\<local\_file\_path\>,[vm\_file\_path])
+All Rouster workers also support:
+* get()
+* put()
 * rebuild()
 * restart()
-* run(\<command\>)
+* run()
+
+And depending on which pieces of rouster you 'require':
+
+* rouster/puppet
+  * compile_catalog()
+  * run_puppet()
+  * get_puppet_errors()
+
+* rouster/tests
+  * is_dir?()
+  * is_executable?()
+  * is_file?()
+  * is_group?()
+  * is_in_file?()
+  * is_in_path?()
+  * is_package?()
+  * is_readable?()
+  * is_service?()
+  * is_service_running?()
+  * is_user?()
+  * is_writeable?()
+
+* rouster/testing
+  * validate_file?()
+  * validate_package?()
+
+These additional methods are added to the Rouster via class extension.
 
 ### basic instantiation and usage
 
@@ -67,6 +90,7 @@ app.destroy()
 
 ```
 require 'rouster'
+require 'rouster/puppet'
 require 'test/unit'
 
 class TestPuppetRun < Test::Unit::TestCase
@@ -88,7 +112,8 @@ class TestPuppetRun < Test::Unit::TestCase
       res = nil
 
       begin
-        res = w.run('puppet agent -t --environment development')
+        #res = w.run('puppet agent -t --environment development')
+        res = w.run_puppet()
       rescue Rouster::RemoteExecutionError
         # puppet gives a 2 exit code if a resource changes, need to catch the exception
         unless w.exitcode.eql?(2)
@@ -113,11 +138,11 @@ end
 ```
 
 
-## Methods
+## Base Methods
 ```
-irb(main):003:0> (Rouster.new({:name => 'app'}).methods - Object.methods).sort
-=> ["_env", "_run", "_ssh", "_vm", "_vm_config", "available_via_ssh?", "destroy", "exitcode", "get", "get_output",
-"get_scp_prefix", "get_ssh_prefix", "is_dir?", "is_file?", "is_in_file?", "is_passthrough?", "output", "passthrough",
-"put", "rebuild", "restart", "run", "run_vagrant", "status", "sudo", "suspend", "up", "uses_sudo?", "vagrantfile",
-"verbosity"]
-```
+irb(main):003:0> (Rouster.new(:name => 'app').methods - Object.methods).sort
+=> ["_env", "_run", "_ssh", "_vm", "_vm_config", "available_via_ssh?", "deltas",
+ "destroy", "exitcode", "get", "get_output", "is_passthrough?", "log", "output",
+ "passthrough", "put", "rebuild", "restart", "run", "sshinfo", "status", "sudo",
+ "suspend", "traverse_up", "up", "uses_sudo?", "vagrantfile", "verbosity"]
+ ```
