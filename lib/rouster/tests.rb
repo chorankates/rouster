@@ -205,8 +205,10 @@ class Rouster
           when 'x', 't'
             # is 't' really right here? copying Salesforce::piab
             value += 1
+          when '-'
+            # noop
           else
-            raise InternalError.new(sprintf('unexpected character[%s]', value))
+            raise InternalError.new(sprintf('unexpected character[%s]', chr))
         end
 
       end

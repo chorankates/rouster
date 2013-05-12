@@ -117,7 +117,7 @@ class TestPuppetRun < Test::Unit::TestCase
       rescue Rouster::RemoteExecutionError
         # puppet gives a 2 exit code if a resource changes, need to catch the exception
         unless w.exitcode.eql?(2)
-          raise Rouster::RemoteExecutionError.new("puppet run returned exitcode[#{w.exitcode}] and output[#{w.get_output()}]")
+          raise RemoteExecutionError.new("puppet run returned exitcode[#{w.exitcode}] and output[#{w.get_output()}]")
         end
 
         res = w.get_output()
