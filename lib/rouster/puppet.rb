@@ -1,19 +1,30 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
-# TODO need to decide if we want to "require 'puppet'" or shell out.. MVP is shell out
+require 'json'
+reqiore 'socket'
 
 class Rouster
 
-  # TODO we should be able to run this without upping the box in question
+  # TODO we should be able to run this without upping the box in question --
+  # just need to be able to talk to the same puppetmaster, which means we should 'require puppet'
+  # instead of shelling out
   def get_catalog(hostname)
-    raise NotImplementedError.new()
+    certname = hostname.nil? ? Socket.gethostname() : hostname
 
-    res = self.run('puppet catalog download') # downloads to yaml, but where? and with what name?
+    json = nil
+    res  = self.run(sprintf('puppet catalog find %s', certname))
 
+    begin
+      json = res.to_json
+    rescue
+      raise InternalError.new(sprintf('unable to parse[%s] as JSON', res))
+    end
+
+    json
   end
 
   def run_puppet
-    # TODO how can we make this more flexible?
+    # TODO should we make this more flexible?
     self.run('/sbin/service puppet once -t')
   end
 
