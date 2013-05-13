@@ -290,7 +290,7 @@ class Rouster
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
     raise InternalError.new('must specify a filename') if filename.nil?
 
-    @log.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels))
+    @log.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels)) unless @log.nil?
 
     dirs  = startdir.split('/')
     count = 0
