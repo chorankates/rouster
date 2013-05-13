@@ -1,9 +1,10 @@
 require 'rubygems'
-
 require 'json'
 
 $LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/'
 require 'vagrant'
+
+require 'rouster/vagrant'
 
 class Rouster
   VERSION = 0.1
@@ -106,6 +107,7 @@ class Rouster
   ## Vagrant methods
   def up
     @log.info('up()')
+    @_vm.channel.destroy_ssh_connection()
 
     if @_vm.created?
       self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
@@ -168,7 +170,7 @@ class Rouster
     output
   end
 
-  def available_via_ssh?
+  def is_available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
     @_vm.channel.ready?()
   end
