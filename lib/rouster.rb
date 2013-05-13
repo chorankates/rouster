@@ -49,7 +49,7 @@ class Rouster
     @log.level      = @verbosity # DEBUG (1) < INFO (2) < WARN < ERROR < FATAL (5)
 
     unless File.file?(@vagrantfile)
-      raise InternalError.new("specified Vagrantfile [#{@vagrantfile}] does not exist") unless File.file?(@vagrantfile)
+      raise InternalError.new(sprintf('specified Vagrantfile [%s] does not exist', @vagrantfile))
     end
 
     @log.debug('instantiating Vagrant::Environment')
@@ -60,9 +60,8 @@ class Rouster
 
     raise InternalError.new(sprintf('specified VM name [%s] not found in specified Vagrantfile', @name)) unless @_config.for_vm(@name.to_sym)
 
-    # need to set base MAC here, not sure why we have never had to specify this previously
     @_vm_config = @_config.for_vm(@name.to_sym)
-    @_vm_config.vm.base_mac = 'b88d12044242' # causes a fatal error with VboxManage if colons are left in
+    @_vm_config.vm.base_mac = generate_unique_mac() # TODO need to take potential Vagrantfile modifications here
 
     @log.debug('instantiating Vagrant::VM')
     @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
@@ -82,12 +81,14 @@ class Rouster
       raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
     end
 
+    # TODO can we delete these once get/put are implemented using Vagrant objects?
     config_keys = @_vm_config.keys
     self.sshinfo[:host] = config_keys[:ssh].host
     self.sshinfo[:port] = config_keys[:ssh].port
     self.sshinfo[:user] = config_keys[:ssh].username
     self.sshinfo[:key]  = @sshkey
 
+    @log.debug('Rouster object successfully instantiated')
   end
 
   def inspect
@@ -109,6 +110,7 @@ class Rouster
     @log.info('up()')
     @_vm.channel.destroy_ssh_connection()
 
+    # TODO
     if @_vm.created?
       self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
     else
@@ -177,8 +179,8 @@ class Rouster
 
   def get(remote_file, local_file=nil)
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
+    @log.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
 
-    # TODO should we switch this over to self.created?
     res = self.status()
     raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [%s]', remote_file, res)) unless res.eql?('running')
 
@@ -203,6 +205,8 @@ class Rouster
 
   def put(local_file, remote_file=nil)
     remote_file = remote_file.nil? ? File.basename(local_file) : remote_file
+    @log.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
+
 
     res = self.status()
     raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [5s]', local_file, res)) unless res.eql?('running')
@@ -235,13 +239,15 @@ class Rouster
      self.sudo.eql?(true)
   end
 
-  def rebuild()
+  def rebuild
     # destroys/reups a Vagrant machine
+    @log.debug('rebuild()')
     @_vm.destroy
     @_vm.up
   end
 
-  def restart()
+  def restart
+    @log.debug('restart()')
     # restarts a Vagrant machine, wait time is same as rebuild()
     # how do we do this in a generic way? shutdown -rf works for Unix, but not Solaris
     #   we can ask Vagrant what kind of machine this is, but how far down this hole do we really want to go?
@@ -276,9 +282,15 @@ class Rouster
   end
 
   ## truly internal methods
-  def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
+  def generate_unique_mac
+    # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
+    (1..6).map{"%0.2X" % rand(256)}.join('') # causes a fatal error with VboxManage if colons are left in
+  end
 
+  def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
     raise InternalError.new('must specify a filename') if filename.nil?
+
+    @log.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels))
 
     dirs  = startdir.split('/')
     count = 0
