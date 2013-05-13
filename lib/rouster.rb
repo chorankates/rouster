@@ -184,21 +184,10 @@ class Rouster
     res = self.status()
     raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [%s]', remote_file, res)) unless res.eql?('running')
 
-    cmd = sprintf(
-      'scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s:%s %s',
-      self.sshinfo[:port],
-      self.sshinfo[:key],
-      self.sshinfo[:user],
-      self.sshinfo[:hostname],
-      remote_file,
-      local_file
-    )
-
     begin
-      # assuming this doesn't fail, does the return of this method get passed back up the stack?
-      self._run(cmd)
-    rescue Rouster::LocalExecutionError => e
-      raise SSHConnectionError.new(sprintf('unable to get [%s], command [%s] returned [%s]', remote_file, cmd, self.get_output()))
+      @_vm.channel.upload(local_file, remote_file)
+    rescue => e
+      raise SSHConnectionError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
 
   end
@@ -207,24 +196,13 @@ class Rouster
     remote_file = remote_file.nil? ? File.basename(local_file) : remote_file
     @log.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
 
-
     res = self.status()
     raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [5s]', local_file, res)) unless res.eql?('running')
 
-    cmd = sprintf(
-      'scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s %s@%s:%s',
-      self.sshinfo[:port],
-      self.sshinfo[:key],
-      local_file,
-      self.sshinfo[:user],
-      self.sshinfo[:hostname],
-      remote_file
-    )
-
     begin
-      self._run(cmd)
-    rescue Rouster::LocalExecutionError
-      raise SSHConnectionError.new(sprintf('unable to get [%s], command [%s] returned [%s]', local_file, cmd, self.get_output()))
+      @_vm.channel.upload(local_file, remote_file)
+    rescue => e
+      raise SSHConnectionError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
     end
 
   end

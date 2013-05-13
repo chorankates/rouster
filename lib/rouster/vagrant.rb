@@ -7,10 +7,16 @@ module Vagrant
   module Communication
 
     class SSH < Base
-      # need this to be able to recreate a connection after upping/suspending a box
+
       def destroy_ssh_connection
+        # need this to be able to recreate a connection after upping/suspending a box
         @connection = nil
       end
+    end
+
+    def download(from, to)
+      # Vagrant::Communication::SSH has upload(), but no corresponding download()
+      raise NotImplementedError.new()
     end
 
   end
