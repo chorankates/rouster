@@ -43,6 +43,12 @@ All Rouster workers also support:
 
 And depending on which pieces of rouster you 'require':
 
+* rouster/deltas
+  * get_groups()
+  * get_packages()
+  * get_services()
+  * get_users()
+
 * rouster/puppet
   * facter()
   * get_catalog()
