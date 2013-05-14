@@ -23,7 +23,8 @@ The first implementation was in Perl, called [Salesforce::Vagrant](http://github
 
 Note: Vagrant itself requires VirtualBox or VMWare Fusion (1.0.3+)
 
-Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX, but no real testing has been done to confirm this. Please file issues as appropriate.
+Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX (minus rouster/deltas.rb functionality, at least currently),
+but no real testing has been done to confirm this. Please file issues as appropriate.
 
 ## Using Rouster
 
