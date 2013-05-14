@@ -19,14 +19,15 @@ module Vagrant
         @logger.debug("Downloading: #{from} to #{to}")
 
         begin
-          connect do |connection|
-            scp = Net::SCP.new(connection)
-            scp.download!(from, to)
-          end
+          scp = Net::SCP.new(@connection)
+          scp.download!(from, to)
+
         rescue Net::SCP::Error => e
+          # TODO given that we have broken from the connect() block method in upload(), does this still make sense?
           raise Errors::SCPUnavailable if e.message =~ /\(127\)/
           raise
         end
+
       end
 
     end
