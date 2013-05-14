@@ -7,7 +7,7 @@ require 'vagrant'
 require 'rouster/vagrant'
 
 class Rouster
-  VERSION = 0.1
+  VERSION = 0.2
 
   # custom exceptions -- what else do we want them to include/do?
   class FileTransferError    < StandardError; end # thrown by get() and put()
@@ -36,7 +36,6 @@ class Rouster
     end
 
     @output      = Array.new
-    @sshinfo     = Hash.new
     @deltas      = Hash.new # should probably rename this, but need container for deltas.rb/get_*
     @exitcode    = nil
 
@@ -113,12 +112,7 @@ class Rouster
       @_vm.up
     end
 
-    ## if the VM hasn't been created yet, we don't know the port
-    @_config.for_vm(@name.to_sym).keys[:vm].forwarded_ports.each do |f|
-      if f[:name].eql?('ssh')
-        self.sshinfo[:port] = f[:hostport]
-      end
-    end
+    # TODO or maybe, instead of creating the SSH tunnel on instantiation, create it (optionally) here
 
   end
 
