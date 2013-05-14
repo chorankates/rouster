@@ -89,10 +89,11 @@ class Rouster
     expectations[:ensure] ||= 'present'
 
     if expectations.has_key?(:constrain)
-      # if we don't meet the constraint, fake success
-      @log.info('')
       fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
-      true unless self.meets_constraint?(fact, expectation)
+      unless self.meets_constraint?(fact, expectation)
+        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+        true
+      end
     end
 
     results = Hash.new()
