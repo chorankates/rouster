@@ -17,7 +17,7 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :deltas, :_env, :exitcode, :log, :name, :output, :passthrough, :sudo, :_ssh, :sshinfo, :vagrantfile, :verbosity, :_vm, :_vm_config
+  attr_reader :deltas, :_env, :exitcode, :facts, :log, :name, :output, :passthrough, :sudo, :_ssh, :sshinfo, :vagrantfile, :verbosity, :_vm, :_vm_config
 
   def initialize(opts = nil)
     # process hash keys passed
@@ -258,7 +258,17 @@ class Rouster
     output
   end
 
-  ## truly internal methods
+  # truly internal methods
+  def get_output(index = 0)
+    # return index'th array of output in LIFO order
+
+    # TODO do this in a mathy way instead of a youre-going-to-run-out-of-memory-way
+    reversed = self.output.reverse
+    reversed[index]
+  end
+
+  private
+
   def generate_unique_mac
     # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
     (1..6).map{"%0.2X" % rand(256)}.join('') # causes a fatal error with VboxManage if colons are left in
@@ -285,13 +295,16 @@ class Rouster
     end
   end
 
-  def get_output(index = 0)
-    # return index'th array of output in LIFO order
-
-    # TODO do this in a mathy way instead of a youre-going-to-run-out-of-memory-way
-    reversed = self.output.reverse
-    reversed[index]
-  end
 
 end
 
+# convenience truthiness methods
+class Object
+  def false?
+    self.eql?(false)
+  end
+
+  def true?
+    self.eql?(true)
+  end
+end
