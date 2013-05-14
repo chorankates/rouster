@@ -5,7 +5,7 @@ require 'rouster/deltas'
 
 class Rouster
 
-  def validate_file(filename, options)
+  def validate_file(name, expectations)
     # '/sys/kernel/mm/redhat_transparent_hugepage/enabled' => {
     #   :contains => 'never',
     # },
@@ -40,7 +40,7 @@ class Rouster
     raise NotImplementedError.new()
   end
 
-  def validate_group(group, options)
+  def validate_group(name, expectations)
     # 'root' => {
     #   # if ensure is not specified, 'present' is implied
     #   :gid => 0,
@@ -63,7 +63,7 @@ class Rouster
     raise NotImplementedError.new()
   end
 
-  def validate_package(package, options)
+  def validate_package(name, expectations)
     #'perl-Net-SNMP' => {
     #  :ensure => 'absent'
     #},
@@ -82,10 +82,44 @@ class Rouster
     #  :exists|ensure
     #  :version  (literal or basic comparison)
     #  :constrain
-    raise NotImplementedError.new()
+
+    packages = self.get_packages(true)
+
+    ## set up some defaults
+    expectations[:ensure] ||= 'present'
+
+    if expectations.has_key?(:constrain)
+      # if we don't meet the constraint, fake success
+      @log.info('')
+      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
+      true unless self.meets_constraint?(fact, expectation)
+    end
+
+    results = Hash.new()
+    local = nil
+
+    expectations.each do |k,v|
+      case k
+        when :ensure, :exists:
+          local = (packages.has_key?(name) and v.match(/absent/))
+        when :version:
+          local = v.match(/packages[name]['version']/)
+        else
+          raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
+      end
+
+      results[k] = local
+    end
+
+    # TODO figure out a good way to allow access to the entire hash, not just boolean -- for now just print at an info level
+    @log.info(results.pretty_print_inspect())
+
+    # TODO should we implement a fail fast method? at least an option
+    results.find{|k,v| v.false? }.nil?
   end
 
-  def validate_service(service, options)
+
+  def validate_service(name, expectations)
     # 'ntp' => {
     #   :ensure => 'present',
     #   :state  => 'started'
@@ -101,7 +135,7 @@ class Rouster
     raise NotImplementedError.new()
   end
 
-  def validate_user(user, options)
+  def validate_user(name, expectations)
     # 'root' => {
     #   :uid => 0
     # },
@@ -132,8 +166,8 @@ class Rouster
 
     unless self.respond_to?('facter')
       # if we haven't loaded puppet.rb, we won't have access to facts
-      @log.warn('using constraints without loading [rouster/puppet] will not work, faking success')
-      true
+      @log.warn('using constraints without loading [rouster/puppet] will not work, forcing no-op')
+      false
     end
 
     if use_cache.false?
