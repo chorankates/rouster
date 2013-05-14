@@ -124,4 +124,25 @@ class Rouster
     raise NotImplementedError.new()
   end
 
+
+  ## internal methods
+  private
+
+  def meets_constraint?(fact, expectation, use_cache=true)
+
+    unless self.respond_to?('facter')
+      # if we haven't loaded puppet.rb, we won't have access to facts
+      @log.warn('using constraints without loading [rouster/puppet] will not work, faking success')
+      true
+    end
+
+    if use_cache.false?
+      self.facts = self.facter(false)
+    end
+
+    res = expectation.match(self.facts[fact])
+
+    res.nil? ? false : true
+  end
+
 end
