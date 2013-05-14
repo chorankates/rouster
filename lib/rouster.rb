@@ -181,11 +181,10 @@ class Rouster
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
     @log.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
 
-    res = self.status()
-    raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [%s]', remote_file, res)) unless res.eql?('running')
+    raise SSHConnectionError.new(sprintf('unable to get[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      @_vm.channel.upload(local_file, remote_file)
+      @_vm.channel.download(local_file, remote_file)
     rescue => e
       raise SSHConnectionError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
@@ -196,8 +195,7 @@ class Rouster
     remote_file = remote_file.nil? ? File.basename(local_file) : remote_file
     @log.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
 
-    res = self.status()
-    raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [5s]', local_file, res)) unless res.eql?('running')
+    raise SSHConnectionError.new(sprintf('unable to put[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
       @_vm.channel.upload(local_file, remote_file)
