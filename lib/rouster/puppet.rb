@@ -3,21 +3,13 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 require 'json'
 require 'socket'
 
-# convenience truthiness methods -- probably belongs somewhere else, only used here so far
-class Object
-  def false?
-    self.eql?(false)
-  end
-
-  def true?
-    self.eql?(true)
-  end
-end
-
-
 class Rouster
 
-  def facter(custom_facts=true)
+  def facter(use_cache=true, custom_facts=true)
+    if use_cache.true? and ! self.facts.nil?
+      self.facts
+    end
+
     json = nil
     res  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
 
@@ -25,6 +17,10 @@ class Rouster
       json = res.to_json
     rescue
       raise InternalError.new(sprintf('unable to parse[%s] as JSON', res))
+    end
+
+    if use_cache.true?
+      self.facts = res
     end
 
     json
