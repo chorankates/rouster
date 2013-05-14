@@ -1,0 +1,61 @@
+require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
+
+require 'rouster'
+require 'rouster/tests'
+require 'test/unit'
+
+@app = Rouster.new(:name => 'app')
+@ppm = Rouster.new(:name => 'ppm', :sudo => false)
+
+@app.up()
+
+class TestPut < Test::Unit::TestCase
+
+  def setup
+    #@app = Rouster.new({:name => 'app'})
+    #@ppm = Rouster.new({:name => 'ppm', :sudo => false})
+    #@app.up()
+    #@ppm.up()
+    @kg_local_location  = sprintf('/tmp/rouster-test_get_local.%s.%s', $$, Time.now.to_i)
+    @kg_remote_location = '/etc/hosts'
+    @kb_dne_location = '/tmp/this-doesnt_exist/and/never/will.txt'
+
+    File.delete(@kg_local_location)
+  end
+
+  def test_happy_path
+
+    assert_nothing_raised do
+      @app.get(@kg_remote_location, @kg_local_location)
+    end
+
+    assert(@app.is_file?(@kg_local_location))
+  end
+
+  def test_local_path_dne
+
+    assert_raise FileTransferError do
+      @app.get(@kg_remote_location, @kb_dne_location)
+    end
+
+    assert_equal(false, @app.is_file?(@kg_location), 'known bad local path DNE')
+  end
+
+  def test_remote_path_dne
+
+    assert_raise SSHConnectionError do
+      @app.get(@kb_dne_location, @kg_local_location)
+    end
+
+    assert_equal(false, @app.is_file?(@kg_local_location), 'known bad remote file path DNE')
+
+  end
+
+  def teardown
+    # TODO we should suspend instead if any test failed for triage
+    #@app.destroy()
+    #@ppm.destroy()
+
+    File.delete(@kg_local_location)
+  end
+end

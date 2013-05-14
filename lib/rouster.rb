@@ -1,11 +1,10 @@
 require 'rubygems'
-
 require 'json'
 
 $LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/'
 require 'vagrant'
 
-# TODO combine/refactor the get_scp_command(), get_ssh_command() synergies
+require 'rouster/vagrant'
 
 class Rouster
   VERSION = 0.1
@@ -18,7 +17,7 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :_env, :exitcode, :name, :output, :passthrough, :sudo, :_ssh, :sshinfo, :vagrantfile, :verbosity, :_vm, :_vm_config
+  attr_reader :deltas, :_env, :exitcode, :facts, :log, :name, :output, :passthrough, :sudo, :_ssh, :sshinfo, :vagrantfile, :verbosity, :_vm, :_vm_config
 
   def initialize(opts = nil)
     # process hash keys passed
@@ -26,7 +25,7 @@ class Rouster
     @passthrough = opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey      = opts[:sshkey]
     @vagrantfile = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
-    @verbosity   = (opts.has_key?(:verbosity) and opts[:verbosity].is_a?(Integer)) ? opts[:verbosity] : 5 # default to error
+    @verbosity   = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 5
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]
@@ -38,6 +37,7 @@ class Rouster
 
     @output      = Array.new
     @sshinfo     = Hash.new
+    @deltas      = Hash.new # should probably rename this, but container for tests.rb/get_*
     @exitcode    = nil
 
     # set up logging
@@ -49,34 +49,22 @@ class Rouster
     @log.level      = @verbosity # DEBUG (1) < INFO (2) < WARN < ERROR < FATAL (5)
 
     unless File.file?(@vagrantfile)
-      raise InternalError.new("specified Vagrantfile [#{@vagrantfile}] does not exist") unless File.file?(@vagrantfile)
+      raise InternalError.new(sprintf('specified Vagrantfile [%s] does not exist', @vagrantfile))
     end
 
     @log.debug('instantiating Vagrant::Environment')
     @_env = Vagrant::Environment.new({:vagrantfile_name => @vagrantfile})
-    # ["action_registry", "action_runner", "boxes", "boxes_path", "cli", "config",
-    # "copy_insecure_private_key", "cwd", "default_private_key_path", "dotfile_path",
-    # "find_vagrantfile", "gems_path", "global_data", "home_path", "host", "load!",
-    # "load_config!", "load_plugins", "load_vms!", "loaded?", "local_data", "lock",
-    # "lock_path", "multivm?", "primary_vm", "reload!", "root_path", "setup_home_path",
-    # "tmp_path", "ui", "vagrantfile_name", "vms", "vms_ordered"]
 
     @log.debug('loading Vagrantfile configuration')
     @_config = @_env.load_config!
-    # ["for_vm", "global", "vms"]
 
     raise InternalError.new(sprintf('specified VM name [%s] not found in specified Vagrantfile', @name)) unless @_config.for_vm(@name.to_sym)
 
-    # need to set base MAC here, not sure why we have never had to specify this previously
     @_vm_config = @_config.for_vm(@name.to_sym)
-    @_vm_config.vm.base_mac = 'b88d12044242' # causes a fatal error with VboxManage if colons are left in
+    @_vm_config.vm.base_mac = generate_unique_mac() # TODO need to take potential Vagrantfile modifications here
 
     @log.debug('instantiating Vagrant::VM')
     @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
-    # ["box", "channel", "config", "created?", "destroy", "driver", "env",
-    # "guest", "halt", "load_guest!", "package", "provision", "reload",
-    # "reload!", "resume", "run_action", "ssh", "start", "state", "suspend", "ui",
-    # "up", "uuid", "uuid=", "vm"]
 
     # no key is specified
     if @sshkey.nil?
@@ -93,18 +81,22 @@ class Rouster
       raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
     end
 
+    # TODO can we delete these once get/put are implemented using Vagrant objects?
     config_keys = @_vm_config.keys
     self.sshinfo[:host] = config_keys[:ssh].host
     self.sshinfo[:port] = config_keys[:ssh].port
     self.sshinfo[:user] = config_keys[:ssh].username
     self.sshinfo[:key]  = @sshkey
 
+    @log.debug('Rouster object successfully instantiated')
   end
 
   def inspect
     "name [#{@name}]:
+      created[#{@_vm.created?}],
       passthrough[#{@passthrough}],
       sshkey[#{@sshkey}],
+      status[#{self.status()}]
       sudo[#{@sudo}],
       vagrantfile[#{@vagrantfile}],
       verbosity[#{verbosity}],
@@ -116,7 +108,22 @@ class Rouster
   ## Vagrant methods
   def up
     @log.info('up()')
-    @_vm.up
+    @_vm.channel.destroy_ssh_connection()
+
+    # TODO
+    if @_vm.created?
+      self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
+    else
+      @_vm.up
+    end
+
+    ## if the VM hasn't been created yet, we don't know the port
+    @_config.for_vm(@name.to_sym).keys[:vm].forwarded_ports.each do |f|
+      if f[:name].eql?('ssh')
+        self.sshinfo[:port] = f[:hostport]
+      end
+    end
+
   end
 
   def destroy
@@ -138,20 +145,26 @@ class Rouster
     # runs a command inside the Vagrant VM
     output = nil
 
-    # TODO use @_vm.channel.sudo here
-    if self.uses_sudo? and ! command.match(/^sudo/)
-      command = sprintf('sudo %s', command)
-    end
+    @log.info(sprintf('vm running: [%s]', command))
 
     begin
-      @_vm.channel.execute(command) do |type,data|
-        output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
-        output += data
+      # TODO use a lambda here instead
+      if self.uses_sudo?
+        @_vm.channel.sudo(command) do |type,data|
+          output ||= ""
+          output += data
+        end
+      else
+        @_vm.channel.execute(command) do |type,data|
+          output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
+          output += data
+        end
       end
     rescue Vagrant::Errors::VagrantError => e
       # non-0 exit code, this is fatal for Vagrant, but not for us
       output        = e.message
       @exitcode = 1 # TODO get the actual exit code
+      raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}]")
     end
 
     @exitcode ||= 0
@@ -159,71 +172,38 @@ class Rouster
     output
   end
 
-  def available_via_ssh?
+  def is_available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
     @_vm.channel.ready?()
   end
 
   def get(remote_file, local_file=nil)
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
+    @log.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
 
-    # TODO should we switch this over to self.created?
-    res = self.status()
-    raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [%s]', remote_file, res)) unless res.eql?('running')
-
-    cmd = sprintf(
-      'scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s:%s %s',
-      self.sshinfo[:port],
-      self.sshinfo[:key],
-      self.sshinfo[:user],
-      self.sshinfo[:hostname],
-      remote_file,
-      local_file
-    )
+    raise SSHConnectionError.new(sprintf('unable to get[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      # assuming this doesn't fail, does the return of this method get passed back up the stack?
-      self._run(cmd)
-    rescue Rouster::LocalExecutionError => e
-      raise SSHConnectionError.new(sprintf('unable to get [%s], command [%s] returned [%s]', remote_file, cmd, self.get_output()))
+      @_vm.channel.download(local_file, remote_file)
+    rescue => e
+      raise SSHConnectionError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
 
   end
 
   def put(local_file, remote_file=nil)
     remote_file = remote_file.nil? ? File.basename(local_file) : remote_file
+    @log.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
 
-    res = self.status()
-    raise SSHConnectionError.new(sprintf('unable to get [%s], box is in status [5s]', local_file, res)) unless res.eql?('running')
-
-    cmd = sprintf(
-      'scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s %s@%s:%s',
-      self.sshinfo[:port],
-      self.sshinfo[:key],
-      local_file,
-      self.sshinfo[:user],
-      self.sshinfo[:hostname],
-      remote_file
-    )
+    raise FileTransferError.new(sprintf('unable to put[%s], local file does not exist', local_file)) unless File.file?(local_file)
+    raise SSHConnectionError.new(sprintf('unable to put[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      self._run(cmd)
-    rescue Rouster::LocalExecutionError
-      raise SSHConnectionError.new(sprintf('unable to get [%s], command [%s] returned [%s]', local_file, cmd, self.get_output()))
+      @_vm.channel.upload(local_file, remote_file)
+    rescue => e
+      raise SSHConnectionError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
     end
 
-  end
-
-  def is_dir?(dir)
-    raise NotImplementedError.new()
-  end
-
-  def is_file?(file)
-    raise NotImplementedError.new()
-  end
-
-  def is_in_file?(file, regex, scp=0)
-    raise NotImplementedError.new()
   end
 
   # there has _got_ to be a more rubyish way to do this
@@ -236,15 +216,18 @@ class Rouster
      self.sudo.eql?(true)
   end
 
-  def rebuild()
+  def rebuild
     # destroys/reups a Vagrant machine
+    @log.debug('rebuild()')
     @_vm.destroy
     @_vm.up
   end
 
-  def restart(wait = 120)
+  def restart
+    @log.debug('restart()')
     # restarts a Vagrant machine, wait time is same as rebuild()
     # how do we do this in a generic way? shutdown -rf works for Unix, but not Solaris
+    #   we can ask Vagrant what kind of machine this is, but how far down this hole do we really want to go?
 
     # MVP
     self.run('/sbin/shutdown -rf now')
@@ -261,7 +244,7 @@ class Rouster
     cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file)
     res      = `#{cmd}` # what does this actually hold?
 
-    @log.debug(sprintf('running: [%s]', cmd)) # should this be an 'info'?
+    @log.info(sprintf('host running: [%s]', cmd))
 
     output = File.read(tmp_file)
     File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))
@@ -275,10 +258,26 @@ class Rouster
     output
   end
 
-  ## truly internal methods
-  def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
+  # truly internal methods
+  def get_output(index = 0)
+    # return index'th array of output in LIFO order
 
+    # TODO do this in a mathy way instead of a youre-going-to-run-out-of-memory-way
+    reversed = self.output.reverse
+    reversed[index]
+  end
+
+  private
+
+  def generate_unique_mac
+    # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
+    (1..6).map{"%0.2X" % rand(256)}.join('') # causes a fatal error with VboxManage if colons are left in
+  end
+
+  def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
     raise InternalError.new('must specify a filename') if filename.nil?
+
+    @log.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels)) unless @log.nil?
 
     dirs  = startdir.split('/')
     count = 0
@@ -296,13 +295,16 @@ class Rouster
     end
   end
 
-  def get_output(index = 0)
-    # return index'th array of output in LIFO order
-
-    # TODO do this in a mathy way instead of a youre-going-to-run-out-of-memory-way
-    reversed = self.output.reverse
-    reversed[index]
-  end
 
 end
 
+# convenience truthiness methods
+class Object
+  def false?
+    self.eql?(false)
+  end
+
+  def true?
+    self.eql?(true)
+  end
+end

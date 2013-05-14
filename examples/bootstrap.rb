@@ -1,6 +1,8 @@
 require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 require 'rouster'
+require 'rouster/puppet'
+require 'rouster/tests'
 
 app = Rouster.new(:name => 'app', :verbosity => 2, :sudo => false)
 ppm = Rouster.new(:name => 'ppm', :verbosity => 1, :sudo => true)
@@ -10,7 +12,7 @@ ppm = Rouster.new(:name => 'ppm', :verbosity => 1, :sudo => true)
 #lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
 #rpt = Rouster.new(:passthrough => 'remote', :verbosity => 4, :sshkey => '~/.ssh/id_dsa')
 
-workers = [ppm]
+workers = [app]
 
 workers.each do |w|
   p '%s config: ' % w.name
@@ -32,7 +34,7 @@ workers.each do |w|
   p 'bringing the box back'
   w.up()
 
-  p sprintf('%s status: %s' % w.name, w.status())
+  p sprintf('%s status: %s', w.name, w.status())
   p sprintf('%s available via ssh: %s', w.name, w.available_via_ssh?())
 
   # put a file on the box and then bring it back
