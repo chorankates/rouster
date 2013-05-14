@@ -45,7 +45,7 @@ class Rouster
     uname = self.run('uname -a')
 
     if uname =~ /darwin/
-
+      # returns { package => '?', package2 => '?' }
       raw = self.run('pkgutil --pkgs')
       raw.split("\n").each do |line|
         # can get actual version with 'pkgutil --pkg-info=#{line}', but do we really want to? is there a better way?
@@ -53,7 +53,7 @@ class Rouster
       end
 
     elsif uname =~ /SunOS/
-
+      # returns { category => { package => name, package2 => name2 }, catergory2 => { ... } }
       raw = self.run('pkginfo')
       raw.split("\n").each do |line|
         # can get actual version with 'pkginfo -c #{package}', but do we really want to?
@@ -69,7 +69,7 @@ class Rouster
       end
 
     elsif uname =~ /Ubuntu/
-
+      # returns { package => '?', package2 => '?' }
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
         # can get actual version with 'dpkg -s #{package}'
@@ -79,7 +79,7 @@ class Rouster
       end
 
     elsif self.is_file?('/etc/redhat-release')
-
+      # returns { package => 'version', package2 => 'version2' }
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
         next if line.grep(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
