@@ -7,7 +7,7 @@ task :default do
 end
 
 task :test do
-  Dir['test/**/*.rb'].each do |test|
+  Dir['test/**/test_*.rb'].each do |test|
     sh "ruby #{test}"
   end
 end

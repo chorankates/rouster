@@ -52,3 +52,51 @@ workers.each do |w|
   p sprintf('%s available via ssh: %s', w, w.available_via_ssh?())
 
 end
+
+require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
+
+require 'rouster'
+require 'rouster/puppet'
+require 'rouster/tests'
+
+app = Rouster.new(:name => 'app', :verbosity => 1)
+
+#print p.put(__FILE__, '/tmp/foobar')
+print app.get('/tmp/foobar', '/tmp/frobnozzle')
+
+print app.is_dir?('/tmp')
+print app.is_executable?('/sbin/service')
+print app.is_file?('/etc/hosts')
+print app.is_group?('root')
+print app.is_in_file?('/etc/hosts', 'puppet')
+print app.is_in_path?('ping')
+print app.is_package?('libpcap')
+print app.is_readable?('/etc/hosts')
+print app.is_service?('ntp')
+print app.is_service_running?('ntp')
+print app.is_user?('root')
+print app.is_writeable?('/etc/hosts')
+
+exit!
+
+app.run('uname -a')
+print "output: #{app.get_output()} / exitcode: #{app.exitcode}\n"
+begin
+  app.run('fizzbang')
+  print "output: #{app.get_output()} / exitcode: #{app.exitcode}\n"
+rescue Rouster::RemoteExecutionError => e
+  print "caught an exception: #{e}"
+end
+
+exit
+
+app.up()
+p app.status()
+app.suspend()
+p app.status()
+app.up()
+p app.status()
+app.destroy()
+p app.status()
+
+exit!
