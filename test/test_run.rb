@@ -3,41 +3,46 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 require 'rouster'
 require 'test/unit'
 
-@app = Rouster.new(:name => 'app')
-@ppm = Rouster.new(:name => 'ppm', :sudo => false)
-
-@app.up()
-
 class TestRun < Test::Unit::TestCase
 
-  #def setup
-  #  @app = Rouster.new({:name => 'app'})
-  #  @ppm = Rouster.new({:name => 'ppm', :sudo => false})
-  #
-  #  @app.up()
-  #  @ppm.up()
-  #end
+  def setup
+    @app         = Rouster.new({:name => 'app', :verbose => 4})
+    @app_no_sudo = Rouster.new({:name => 'app', :verbose => 4, :sudo => false})
+
+    @app.up()
+    @app_no_sudo.up()
+
+    assert_equal(@app.is_available_via_ssh?, true, 'app is available via SSH')
+    assert_equal(@app.is_available_via_ssh?, true, 'app_no_sudo is available via SSH')
+  end
 
   def test_happy_path
-    res = @app.run('ls -l')
+
+    assert_nothing_raised do
+      @app.run('ls -l')
+    end
 
     assert_equal(0, @app.exitcode, 'got expected exit code')
-    assert_equal(res, @app.get_output(), 'return matches get_output()')
     assert_not_nil(@app.get_output(), 'output is populated')
     assert_match(/^total\s\d/, @app.get_output(), 'output matches expectations')
   end
 
   def test_bad_exit_codes
-    res = @app.run('fizzbang')
+
+    assert_raise Rouster::RemoteExecutionError do
+      @app.run('fizzbang')
+    end
 
     assert_not_equal(0, @app.exitcode, 'got expected non-0 exit code')
-    assert_equal(res, @app.get_output(), 'return matches get_output()')
     assert_not_nil(@app.get_output(), 'output is populated')
     assert_match(/fizzbang/, @app.get_output(), 'output matches expectations')
   end
 
   def test_sudo_enabled
-    res = @app.run('ls -l /root')
+
+    assert_nothing_raised do
+      @app.run('ls -l /root')
+    end
 
     assert_equal(0, @app.exitcode, 'got expected exit code')
     assert_no_match(/Permission denied/i, @app.get_output(), 'output matches expectations 1of2')
@@ -45,16 +50,18 @@ class TestRun < Test::Unit::TestCase
   end
 
   def test_sudo_disabled
-    @ppm.up()
-    res = @ppm.run('ls -l /root')
 
-    assert_not_equal(0, @ppm.exitcode, 'got expected non-0 exit code')
-    assert_match(/Permission denied/i, @ppm.get_output(), 'output matches expectations')
+    assert_raise Rouster::RemoteExecutionError do
+      @app_no_sudo.run('ls -l /root')
+    end
+
+    assert_not_equal(0, @app_no_sudo.exitcode, 'got expected non-0 exit code')
+    assert_match(/Permission denied/i, @app_no_sudo.get_output(), 'output matches expectations')
   end
 
-  #def teardown
-  #  # TODO we should suspend instead if any test failed for triage
-  #  @app.destroy()
-  #  @ppm.destroy()
-  #end
+  def teardown
+    # TODO we should suspend instead if any test failed for triage
+    #@app.destroy()
+    #@ppm.destroy()
+  end
 end
