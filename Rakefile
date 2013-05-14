@@ -2,12 +2,23 @@ require sprintf('%s/%s', File.dirname(File.expand_path(__FILE__)), 'path_helper'
 require 'rubygems'
 
 task :default do
-  # TODO implement this, should just be basic object instantiation (?)
   sh 'ruby test/basic.rb'
 end
 
 task :test do
   Dir['test/**/test_*.rb'].each do |test|
+    sh "ruby #{test}"
+  end
+end
+
+task :unittest do
+  Dir['test/unit/**/test_*.rb'].each do |test|
+    sh "ruby #{test}"
+  end
+end
+
+task :functionaltest do
+  Dir['test/functional/**/test_*.rb'].each do |test|
     sh "ruby #{test}"
   end
 end
