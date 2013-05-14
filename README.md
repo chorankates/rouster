@@ -44,9 +44,11 @@ All Rouster workers also support:
 And depending on which pieces of rouster you 'require':
 
 * rouster/puppet
-  * compile_catalog()
-  * run_puppet()
+  * facter()
+  * get_catalog()
   * get_puppet_errors()
+  * get_puppet_notices()
+  * run_puppet()
 
 * rouster/tests
   * is_dir?()
@@ -63,8 +65,11 @@ And depending on which pieces of rouster you 'require':
   * is_writeable?()
 
 * rouster/testing
-  * validate_file?()
-  * validate_package?()
+  * validate_file()
+  * validate_group()
+  * validate_package()
+  * validate_service()
+  * validate_user()
 
 These additional methods are added to the Rouster via class extension.
 
