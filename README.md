@@ -1,7 +1,7 @@
 Rouster
 ======
 ```
-Rouster.is_a?('abstraction layer for controlling with Vagrant virtual machines')
+Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines')
 => true
 ```
 
