@@ -4,20 +4,23 @@ require 'rouster'
 require 'rouster/tests'
 require 'test/unit'
 
-@app = Rouster.new(:name => 'app')
-@ppm = Rouster.new(:name => 'ppm', :sudo => false)
 
-@app.up()
 
 class TestPut < Test::Unit::TestCase
 
   def setup
-    #@app = Rouster.new({:name => 'app'})
-    #@ppm = Rouster.new({:name => 'ppm', :sudo => false})
-    #@app.up()
-    #@ppm.up()
+    @app = Rouster.new(:name => 'app')
+
+    @app.up()
+
     @kg_location     = sprintf('/tmp/rouster-test_put.%s.%s', $$, Time.now.to_i)
     @kb_dne_location = '/tmp/this-doesnt_exist/and/never/will.txt'
+
+    File.delete(@kg_location) if File.file?(@kg_location).true?
+
+    assert_equal(@app.is_available_via_ssh?, true, 'app is available via SSH')
+    assert_equal(File.file?(@kg_location), false, 'test KG file not present')
+
   end
 
   def test_happy_path
@@ -31,7 +34,7 @@ class TestPut < Test::Unit::TestCase
 
   def test_local_file_dne
 
-    assert_raise FileTransferError do
+    assert_raise Rouster::FileTransferError do
       @app.put('this_file_dne', @kg_location)
     end
 
@@ -40,7 +43,7 @@ class TestPut < Test::Unit::TestCase
 
   def test_remote_path_dne
 
-    assert_raise SSHConnectionError do
+    assert_raise Rouster::SSHConnectionError do
       @app.put(__FILE__, @kb_dne_location)
     end
 
@@ -48,9 +51,20 @@ class TestPut < Test::Unit::TestCase
 
   end
 
+  def test_with_suspended_machine
+    @app.suspend()
+
+    assert_raise Rouster::SSHConnectionError do
+      @app.put(__FILE__, @kg_local_location)
+    end
+
+    assert_equal(false, @app.is_file?(@kg_local_location), 'when machine is suspended, unable to get from it')
+  end
+
   def teardown
     # TODO we should suspend instead if any test failed for triage
     #@app.destroy()
     #@ppm.destroy()
+    File.delete(@kg_location) if File.file?(@kg_location).true?
   end
 end
