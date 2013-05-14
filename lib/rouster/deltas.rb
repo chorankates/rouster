@@ -2,6 +2,8 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 
 # deltas.rb - get information about groups, packages, services and users inside a Vagrant VM
 
+# TODO convert stringy keys in res to symbols
+
 class Rouster
   # deltas.rb reimplementation
   def get_groups(use_cache=true)
