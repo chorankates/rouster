@@ -147,23 +147,20 @@ class Rouster
 
     @log.info(sprintf('vm running: [%s]', command))
 
-    begin
-      # TODO use a lambda here instead
-      if self.uses_sudo?
-        @_vm.channel.sudo(command) do |type,data|
-          output ||= ""
-          output += data
-        end
-      else
-        @_vm.channel.execute(command) do |type,data|
-          output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
-          output += data
-        end
+    # TODO use a lambda here instead
+    if self.uses_sudo?
+      @exitcode = @_vm.channel.sudo(command, { :error_check => false } ) do |type,data|
+        output ||= ""
+        output += data
       end
-    rescue Vagrant::Errors::VagrantError => e
-      # non-0 exit code, this is fatal for Vagrant, but not for us
-      output        = e.message
-      @exitcode = 1 # TODO get the actual exit code
+    else
+      @exitcode = @_vm.channel.execute(command, { :error_check => false } ) do |type,data|
+        output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
+        output += data
+      end
+    end
+
+    unless @exitcode.eql?(0)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}]")
     end
 
