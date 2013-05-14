@@ -150,12 +150,13 @@ class Rouster
       end
     end
 
+    self.output.push(output)
+
     unless @exitcode.eql?(0)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}]")
     end
 
     @exitcode ||= 0
-    self.output.push(output)
     output
   end
 
@@ -173,7 +174,7 @@ class Rouster
     begin
       @_vm.channel.download(remote_file, local_file)
     rescue => e
-      raise SSHConnectionError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
+      raise FileTransferError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
 
   end
@@ -188,7 +189,7 @@ class Rouster
     begin
       @_vm.channel.upload(local_file, remote_file)
     rescue => e
-      raise SSHConnectionError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
+      raise FileTransferError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
     end
 
   end
