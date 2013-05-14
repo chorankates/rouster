@@ -118,7 +118,6 @@ class Rouster
     #  :exists|ensure
     #  :version  (literal or basic comparison)
     #  :constrain
-
     packages = self.get_packages(true)
 
     ## set up some defaults
@@ -168,7 +167,7 @@ class Rouster
     #  :exists|:ensure
     #  :state
     #  :constrain
-    services = self.get_groups(true)
+    services = self.get_services(true)
 
     expectations[:ensure] ||= 'present'
 
@@ -221,9 +220,42 @@ class Rouster
     #  :shell
     #  :uid
     #  :constrain
-    raise NotImplementedError.new()
-  end
+    users = self.get_users(true)
 
+    expectations[:ensure] ||= 'present'
+
+    if expectations.has_key?(:constrain)
+      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
+      unless self.meets_constraint?(fact, expectation)
+        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+        true
+      end
+    end
+
+    results = Hash.new()
+    local = nil
+
+    expectations.each do |k,v|
+      case k
+        when :ensure, :exists:
+          local = (users.has_key?(name) and ! v.match(/absent|false/).nil? )
+        when :home:
+          local = ! v.match(/users['home']/).nil?
+        when :shell
+          local = ! v.match(/users['shell']/).nil?
+        when :uid
+          local = ! v.match(/users['uid']/).nil?
+        else
+          raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
+      end
+
+      results[k] = local
+    end
+
+    @log.info(results.pretty_print_inspect())
+    results.find{|k,v| v.false? }.nil?
+
+  end
 
   ## internal methods
   private
