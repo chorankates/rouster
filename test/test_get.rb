@@ -60,8 +60,6 @@ class TestPut < Test::Unit::TestCase
     assert_equal(false, File.file?(@kg_local_location), 'when machine is suspended, unable to get from it')
   end
 
-
-
   def teardown
     # TODO we should suspend instead if any test failed for triage
     #@app.destroy()
