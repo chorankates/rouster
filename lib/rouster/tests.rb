@@ -224,6 +224,7 @@ class Rouster
 
     # TODO you are smarter than this. build some tests and then rewrite this with confidence
     res[:directory?]  = tokens[0][0].chr.eql?('d')
+    res[:file?]       = ! res[:directory?]
     res[:executable?] = [ tokens[0][3].chr.eql?('x'), tokens[0][6].chr.eql?('x'), tokens[0][9].chr.eql?('x') || tokens[0][9].chr.eql?('t') ]
     res[:readable?]   = [ tokens[0][2].chr.eql?('w'), tokens[0][5].chr.eql?('w'), tokens[0][8].chr.eql?('w') ]
     res[:writeable?]  = [ tokens[0][1].chr.eql?('r'), tokens[0][4].chr.eql?('r'), tokens[0][7].chr.eql?('r') ]

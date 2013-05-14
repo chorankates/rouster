@@ -31,13 +31,61 @@ class Rouster
     #   :exists|:ensure
     #   :file
     #   :directory
-    #   :false
     #   :contains (string or array)
     #   :mode/:permissions
     #   :owner
     #   :group
     #   :constrain
-    raise NotImplementedError.new()
+    properties = self.is_file?(name)
+
+    expectations[:ensure] ||= 'present'
+
+    if expectations.has_key?(:constrain)
+      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
+      unless self.meets_constraint?(fact, expectation)
+        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+        true
+      end
+    end
+
+    results = Hash.new()
+    local = nil
+
+    expectations.each do |k,v|
+
+      case k
+        when :ensure, :exists:
+          local = (! properties.nil? and ! v.match(/absent|false/).nil?)
+        when :file:
+          local = (! properties.nil? and properties[:file?].true?)
+        when :directory:
+          local = (! properties.nil? and properties[:directory?].true?)
+        when :contains:
+          v.each do |regex|
+            local = true
+            begin
+              self.run("grep -c '%s' %s")
+            rescue
+              local = false
+            end
+            next if local.false?
+          end
+        when :mode, :permissions:
+          local = (! properties.nil? and ! v.match(/properties[:mode]/).nil?)
+        when :owner
+          local = (! properties.nil? and ! v.match(/properties[:owner]/).nil?)
+        when :group
+          local = (! properties.nil? and ! v.match(/properties[:group]/).nil?)
+        else
+          raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
+      end
+
+      results[k] = local
+    end
+
+    @log.info(results.pretty_print_inspect())
+    results.find{|k,v| v.false? }.nil?
+
   end
 
   def validate_group(name, expectations)
