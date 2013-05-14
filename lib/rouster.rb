@@ -10,15 +10,15 @@ class Rouster
   VERSION = 0.1
 
   # custom exceptions -- what else do we want them to include/do?
-  #   - should append the name of the box to the exception message
   class FileTransferError    < StandardError; end # thrown by get() and put()
   class InternalError        < StandardError; end # thrown by most (if not all) Rouster methods
   class LocalExecutionError  < StandardError; end # thrown by _run()
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :deltas, :_env, :exitcode, :facts, :log, :name, :output, :passthrough, :sudo, :_ssh, :sshinfo, :vagrantfile, :verbosity, :_vm, :_vm_config
+  attr_reader :deltas, :_env, :exitcode, :facts, :log, :name, :output, :passthrough, :sudo, :vagrantfile, :verbosity, :_vm, :_vm_config
 
+  # TODO use the Vagranty .merge pattern for defaults
   def initialize(opts = nil)
     # process hash keys passed
     @name        = opts[:name] # since we're constantly calling .to_sym on this, might want to just start there
@@ -37,7 +37,7 @@ class Rouster
 
     @output      = Array.new
     @sshinfo     = Hash.new
-    @deltas      = Hash.new # should probably rename this, but container for tests.rb/get_*
+    @deltas      = Hash.new # should probably rename this, but need container for deltas.rb/get_*
     @exitcode    = nil
 
     # set up logging
@@ -81,14 +81,10 @@ class Rouster
       raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
     end
 
-    # TODO can we delete these once get/put are implemented using Vagrant objects?
-    config_keys = @_vm_config.keys
-    self.sshinfo[:host] = config_keys[:ssh].host
-    self.sshinfo[:port] = config_keys[:ssh].port
-    self.sshinfo[:user] = config_keys[:ssh].username
-    self.sshinfo[:key]  = @sshkey
-
     @log.debug('Rouster object successfully instantiated')
+
+    # TODO should we open the SSH tunnel during instantiation as part of validity test?
+    # only if it is optional and specified in parameters
   end
 
   def inspect
@@ -110,7 +106,7 @@ class Rouster
     @log.info('up()')
     @_vm.channel.destroy_ssh_connection()
 
-    # TODO
+    # TODO need to dig deeper into this one -- issue #21
     if @_vm.created?
       self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
     else
@@ -181,7 +177,7 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to get[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      @_vm.channel.download(local_file, remote_file)
+      @_vm.channel.download(remote_file, local_file)
     rescue => e
       raise SSHConnectionError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
