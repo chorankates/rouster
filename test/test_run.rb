@@ -10,7 +10,7 @@ require 'test/unit'
 
 class TestRun < Test::Unit::TestCase
 
-  ##def setup
+  #def setup
   #  @app = Rouster.new({:name => 'app'})
   #  @ppm = Rouster.new({:name => 'ppm', :sudo => false})
   #
