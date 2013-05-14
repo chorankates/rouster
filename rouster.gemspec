@@ -13,8 +13,8 @@ Gem::Specification.new do |s|
   s.summary       = 'Rouster is an abstraction layer for Vagrant'
   s.description   = 'Rouster allows you to programmatically control and interact with your existing Vagrant virtual machines'
 
-  s.required_rubygems_version = '>= 1.3.6' # not sure about this
-  s.rubyforge_project         = 'Rouster' # need to create this
+  s.required_rubygems_version = '>= 1.3.6'
+  s.rubyforge_project         = 'Rouster'
 
   s.add_dependency 'log4r',   '~> 1.1.9'
   s.add_dependency 'net-scp'
