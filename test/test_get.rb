@@ -16,35 +16,38 @@ class TestPut < Test::Unit::TestCase
     #@ppm = Rouster.new({:name => 'ppm', :sudo => false})
     #@app.up()
     #@ppm.up()
-    @kg_location     = sprintf('/tmp/rouster-test_put.%s.%s', $$, Time.now.to_i)
+    @kg_local_location  = sprintf('/tmp/rouster-test_get_local.%s.%s', $$, Time.now.to_i)
+    @kg_remote_location = '/etc/hosts'
     @kb_dne_location = '/tmp/this-doesnt_exist/and/never/will.txt'
+
+    File.delete(@kg_local_location)
   end
 
   def test_happy_path
 
     assert_nothing_raised do
-      @app.put(__FILE__, @kg_location)
+      @app.get(@kg_remote_location, @kg_local_location)
     end
 
-    assert(@app.is_file?(@kg_location))
+    assert(@app.is_file?(@kg_local_location))
   end
 
-  def test_local_file_dne
+  def test_local_path_dne
 
     assert_raise FileTransferError do
-      @app.put('this_file_dne', @kg_location)
+      @app.get(@kg_remote_location, @kb_dne_location)
     end
 
-    assert_equal(false, @app.is_file?(@kg_location), 'known bad local file DNE')
+    assert_equal(false, @app.is_file?(@kg_location), 'known bad local path DNE')
   end
 
   def test_remote_path_dne
 
     assert_raise SSHConnectionError do
-      @app.put(__FILE__, @kb_dne_location)
+      @app.get(@kb_dne_location, @kg_local_location)
     end
 
-    assert_equal(false, @app.is_file?(@kb_dne_location), 'known bad remote file path DNE')
+    assert_equal(false, @app.is_file?(@kg_local_location), 'known bad remote file path DNE')
 
   end
 
@@ -52,5 +55,7 @@ class TestPut < Test::Unit::TestCase
     # TODO we should suspend instead if any test failed for triage
     #@app.destroy()
     #@ppm.destroy()
+
+    File.delete(@kg_local_location)
   end
 end
