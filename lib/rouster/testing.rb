@@ -60,7 +60,43 @@ class Rouster
     #  :gid
     #  :user (string or array)
     #  :constrain
-    raise NotImplementedError.new()
+    groups = self.get_groups(true)
+
+    expectations[:ensure] ||= 'present'
+
+    # TODO make this a lambda
+    if expectations.has_key?(:constrain)
+      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
+      unless self.meets_constraint?(fact, expectation)
+        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+        true
+      end
+    end
+
+    results = Hash.new()
+    local = nil
+
+    expectations.each do |k,v|
+      case k
+        when :ensure, :exists:
+          local = (groups.has_key?(name) and v.match(/absent|false/))
+        when :gid:
+          local = v.match(/groups[name]['gid']/)
+        when :user:
+          v.each do |user|
+            local = groups[name]['users'].has_key?(user)
+            next if local.false? # TODO don't fail fast here -- until it's optional
+          end
+        else
+          raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
+      end
+
+      results[k] = local
+    end
+
+    @log.info(results.pretty_print_inspect())
+    results.find{|k,v| v.false? }.nil?
+
   end
 
   def validate_package(name, expectations)
@@ -102,7 +138,7 @@ class Rouster
     expectations.each do |k,v|
       case k
         when :ensure, :exists:
-          local = (packages.has_key?(name) and v.match(/absent/))
+          local = (packages.has_key?(name) and v.match(/absent|false/))
         when :version:
           local = v.match(/packages[name]['version']/)
         else
