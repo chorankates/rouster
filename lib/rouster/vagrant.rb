@@ -21,7 +21,6 @@ module Vagrant
         begin
           scp = Net::SCP.new(@connection)
           scp.download!(from, to)
-
         rescue Net::SCP::Error => e
           # TODO given that we have broken from the connect() block method in upload(), does this still make sense?
           raise Errors::SCPUnavailable if e.message =~ /\(127\)/
@@ -30,6 +29,8 @@ module Vagrant
 
       end
 
+      # matching upload() return, even though true seems more correct
+      nil
     end
 
   end
