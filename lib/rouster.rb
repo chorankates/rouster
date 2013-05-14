@@ -195,6 +195,7 @@ class Rouster
     remote_file = remote_file.nil? ? File.basename(local_file) : remote_file
     @log.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
 
+    raise FileTransferError.new(sprintf('unable to put[%s], local file does not exist', local_file)) unless File.file?(local_file)
     raise SSHConnectionError.new(sprintf('unable to put[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
