@@ -153,8 +153,8 @@ end
 ## Base Methods
 ```
 irb(main):003:0> (Rouster.new(:name => 'app').methods - Object.methods).sort
-=> ["_env", "_run", "_ssh", "_vm", "_vm_config", "available_via_ssh?", "deltas",
- "destroy", "exitcode", "get", "get_output", "is_passthrough?", "log", "output",
- "passthrough", "put", "rebuild", "restart", "run", "sshinfo", "status", "sudo",
- "suspend", "traverse_up", "up", "uses_sudo?", "vagrantfile", "verbosity"]
+=> ["_env", "_run", "_vm", "_vm_config", "deltas", "destroy", "exitcode", "facts",
+"get", "get_output", "is_available_via_ssh?", "is_passthrough?", "log", "output",
+"passthrough", "put", "rebuild", "restart", "run", "status", "sudo", "suspend", "up",
+"uses_sudo?", "vagrantfile", "verbosity"]
  ```
