@@ -259,7 +259,7 @@ class Rouster
 
   def generate_unique_mac
     # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
-    (1..6).map{"%0.2X" % rand(256)}.join('') # causes a fatal error with VboxManage if colons are left in
+    (1..6).map{"%0.2X" % rand(256)}.join('').downcase # causes a fatal error with VboxManage if colons are left in
   end
 
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
