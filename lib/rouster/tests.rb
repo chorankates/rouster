@@ -182,12 +182,13 @@ class Rouster
 
   # non-test, helper methods
   def parse_ls_string(string)
+    # ht avaghti
 
     res = Hash.new()
 
     tokens = string.split(/\s+/)
 
-    # eww
+    # eww - do better here
     modes = [ tokens[0][1..3], tokens[0][4..6], tokens[0][7..9] ]
     mode  = 0
 
