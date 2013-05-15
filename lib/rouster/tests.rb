@@ -6,7 +6,7 @@ class Rouster
   def is_dir?(dir)
     begin
       res = self.run(sprintf('ls -ld %s', dir))
-    rescue RemoteExecutionError
+    rescue Rouster::RemoteExecutionError
       # noop, process output instead of exit code
     end
 
@@ -16,7 +16,7 @@ class Rouster
     elsif res.match(/No such file or directory/)
       false
     elsif res.match(/Permission denied/)
-      self.log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
+      @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
       false
     else
       #true
@@ -51,7 +51,7 @@ class Rouster
   def is_file?(file)
     begin
       res = self.run(sprintf('ls -l %s', file))
-    rescue RemoteExecutionError
+    rescue Rouster::RemoteExecutionError
       # noop, process output
     end
 
@@ -59,7 +59,7 @@ class Rouster
       # TODO remove this when run() can return STDERR on non-0 exit codes
       false
     elsif res.match(/No such file or directory/)
-      self.log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
+      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
       false
     elsif res.match(/Permission denied/)
       false
@@ -87,7 +87,7 @@ class Rouster
     begin
       command = sprintf("grep -c '%s' %s", regex, file)
       res     = self.run(command)
-    rescue RemoteExecutionError
+    rescue Rouster::RemoteExecutionError
       false
     end
 
@@ -102,7 +102,7 @@ class Rouster
   def is_in_path?(filename)
     begin
       self.run(sprintf('which %s', filename))
-    rescue RemoteExecutionError
+    rescue Rouster::RemoteExecutionError
       false
     end
 
