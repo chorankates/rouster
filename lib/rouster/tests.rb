@@ -200,14 +200,14 @@ class Rouster
       for j in 0..2 do
         chr = element[j].chr
         case chr
-          when 'r'
+          when 'r':
             value += 4
-          when 'w'
+          when 'w':
             value += 2
-          when 'x', 't'
-            # is 't' really right here? copying Salesforce::piab
+          when 'x', 't':
+            # is 't' really right here? copying Salesforce::Vagrant
             value += 1
-          when '-'
+          when '-':
             # noop
           else
             raise InternalError.new(sprintf('unexpected character[%s]', chr))
