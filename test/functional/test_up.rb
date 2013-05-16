@@ -20,16 +20,6 @@ class TestPut < Test::Unit::TestCase
     assert_equal(true, @app.is_available_via_ssh?)
   end
 
-  def test_bad_object
-    # this isn't really a valid test, we're catching the exception thrown in instantiation, not up
-
-    assert_raise Rouster::InternalError do
-      bad = Rouster.new(:name => 'this_vm_dne')
-      bad.up()
-    end
-
-  end
-
   def teardown
     # noop
   end

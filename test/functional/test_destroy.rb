@@ -44,16 +44,6 @@ class TestPut < Test::Unit::TestCase
 
   end
 
-  def test_bad_object
-    # this isn't really a valid test, we're catching the exception thrown in instantiation, not up
-
-    assert_raise Rouster::InternalError do
-      bad = Rouster.new(:name => 'this_vm_dne')
-      bad.destroy()
-    end
-
-  end
-
   def teardown
     # noop
   end
