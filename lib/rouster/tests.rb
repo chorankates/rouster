@@ -91,7 +91,7 @@ class Rouster
       false
     end
 
-    if res.grep(/^0/)
+    if res.nil?.false? and res.grep(/^0/)
       false
     else
       true
