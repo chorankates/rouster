@@ -10,10 +10,7 @@ class Rouster
       # noop, process output instead of exit code
     end
 
-    if res.nil?
-      # TODO resolve this issue - need to get run() to return STDERR when a non-0 exit code is returned
-      false
-    elsif res.match(/No such file or directory/)
+    if res.match(/No such file or directory/)
       false
     elsif res.match(/Permission denied/)
       @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
@@ -55,10 +52,7 @@ class Rouster
       # noop, process output
     end
 
-    if res.nil?
-      # TODO remove this when run() can return STDERR on non-0 exit codes
-      false
-    elsif res.match(/No such file or directory/)
+    if res.match(/No such file or directory/)
       @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
       false
     elsif res.match(/Permission denied/)

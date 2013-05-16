@@ -9,6 +9,9 @@ require 'rouster/vagrant'
 class Rouster
   VERSION = 0.2
 
+  #TODO
+  # set VirtualBox VM name to @name
+
   # custom exceptions -- what else do we want them to include/do?
   class FileTransferError    < StandardError; end # thrown by get() and put()
   class InternalError        < StandardError; end # thrown by most (if not all) Rouster methods
