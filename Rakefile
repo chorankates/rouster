@@ -1,26 +1,9 @@
 require sprintf('%s/%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 require 'rubygems'
+require 'rake/testtask'
 
 task :default do
   sh 'ruby test/basic.rb'
-end
-
-task :test do
-  Dir['test/**/test_*.rb'].each do |test|
-    sh "ruby #{test}"
-  end
-end
-
-task :unittest do
-  Dir['test/unit/**/test_*.rb'].each do |test|
-    sh "ruby #{test}"
-  end
-end
-
-task :functionaltest do
-  Dir['test/functional/**/test_*.rb'].each do |test|
-    sh "ruby #{test}"
-  end
 end
 
 task :examples do
@@ -33,3 +16,20 @@ task :buildgem do
   sh 'gem build rouster.gemspec'
 end
 
+Rake::TestTask.new do |t|
+  t.libs << 'test'
+  t.test_files = FileList['test/**/test_*.rb']
+  t.verbose = true
+end
+
+Rake::TestTask.new do |t|
+  t.libs << 'unit'
+  t.test_files = FileList['test/unit/**/test_*.rb']
+  t.verbose = true
+end
+
+Rake::TestTask.new do |t|
+  t.libs << 'functional'
+  t.test_files = FileList['test/functional/**/test_*.rb']
+  t.verbose = true
+end
