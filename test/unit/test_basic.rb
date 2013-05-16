@@ -3,6 +3,8 @@ require sprintf('%s/../../path_helper', File.dirname(File.expand_path(__FILE__))
 require 'rouster'
 require 'test/unit'
 
+# TODO add a bad perms test -- though it should be fixed automagically
+
 class TestPut < Test::Unit::TestCase
 
   def setup
@@ -29,8 +31,8 @@ class TestPut < Test::Unit::TestCase
               :name        => 'app',
               :passthrough => true,
               :sudo        => false,
-              :verbose     => 2,
-              :vagrantfile => traverse_up(Dir.pwd, 'Vagrantfile'),
+              :verbosity   => 2,
+              #:vagrantfile => traverse_up(Dir.pwd, 'Vagrantfile'),
               :sshkey      => sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME'])
       )
     end
@@ -39,8 +41,8 @@ class TestPut < Test::Unit::TestCase
     assert_equal(true, @app.is_passthrough?())
     assert_equal(false, @app.uses_sudo?())
     assert_equal(2, @app.verbosity) # is this going to be strinigified?
-    asset_equal(true, File.is_file?(@app.vagrantfile))
-    assert_equal(true, File.is_file?(@app.sshkey))
+    assert_equal(true, File.file?(@app.vagrantfile))
+    assert_equal(true, File.file?(@app.sshkey))
   end
 
   def test_3_bad_name_instantiation
@@ -72,8 +74,6 @@ class TestPut < Test::Unit::TestCase
     assert_raise Rouster::InternalError do
       @app = Rouster.new(:name => 'app', :sshkey => '/this/file/dne')
     end
-
-    # TODO add a bad perms test -- though it should be fixed automagically
 
   end
 

@@ -19,7 +19,7 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :deltas, :_env, :exitcode, :facts, :log, :name, :output, :passthrough, :sudo, :vagrantfile, :verbosity, :_vm, :_vm_config
+  attr_reader :deltas, :_env, :exitcode, :facts, :log, :name, :output, :passthrough, :sshkey, :sudo, :vagrantfile, :verbosity, :_vm, :_vm_config
 
   # TODO use the Vagranty .merge pattern for defaults
   def initialize(opts = nil)
@@ -258,7 +258,8 @@ class Rouster
     reversed[index]
   end
 
-  private
+  # TODO figure out how we can test private methods.. need to inherit from the rouster class?
+  #private
 
   def generate_unique_mac
     # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
