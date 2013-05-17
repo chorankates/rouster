@@ -60,7 +60,9 @@ class Rouster
     @log.debug('loading Vagrantfile configuration')
     @_config = @_env.load_config!
 
-    raise InternalError.new(sprintf('specified VM name [%s] not found in specified Vagrantfile', @name)) unless @_config.for_vm(@name.to_sym)
+    unless @name and @_config.for_vm(@name.to_sym)
+      raise InternalError.new(sprintf('specified VM name [%s] not found in specified Vagrantfile', @name))
+    end
 
     @_vm_config = @_config.for_vm(@name.to_sym)
     @_vm_config.vm.base_mac = generate_unique_mac() # TODO need to take potential Vagrantfile modifications here
@@ -79,6 +81,7 @@ class Rouster
     end
 
     # confirm found/specified key exists
+    # TODO want to catch the exception coming out of 'check_key_permissions', but can't figure out the right model
     if @sshkey.nil? or @_vm.ssh.check_key_permissions(@sshkey)
       raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
     end
