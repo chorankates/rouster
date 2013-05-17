@@ -1,7 +1,7 @@
 Rouster
 ======
 ```
-Rouster.is_a?('abstraction layer for controlling with Vagrant virtual machines')
+Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines')
 => true
 ```
 
@@ -23,7 +23,8 @@ The first implementation was in Perl, called [Salesforce::Vagrant](http://github
 
 Note: Vagrant itself requires VirtualBox or VMWare Fusion (1.0.3+)
 
-Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX, but no real testing has been done to confirm this. Please file issues as appropriate.
+Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX (minus rouster/deltas.rb functionality, at least currently),
+but no real testing has been done to confirm this. Please file issues as appropriate.
 
 ## Using Rouster
 
@@ -42,10 +43,18 @@ All Rouster workers also support:
 
 And depending on which pieces of rouster you 'require':
 
+* rouster/deltas
+  * get_groups()
+  * get_packages()
+  * get_services()
+  * get_users()
+
 * rouster/puppet
-  * compile_catalog()
-  * run_puppet()
+  * facter()
+  * get_catalog()
   * get_puppet_errors()
+  * get_puppet_notices()
+  * run_puppet()
 
 * rouster/tests
   * is_dir?()
@@ -62,8 +71,11 @@ And depending on which pieces of rouster you 'require':
   * is_writeable?()
 
 * rouster/testing
-  * validate_file?()
-  * validate_package?()
+  * validate_file()
+  * validate_group()
+  * validate_package()
+  * validate_service()
+  * validate_user()
 
 These additional methods are added to the Rouster via class extension.
 
@@ -141,8 +153,8 @@ end
 ## Base Methods
 ```
 irb(main):003:0> (Rouster.new(:name => 'app').methods - Object.methods).sort
-=> ["_env", "_run", "_ssh", "_vm", "_vm_config", "available_via_ssh?", "deltas",
- "destroy", "exitcode", "get", "get_output", "is_passthrough?", "log", "output",
- "passthrough", "put", "rebuild", "restart", "run", "sshinfo", "status", "sudo",
- "suspend", "traverse_up", "up", "uses_sudo?", "vagrantfile", "verbosity"]
+=> ["_env", "_run", "_vm", "_vm_config", "deltas", "destroy", "exitcode", "facts",
+"get", "get_output", "is_available_via_ssh?", "is_passthrough?", "log", "output",
+"passthrough", "put", "rebuild", "restart", "run", "status", "sudo", "suspend", "up",
+"uses_sudo?", "vagrantfile", "verbosity"]
  ```

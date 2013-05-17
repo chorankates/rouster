@@ -31,13 +31,61 @@ class Rouster
     #   :exists|:ensure
     #   :file
     #   :directory
-    #   :false
     #   :contains (string or array)
     #   :mode/:permissions
     #   :owner
     #   :group
     #   :constrain
-    raise NotImplementedError.new()
+    properties = self.is_file?(name)
+
+    expectations[:ensure] ||= 'present'
+
+    if expectations.has_key?(:constrain)
+      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
+      unless self.meets_constraint?(fact, expectation)
+        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+        true
+      end
+    end
+
+    results = Hash.new()
+    local = nil
+
+    expectations.each do |k,v|
+
+      case k
+        when :ensure, :exists:
+          local = (! properties.nil? and ! v.match(/absent|false/).nil?)
+        when :file:
+          local = (! properties.nil? and properties[:file?].true?)
+        when :directory:
+          local = (! properties.nil? and properties[:directory?].true?)
+        when :contains:
+          v.each do |regex|
+            local = true
+            begin
+              self.run("grep -c '%s' %s")
+            rescue
+              local = false
+            end
+            next if local.false?
+          end
+        when :mode, :permissions:
+          local = (! properties.nil? and ! v.match(/properties[:mode]/).nil?)
+        when :owner
+          local = (! properties.nil? and ! v.match(/properties[:owner]/).nil?)
+        when :group
+          local = (! properties.nil? and ! v.match(/properties[:group]/).nil?)
+        else
+          raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
+      end
+
+      results[k] = local
+    end
+
+    @log.info(results.pretty_print_inspect())
+    results.find{|k,v| v.false? }.nil?
+
   end
 
   def validate_group(name, expectations)
@@ -79,9 +127,9 @@ class Rouster
     expectations.each do |k,v|
       case k
         when :ensure, :exists:
-          local = (groups.has_key?(name) and v.match(/absent|false/))
+          local = (groups.has_key?(name) and ! v.match(/absent|false/).nil?)
         when :gid:
-          local = v.match(/groups[name]['gid']/)
+          local = ! v.match(/groups[name]['gid']/).nil?
         when :user:
           v.each do |user|
             local = groups[name]['users'].has_key?(user)
@@ -118,7 +166,6 @@ class Rouster
     #  :exists|ensure
     #  :version  (literal or basic comparison)
     #  :constrain
-
     packages = self.get_packages(true)
 
     ## set up some defaults
@@ -138,9 +185,9 @@ class Rouster
     expectations.each do |k,v|
       case k
         when :ensure, :exists:
-          local = (packages.has_key?(name) and v.match(/absent|false/))
+          local = (packages.has_key?(name) and ! v.match(/absent|false/).nil? )
         when :version:
-          local = v.match(/packages[name]['version']/)
+          local = ! v.match(/packages[name]['version']/).nil?
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
@@ -155,7 +202,6 @@ class Rouster
     results.find{|k,v| v.false? }.nil?
   end
 
-
   def validate_service(name, expectations)
     # 'ntp' => {
     #   :ensure => 'present',
@@ -169,7 +215,37 @@ class Rouster
     #  :exists|:ensure
     #  :state
     #  :constrain
-    raise NotImplementedError.new()
+    services = self.get_services(true)
+
+    expectations[:ensure] ||= 'present'
+
+    if expectations.has_key?(:constrain)
+      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
+      unless self.meets_constraint?(fact, expectation)
+        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+        true
+      end
+    end
+
+    results = Hash.new()
+    local = nil
+
+    expectations.each do |k,v|
+      case k
+        when :ensure, :exists:
+          local = (services.has_key?(name) and ! v.match(/absent|false/).nil? )
+        when :state:
+          local = ! v.match(/services[name]/).nil?
+        else
+          raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
+      end
+
+      results[k] = local
+    end
+
+    @log.info(results.pretty_print_inspect())
+    results.find{|k,v| v.false? }.nil?
+
   end
 
   def validate_user(name, expectations)
@@ -192,9 +268,42 @@ class Rouster
     #  :shell
     #  :uid
     #  :constrain
-    raise NotImplementedError.new()
-  end
+    users = self.get_users(true)
 
+    expectations[:ensure] ||= 'present'
+
+    if expectations.has_key?(:constrain)
+      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
+      unless self.meets_constraint?(fact, expectation)
+        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+        true
+      end
+    end
+
+    results = Hash.new()
+    local = nil
+
+    expectations.each do |k,v|
+      case k
+        when :ensure, :exists:
+          local = (users.has_key?(name) and ! v.match(/absent|false/).nil? )
+        when :home:
+          local = ! v.match(/users['home']/).nil?
+        when :shell
+          local = ! v.match(/users['shell']/).nil?
+        when :uid
+          local = ! v.match(/users['uid']/).nil?
+        else
+          raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
+      end
+
+      results[k] = local
+    end
+
+    @log.info(results.pretty_print_inspect())
+    results.find{|k,v| v.false? }.nil?
+
+  end
 
   ## internal methods
   private

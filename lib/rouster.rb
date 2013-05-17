@@ -7,18 +7,21 @@ require 'vagrant'
 require 'rouster/vagrant'
 
 class Rouster
-  VERSION = 0.1
+  VERSION = 0.2
+
+  #TODO
+  # set VirtualBox VM name to @name
 
   # custom exceptions -- what else do we want them to include/do?
-  #   - should append the name of the box to the exception message
   class FileTransferError    < StandardError; end # thrown by get() and put()
   class InternalError        < StandardError; end # thrown by most (if not all) Rouster methods
   class LocalExecutionError  < StandardError; end # thrown by _run()
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :deltas, :_env, :exitcode, :facts, :log, :name, :output, :passthrough, :sudo, :_ssh, :sshinfo, :vagrantfile, :verbosity, :_vm, :_vm_config
+  attr_reader :deltas, :_env, :exitcode, :facts, :log, :name, :output, :passthrough, :sshkey, :sudo, :vagrantfile, :verbosity, :_vm, :_vm_config
 
+  # TODO use the Vagranty .merge pattern for defaults
   def initialize(opts = nil)
     # process hash keys passed
     @name        = opts[:name] # since we're constantly calling .to_sym on this, might want to just start there
@@ -36,8 +39,7 @@ class Rouster
     end
 
     @output      = Array.new
-    @sshinfo     = Hash.new
-    @deltas      = Hash.new # should probably rename this, but container for tests.rb/get_*
+    @deltas      = Hash.new # should probably rename this, but need container for deltas.rb/get_*
     @exitcode    = nil
 
     # set up logging
@@ -81,14 +83,10 @@ class Rouster
       raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
     end
 
-    # TODO can we delete these once get/put are implemented using Vagrant objects?
-    config_keys = @_vm_config.keys
-    self.sshinfo[:host] = config_keys[:ssh].host
-    self.sshinfo[:port] = config_keys[:ssh].port
-    self.sshinfo[:user] = config_keys[:ssh].username
-    self.sshinfo[:key]  = @sshkey
-
     @log.debug('Rouster object successfully instantiated')
+
+    # TODO should we open the SSH tunnel during instantiation as part of validity test?
+    # only if it is optional and specified in parameters
   end
 
   def inspect
@@ -110,19 +108,14 @@ class Rouster
     @log.info('up()')
     @_vm.channel.destroy_ssh_connection()
 
-    # TODO
+    # TODO need to dig deeper into this one -- issue #21
     if @_vm.created?
       self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
     else
       @_vm.up
     end
 
-    ## if the VM hasn't been created yet, we don't know the port
-    @_config.for_vm(@name.to_sym).keys[:vm].forwarded_ports.each do |f|
-      if f[:name].eql?('ssh')
-        self.sshinfo[:port] = f[:hostport]
-      end
-    end
+    # TODO or maybe, instead of creating the SSH tunnel on instantiation, create it (optionally) here
 
   end
 
@@ -147,28 +140,26 @@ class Rouster
 
     @log.info(sprintf('vm running: [%s]', command))
 
-    begin
-      # TODO use a lambda here instead
-      if self.uses_sudo?
-        @_vm.channel.sudo(command) do |type,data|
-          output ||= ""
-          output += data
-        end
-      else
-        @_vm.channel.execute(command) do |type,data|
-          output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
-          output += data
-        end
+    # TODO use a lambda here instead
+    if self.uses_sudo?
+      @exitcode = @_vm.channel.sudo(command, { :error_check => false } ) do |type,data|
+        output ||= ""
+        output += data
       end
-    rescue Vagrant::Errors::VagrantError => e
-      # non-0 exit code, this is fatal for Vagrant, but not for us
-      output        = e.message
-      @exitcode = 1 # TODO get the actual exit code
+    else
+      @exitcode = @_vm.channel.execute(command, { :error_check => false } ) do |type,data|
+        output ||= "" # don't like this, but borrowed from Vagrant, so feel less bad about it
+        output += data
+      end
+    end
+
+    self.output.push(output)
+
+    unless @exitcode.eql?(0)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}]")
     end
 
     @exitcode ||= 0
-    self.output.push(output)
     output
   end
 
@@ -184,9 +175,9 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to get[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      @_vm.channel.download(local_file, remote_file)
+      @_vm.channel.download(remote_file, local_file)
     rescue => e
-      raise SSHConnectionError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
+      raise FileTransferError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
 
   end
@@ -201,7 +192,7 @@ class Rouster
     begin
       @_vm.channel.upload(local_file, remote_file)
     rescue => e
-      raise SSHConnectionError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
+      raise FileTransferError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
     end
 
   end
@@ -267,11 +258,12 @@ class Rouster
     reversed[index]
   end
 
-  private
+  # TODO figure out how we can test private methods.. need to inherit from the rouster class?
+  #private
 
   def generate_unique_mac
     # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
-    (1..6).map{"%0.2X" % rand(256)}.join('') # causes a fatal error with VboxManage if colons are left in
+    (1..6).map{"%0.2X" % rand(256)}.join('').downcase # causes a fatal error with VboxManage if colons are left in
   end
 
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)

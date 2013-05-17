@@ -6,17 +6,14 @@ class Rouster
   def is_dir?(dir)
     begin
       res = self.run(sprintf('ls -ld %s', dir))
-    rescue RemoteExecutionError
+    rescue Rouster::RemoteExecutionError
       # noop, process output instead of exit code
     end
 
-    if res.nil?
-      # TODO resolve this issue - need to get run() to return STDERR when a non-0 exit code is returned
-      false
-    elsif res.match(/No such file or directory/)
+    if res.match(/No such file or directory/)
       false
     elsif res.match(/Permission denied/)
-      self.log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
+      @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
       false
     else
       #true
@@ -51,15 +48,12 @@ class Rouster
   def is_file?(file)
     begin
       res = self.run(sprintf('ls -l %s', file))
-    rescue RemoteExecutionError
+    rescue Rouster::RemoteExecutionError
       # noop, process output
     end
 
-    if res.nil?
-      # TODO remove this when run() can return STDERR on non-0 exit codes
-      false
-    elsif res.match(/No such file or directory/)
-      self.log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
+    if res.match(/No such file or directory/)
+      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
       false
     elsif res.match(/Permission denied/)
       false
@@ -87,11 +81,11 @@ class Rouster
     begin
       command = sprintf("grep -c '%s' %s", regex, file)
       res     = self.run(command)
-    rescue RemoteExecutionError
+    rescue Rouster::RemoteExecutionError
       false
     end
 
-    if res.grep(/^0/)
+    if res.nil?.false? and res.grep(/^0/)
       false
     else
       true
@@ -102,7 +96,7 @@ class Rouster
   def is_in_path?(filename)
     begin
       self.run(sprintf('which %s', filename))
-    rescue RemoteExecutionError
+    rescue Rouster::RemoteExecutionError
       false
     end
 
@@ -182,12 +176,13 @@ class Rouster
 
   # non-test, helper methods
   def parse_ls_string(string)
+    # ht avaghti
 
     res = Hash.new()
 
     tokens = string.split(/\s+/)
 
-    # eww
+    # eww - do better here
     modes = [ tokens[0][1..3], tokens[0][4..6], tokens[0][7..9] ]
     mode  = 0
 
@@ -199,14 +194,14 @@ class Rouster
       for j in 0..2 do
         chr = element[j].chr
         case chr
-          when 'r'
+          when 'r':
             value += 4
-          when 'w'
+          when 'w':
             value += 2
-          when 'x', 't'
-            # is 't' really right here? copying Salesforce::piab
+          when 'x', 't':
+            # is 't' really right here? copying Salesforce::Vagrant
             value += 1
-          when '-'
+          when '-':
             # noop
           else
             raise InternalError.new(sprintf('unexpected character[%s]', chr))
@@ -224,6 +219,7 @@ class Rouster
 
     # TODO you are smarter than this. build some tests and then rewrite this with confidence
     res[:directory?]  = tokens[0][0].chr.eql?('d')
+    res[:file?]       = ! res[:directory?]
     res[:executable?] = [ tokens[0][3].chr.eql?('x'), tokens[0][6].chr.eql?('x'), tokens[0][9].chr.eql?('x') || tokens[0][9].chr.eql?('t') ]
     res[:readable?]   = [ tokens[0][2].chr.eql?('w'), tokens[0][5].chr.eql?('w'), tokens[0][8].chr.eql?('w') ]
     res[:writeable?]  = [ tokens[0][1].chr.eql?('r'), tokens[0][4].chr.eql?('r'), tokens[0][7].chr.eql?('r') ]
