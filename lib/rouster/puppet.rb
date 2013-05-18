@@ -30,7 +30,7 @@ class Rouster
   # just need to be able to talk to the same puppetmaster, which means we should 'require puppet' instead of shelling out
 
   def get_catalog(hostname)
-    certname = hostname.nil? ? Socket.gethostname() : hostname
+    certname = hostname.nil? ? self.run('hostname --fqdn') : hostname
 
     json = nil
     res  = self.run(sprintf('puppet catalog find %s', certname))
@@ -60,7 +60,23 @@ class Rouster
 
   # TODO parse into a hash that can be passed to the validate_* methods
   def parse_catalog(catalog)
-    raise NotImplementedError.new()
+    resources = nil
+
+    # support either JSON or already parsed Hash
+    if catalog.is_a?(String)
+      begin
+        JSON.parse!(catalog)
+      rescue
+        raise InternalError.new(sprintf('unable to parse catalog[%s] as JSON', catalog))
+      end
+    end
+
+    unless catalog.has_key?('data') and catalog['data'].has_key?('resources')
+      raise InternalError.new(sprintf('catalog does not contain a resources key[%s]', catalog))
+    end
+
+    resources = catalog['data']['resources']
+
   end
 
   def run_puppet
