@@ -60,7 +60,9 @@ class Rouster
 
   # TODO parse into a hash that can be passed to the validate_* methods
   def parse_catalog(catalog)
+    classes   = nil
     resources = nil
+    results   = nil
 
     # support either JSON or already parsed Hash
     if catalog.is_a?(String)
@@ -71,12 +73,37 @@ class Rouster
       end
     end
 
+    unless catalog.has_key?('data') and catalog['data'].has_key?('classes')
+      raise InternalError.new(sprintf('catalog does not contain a classes key[%s]', catalog))
+    end
+
+    classes = catalog['data']['classes']
+
     unless catalog.has_key?('data') and catalog['data'].has_key?('resources')
       raise InternalError.new(sprintf('catalog does not contain a resources key[%s]', catalog))
     end
 
     resources = catalog['data']['resources']
 
+    resources.each do |r|
+      # first array element -- looks like this element comes before each set of resources for the class in question
+      # {"exported"=>false, "type"=>"Class", "title"=>"P4users", "tags"=>["class", "p4users", "baseclass", "node", "default"]}
+
+      # file resource
+      # {"exported"=>false, "file"=>"/etc/puppet/modules/p4users/manifests/init.pp", "parameters"=>{"owner"=>"root", "group"=>"root", "ensure"=>"present", "source"=>"puppet:///modules/p4users/p4"}, "line"=>34, "type"=>"File", "title"=>"/usr/local/bin/p4", "tags"=>["file", "class", "p4users", "baseclass", "node", "default"]}
+
+      # stage resource
+      # {"exported"=>false, "parameters"=>{"name"=>"main"}, "type"=>"Stage", "title"=>"main", "tags"=>["stage"]}
+
+      # node resource
+      # {"exported"=>false, "type"=>"Node", "title"=>"default", "tags"=>["node", "default", "class"]}
+
+      # file resource with a stage
+      # {"exported"=>false, "file"=>"/etc/puppet/manifests/templates.pp", "parameters"=>{"before"=>"Stage[main]"}, "line"=>18, "type"=>"Stage", "title"=>"first", "tags"=>["stage", "first", "class"]}
+
+    end
+
+    results
   end
 
   def run_puppet
