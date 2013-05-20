@@ -44,7 +44,7 @@ class Rouster
     uname = self.run('uname -a')
 
     if uname =~ /darwin/
-      # returns { package => '?', package2 => '?' }
+      # returns { package => '<version>', package2 => '<version>' }
       raw = self.run('pkgutil --pkgs')
       raw.split("\n").each do |line|
 
@@ -76,20 +76,26 @@ class Rouster
       end
 
     elsif uname =~ /Ubuntu/
-      # returns { package => '?', package2 => '?' }
+      # returns { package => '<version>', package2 => '<version>' }
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
-        # can get actual version with 'dpkg -s #{package}'
-        next if line.grep(/^(.*?)\s/).empty?
+        next if line.match(/^(.*?)\s/).empty?
 
-        res[package] = '?'
+        if deep
+          local_res = self.run(sprintf('dpkg -s %s', $1))
+          local     = $1 if local_res.match(/Version\:\s(.*?)$/)
+        else
+          local = '?'
+        end
+
+        res[$1] = local
       end
 
     elsif self.is_file?('/etc/redhat-release')
       # returns { package => 'version', package2 => 'version2' }
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
-        next if line.grep(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
+        next if line.match(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
         res[$1] = $2
       end
 
