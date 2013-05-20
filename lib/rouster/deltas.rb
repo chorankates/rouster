@@ -41,7 +41,6 @@ class Rouster
 
     res = Hash.new()
 
-    # TODO ask Vagrant for this information
     uname = self.run('uname -a')
 
     if uname =~ /darwin/
@@ -133,12 +132,11 @@ class Rouster
 
     res = Hash.new()
 
-    # TODO ask Vagrant for this information
     uname = self.run('uname -a')
 
     if uname =~ /darwin/
 
-      raw = self.run('launchctl') # TODO is this really what we're looking for?
+      raw = self.run('launchctl')
       raw.split("\n").each do |line|
         next if line.grep(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).empty
 
@@ -150,7 +148,7 @@ class Rouster
 
     elsif uname =~ /SunOS/
 
-      raw = self.run('svcs') # TODO ensure that this is giving all services, not just those that are started
+      raw = self.run('svcs')
       raw.split("\n").each do |line|
         next if line.grep(/(.*?)\s+(?:.*?)\s+(.*?)$/).empty?
 
