@@ -149,12 +149,18 @@ class Rouster
 
     if uname =~ /darwin/
 
-      raw = self.run('launchctl')
+      raw = self.run('launchctl list')
       raw.split("\n").each do |line|
         next if line.grep(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).empty
 
         service = $2
-        mode    = $1 # this is either '-', '0', or '-9'
+        mode    = $1
+
+        if mode.grep(/^\d/)
+          mode = 'running'
+        else
+          mode = 'stopped'
+        end
 
         res[service] = mode
       end
