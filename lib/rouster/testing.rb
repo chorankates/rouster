@@ -129,10 +129,10 @@ class Rouster
         when :ensure, :exists:
           local = (groups.has_key?(name) and ! v.match(/absent|false/).nil?)
         when :gid:
-          local = ! v.match(/groups[name]['gid']/).nil?
+          local = ! v.match(/groups[name][:gid]/).nil?
         when :user:
           v.each do |user|
-            local = groups[name]['users'].has_key?(user)
+            local = groups[name][:users].has_key?(user)
             next if local.false? # TODO don't fail fast here -- until it's optional
           end
         else
@@ -187,7 +187,7 @@ class Rouster
         when :ensure, :exists:
           local = (packages.has_key?(name) and ! v.match(/absent|false/).nil? )
         when :version:
-          local = ! v.match(/packages[name]['version']/).nil?
+          local = ! v.match(/packages[name][:version]/).nil?
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
@@ -288,11 +288,11 @@ class Rouster
         when :ensure, :exists:
           local = (users.has_key?(name) and ! v.match(/absent|false/).nil? )
         when :home:
-          local = ! v.match(/users['home']/).nil?
+          local = ! v.match(/users[:home]/).nil?
         when :shell
-          local = ! v.match(/users['shell']/).nil?
+          local = ! v.match(/users[:shell]/).nil?
         when :uid
-          local = ! v.match(/users['uid']/).nil?
+          local = ! v.match(/users[:uid]/).nil?
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end

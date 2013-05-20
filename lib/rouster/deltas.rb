@@ -2,8 +2,6 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 
 # deltas.rb - get information about groups, packages, services and users inside a Vagrant VM
 
-# TODO convert stringy keys in res to symbols
-
 class Rouster
   # deltas.rb reimplementation
   def get_groups(use_cache=true)
@@ -25,8 +23,8 @@ class Rouster
       users = data[3].nil? ? ['NONE'] : data[3].split(',')
 
       res[group] = Hash.new() # i miss autovivification
-      res[group]['gid']   = gid
-      res[group]['users'] = users
+      res[group][:gid]   = gid
+      res[group][:users] = users
     end
 
     if use_cache
@@ -115,10 +113,10 @@ class Rouster
       data = line.split(":")
 
       res[user] = Hash.new()
-      res[user]['shell'] = data[-1]
-      res[user]['home']  = data[-2]
-      #res[user]['home_exists'] = self.is_directory?(data[-2]) # do we really want this?
-      res[user]['uid']   = data[2]
+      res[user][:shell] = data[-1]
+      res[user][:home]  = data[-2]
+      #res[user][:home_exists] = self.is_directory?(data[-2]) # do we really want this?
+      res[user][:uid]   = data[2]
     end
 
     if use_cache
