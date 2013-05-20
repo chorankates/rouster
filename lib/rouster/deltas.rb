@@ -34,7 +34,7 @@ class Rouster
     res
   end
 
-  def get_packages(use_cache=true)
+  def get_packages(use_cache=true, deep=true)
     if use_cache and ! self.deltas[:packages].nil?
       self.deltas[:packages]
     end
@@ -47,8 +47,16 @@ class Rouster
       # returns { package => '?', package2 => '?' }
       raw = self.run('pkgutil --pkgs')
       raw.split("\n").each do |line|
-        # can get actual version with 'pkgutil --pkg-info=#{line}', but do we really want to? is there a better way?
-        res[line] = '?'
+
+        if deep
+          # can get install time, volume and location as well
+          local_res = self.run(sprintf('pkgutil --pkg-info=%s', line))
+          local     = $1 if local_res.match(/version\:\s+(.*?)$/)
+        else
+          local = '?'
+        end
+
+        res[line] = local
       end
 
     elsif uname =~ /SunOS/
