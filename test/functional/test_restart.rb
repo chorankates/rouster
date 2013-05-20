@@ -31,7 +31,9 @@ class TestPut < Test::Unit::TestCase
     end
 
     new_uptime = @app.run('uptime')
-    # TODO something mathy here
+
+    assert_not_equal(original_uptime, new_uptime)
+
   end
 
 

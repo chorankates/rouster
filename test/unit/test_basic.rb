@@ -77,8 +77,6 @@ class TestPut < Test::Unit::TestCase
 
   end
 
-  # TODO inspect, traverse_up
-
   def teardown
     # noop
   end
