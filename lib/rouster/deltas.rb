@@ -35,6 +35,8 @@ class Rouster
   end
 
   def get_packages(use_cache=true, deep=true)
+    # returns { package => '<version>', package2 => '<version>' }
+
     if use_cache and ! self.deltas[:packages].nil?
       self.deltas[:packages]
     end
@@ -44,7 +46,7 @@ class Rouster
     uname = self.run('uname -a')
 
     if uname =~ /darwin/
-      # returns { package => '<version>', package2 => '<version>' }
+
       raw = self.run('pkgutil --pkgs')
       raw.split("\n").each do |line|
 
@@ -60,23 +62,21 @@ class Rouster
       end
 
     elsif uname =~ /SunOS/
-      # returns { category => { package => name, package2 => name2 }, catergory2 => { ... } }
       raw = self.run('pkginfo')
       raw.split("\n").each do |line|
-        # can get actual version with 'pkginfo -c #{package}', but do we really want to?
-        next if line.grep(/(.*?)\s+(.*?)\s(.*)$/).empty?
+        next if line.match(/(.*?)\s+(.*?)\s(.*)$/).empty?
 
-        category = $1
-        package  = $2
-        name     = $3
+        if deep
+          local_res = self.run(sprintf('pkginfo -c %s', $2))
+          local     = $1 if local_res.match(/version\:\s+(.*?)$/i)
+        else
+          local = '?'
+        end
 
-        res[category] = Hash.new() if res[category].nil?
-        res[category][package] = name
-
+        res[$2] = local
       end
 
     elsif uname =~ /Ubuntu/
-      # returns { package => '<version>', package2 => '<version>' }
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
         next if line.match(/^(.*?)\s/).empty?
@@ -92,7 +92,6 @@ class Rouster
       end
 
     elsif self.is_file?('/etc/redhat-release')
-      # returns { package => 'version', package2 => 'version2' }
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
@@ -128,7 +127,7 @@ class Rouster
       res[user] = Hash.new()
       res[user][:shell] = data[-1]
       res[user][:home]  = data[-2]
-      #res[user][:home_exists] = self.is_directory?(data[-2]) # do we really want this?
+      res[user][:home_exists] = self.is_directory?(data[-2])
       res[user][:uid]   = data[2]
     end
 
