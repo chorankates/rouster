@@ -58,7 +58,7 @@ class Rouster
   def parse_catalog(catalog)
     classes   = nil
     resources = nil
-    results   = nil
+    results   = Hash.new()
 
     # support either JSON or already parsed Hash
     if catalog.is_a?(String)
@@ -99,7 +99,30 @@ class Rouster
 
     end
 
+    results[:classes]   = classes
+    results[:resources] = resources
+
     results
+  end
+
+  def remove_existing_certs (puppetmaster)
+    # removes all certificates that a puppetmaster knows about aside from it's own (useful in testing where autosign is in use)
+    # really only useful if called from a puppet master
+    hosts = Array.new()
+
+    res = self.run('puppet cert --list --all')
+
+    res.each_line do |line|
+      next if line.match(/#{puppetmaster}/)
+      host = $1 if line.match(/^\+\s"(.*?)"/)
+
+      hosts.push(host)
+    end
+
+    hosts.each do |host|
+      self.run(sprintf('puppet cert --clean %s', host))
+    end
+
   end
 
   def run_puppet
