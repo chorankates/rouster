@@ -217,7 +217,6 @@ class Rouster
     res[:group] = tokens[3]
     res[:size]  = tokens[4]
 
-    # TODO you are smarter than this. build some tests and then rewrite this with confidence
     res[:directory?]  = tokens[0][0].chr.eql?('d')
     res[:file?]       = ! res[:directory?]
     res[:executable?] = [ tokens[0][3].chr.eql?('x'), tokens[0][6].chr.eql?('x'), tokens[0][9].chr.eql?('x') || tokens[0][9].chr.eql?('t') ]

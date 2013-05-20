@@ -26,9 +26,6 @@ class Rouster
     json
   end
 
-  # TODO we should be able to run this without upping the box in question --
-  # just need to be able to talk to the same puppetmaster, which means we should 'require puppet' instead of shelling out
-
   def get_catalog(hostname)
     certname = hostname.nil? ? self.run('hostname --fqdn') : hostname
 
@@ -58,7 +55,6 @@ class Rouster
     notices.empty? ? nil : notices
   end
 
-  # TODO parse into a hash that can be passed to the validate_* methods
   def parse_catalog(catalog)
     classes   = nil
     resources = nil
@@ -107,7 +103,6 @@ class Rouster
   end
 
   def run_puppet
-    # TODO should we make this more flexible?
     self.run('/sbin/service puppet once -t')
   end
 
