@@ -21,7 +21,6 @@ class Rouster
 
   attr_reader :deltas, :_env, :exitcode, :facts, :log, :name, :output, :passthrough, :sshkey, :sudo, :vagrantfile, :verbosity, :_vm, :_vm_config
 
-  # TODO use the Vagranty .merge pattern for defaults
   def initialize(opts = nil)
     # process hash keys passed
     @name        = opts[:name] # since we're constantly calling .to_sym on this, might want to just start there
@@ -65,7 +64,7 @@ class Rouster
     end
 
     @_vm_config = @_config.for_vm(@name.to_sym)
-    @_vm_config.vm.base_mac = generate_unique_mac() # TODO need to take potential Vagrantfile modifications here
+    @_vm_config.vm.base_mac = generate_unique_mac()
 
     @log.debug('instantiating Vagrant::VM')
     @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
@@ -88,8 +87,6 @@ class Rouster
 
     @log.debug('Rouster object successfully instantiated')
 
-    # TODO should we open the SSH tunnel during instantiation as part of validity test?
-    # only if it is optional and specified in parameters
   end
 
   def inspect
@@ -117,8 +114,6 @@ class Rouster
     else
       @_vm.up
     end
-
-    # TODO or maybe, instead of creating the SSH tunnel on instantiation, create it (optionally) here
 
   end
 
@@ -223,10 +218,13 @@ class Rouster
     # how do we do this in a generic way? shutdown -rf works for Unix, but not Solaris
     #   we can ask Vagrant what kind of machine this is, but how far down this hole do we really want to go?
 
+    if self.is_passthrough? and self.passthrough.eql?(local)
+      @log.warn(sprintf('intercepted [restart] sent to a local passthrough, no op'))
+      return nil
+    end
+
     # MVP
     self.run('/sbin/shutdown -rf now')
-
-    # TODO implement some 'darwin award' checks in case someone tries to reboot a local passthrough?
 
   end
 
@@ -256,12 +254,10 @@ class Rouster
   def get_output(index = 0)
     # return index'th array of output in LIFO order
 
-    # TODO do this in a mathy way instead of a youre-going-to-run-out-of-memory-way
     reversed = self.output.reverse
     reversed[index]
   end
 
-  # TODO figure out how we can test private methods.. need to inherit from the rouster class?
   #private
 
   def generate_unique_mac
