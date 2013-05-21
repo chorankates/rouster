@@ -13,7 +13,7 @@ Vagrant::Config.run do |config|
       worker.ssh.forward_agent =true
 
       if box.to_s.eql?('ppm')
-        worker.vm.share_folder("isd-puppet", "/etc/puppet/", "../sfdc/puppet/")
+        worker.vm.share_folder("puppet", "/etc/puppet/", "../puppet/")
       end
 
     end
