@@ -67,8 +67,8 @@ class Rouster
         next if line.match(/(.*?)\s+(.*?)\s(.*)$/).empty?
 
         if deep
-          local_res = self.run(sprintf('pkginfo -c %s', $2))
-          local     = $1 if local_res.match(/version\:\s+(.*?)$/i)
+          local_res = self.run(sprintf('pkginfo -l %s', $2))
+          local     = $1 if local_res.match(/VERSION\:\s+(.*?)$/i)
         else
           local = '?'
         end
@@ -173,6 +173,14 @@ class Rouster
 
         service = $2
         mode    = $1
+
+        if mode.match(/online/)
+          mode = 'running'
+        elsif mode.match(/legacy_run/)
+          mode = 'running'
+        elsif mode.match(//)
+          mode = 'stopped'
+        end
 
         res[service] = mode
 
