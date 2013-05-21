@@ -34,9 +34,9 @@ class TestPut < Test::Unit::TestCase
 
     assert_not_equal(original_uptime, new_uptime)
 
-    type = self.run('uname')
+    os = self.os_type
 
-    if type.match(/RedHat/i)
+    if os.eql?(:RedHat)
 
       original_minutes_seconds = $1 if original_uptime.match(/\d+:.*up.*(\d+:\d+)/)
       original_seconds =
