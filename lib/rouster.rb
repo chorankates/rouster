@@ -178,21 +178,24 @@ class Rouster
 
   def os_type(start_if_not_running=true)
     # if the machine isn't created, typically see 'Vagrant::Guest::Linux'
-    # returns 'OSX', RedHat', 'Solaris', 'Ubuntu'
+    # returns :RedHat, :Solaris or :Ubuntu
 
     if start_if_not_running and self.status.eql?('running').false?
       @log.debug('starting machine to determine OS type')
       self.up()
     end
 
+    raise NotImplementedError.new() if self.is_passthrough?
+
     case self._vm.guest.vm.guest.class.to_s
       when /Redhat/i
-        res = 'RedHat'
-      else
-        res = 'unknown'
+        :RedHat
+      when /Solaris/i
+        :Solaris
+      when /Ubuntu/i
+        :Ubuntu
     end
 
-    res
   end
 
   def get(remote_file, local_file=nil)
