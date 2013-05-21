@@ -43,9 +43,9 @@ class Rouster
 
     res = Hash.new()
 
-    uname = self.run('uname -a')
+    os = self.os_type
 
-    if uname =~ /darwin/
+    if os.eql?(:OSX)
 
       raw = self.run('pkgutil --pkgs')
       raw.split("\n").each do |line|
@@ -61,7 +61,7 @@ class Rouster
         res[line] = local
       end
 
-    elsif uname =~ /SunOS/
+    elsif os.eql?(:Solaris)
       raw = self.run('pkginfo')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\s+(.*?)\s(.*)$/).empty?
@@ -76,7 +76,7 @@ class Rouster
         res[$2] = local
       end
 
-    elsif uname =~ /Ubuntu/
+    elsif os.eql?(:Ubuntu)
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
         next if line.match(/^(.*?)\s/).empty?
@@ -91,7 +91,7 @@ class Rouster
         res[$1] = local
       end
 
-    elsif self.is_file?('/etc/redhat-release')
+    elsif os.eql?(:RedHat)
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
@@ -145,9 +145,9 @@ class Rouster
 
     res = Hash.new()
 
-    uname = self.run('uname -a')
+    os = self.os_type
 
-    if uname =~ /darwin/
+    if os.eql?(:OSX)
 
       raw = self.run('launchctl list')
       raw.split("\n").each do |line|
@@ -165,7 +165,7 @@ class Rouster
         res[service] = mode
       end
 
-    elsif uname =~ /SunOS/
+    elsif os.eql?(:Solaris)
 
       raw = self.run('svcs')
       raw.split("\n").each do |line|
@@ -186,7 +186,7 @@ class Rouster
 
       end
 
-    elsif uname =~ /Ubuntu/
+    elsif os.eql?(:Ubuntu)
 
       raw = self.run('service --status-all 2>&1')
       raw.split("\n").each do |line|
@@ -201,7 +201,7 @@ class Rouster
         res[service] = mode
       end
 
-    elsif self.is_file?('/etc/redhat-release')
+    elsif os.eql?(:RedHat)
 
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|

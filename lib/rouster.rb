@@ -176,6 +176,25 @@ class Rouster
     @_vm.channel.ready?()
   end
 
+  def os_type(start_if_not_running=true)
+    # if the machine isn't created, typically see 'Vagrant::Guest::Linux'
+    # returns 'OSX', RedHat', 'Solaris', 'Ubuntu'
+
+    if start_if_not_running and self.status.eql?('running').false?
+      @log.debug('starting machine to determine OS type')
+      self.up()
+    end
+
+    case self._vm.guest.vm.guest.class.to_s
+      when /Redhat/i
+        res = 'RedHat'
+      else
+        res = 'unknown'
+    end
+
+    res
+  end
+
   def get(remote_file, local_file=nil)
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
     @log.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
