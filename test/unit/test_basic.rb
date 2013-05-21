@@ -32,7 +32,7 @@ class TestPut < Test::Unit::TestCase
               :passthrough => true,
               :sudo        => false,
               :verbosity   => 2,
-              #:vagrantfile => traverse_up(Dir.pwd, 'Vagrantfile'),
+              #:vagrantfile => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
               :sshkey      => sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME'])
       )
     end
@@ -71,12 +71,11 @@ class TestPut < Test::Unit::TestCase
 
   def test_5_bad_sshkey_instantiation
 
-    assert_raise Rouster::InternalError do
+    assert_raise Errno::ENOENT do
       @app = Rouster.new(:name => 'app', :sshkey => '/this/file/dne')
     end
 
   end
-
 
   def teardown
     # noop

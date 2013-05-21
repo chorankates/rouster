@@ -12,22 +12,23 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_happy_path
+    res = @app.traverse_up(Dir.pwd, 'Vagrantfile')
 
-    assert_nothing_raised do
-      @app.generate_unique_mac
+    assert_equal(true, File.file?(res))
+
+  end
+
+  def test_file_not_specified
+    assert_raises Rouster::InternalError do
+      @app.traverse_up(Dir.pwd)
     end
 
   end
 
-  def test_uniqueness
+  def test_failed_to_find
+    res = @app.traverse_up('/tmp', 'this-file-dne')
 
-    (0..100).each do |i|
-      a = @app.generate_unique_mac
-      b = @app.generate_unique_mac
-
-      assert_not_equal(a, b)
-    end
-
+    assert_nil(res)
   end
 
   def teardown

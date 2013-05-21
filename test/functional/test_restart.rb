@@ -31,7 +31,31 @@ class TestPut < Test::Unit::TestCase
     end
 
     new_uptime = @app.run('uptime')
-    # TODO something mathy here
+
+    assert_not_equal(original_uptime, new_uptime)
+
+    type = self.run('uname')
+
+    if type.match(/RedHat/i)
+
+      original_minutes_seconds = $1 if original_uptime.match(/\d+:.*up.*(\d+:\d+)/)
+      original_seconds =
+          original_minutes_seconds.split(':').at(-3) * 3600 +
+          original_minutes_seconds.split(':').at(-2) * 60 +
+          original_minutes_seconds.split(':').at(-1)
+
+      new_minutes_seconds = $1 if new_uptime.match(/\d+:.*up.*(\d+:\d+)/)
+      new_seconds =
+          new_minutes_seconds.split(':').at(-3) * 3600 +
+          new_minutes_seconds.split(':').at(-2) * 60 +
+          new_minutes_seconds.split(':').at(-1)
+
+      assert_equal(true, original_seconds > new_seconds)
+    else
+      # noop
+      #raise NotImplementedError.new()
+    end
+
   end
 
 

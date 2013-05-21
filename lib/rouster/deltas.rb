@@ -2,8 +2,6 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 
 # deltas.rb - get information about groups, packages, services and users inside a Vagrant VM
 
-# TODO convert stringy keys in res to symbols
-
 class Rouster
   # deltas.rb reimplementation
   def get_groups(use_cache=true)
@@ -25,8 +23,8 @@ class Rouster
       users = data[3].nil? ? ['NONE'] : data[3].split(',')
 
       res[group] = Hash.new() # i miss autovivification
-      res[group]['gid']   = gid
-      res[group]['users'] = users
+      res[group][:gid]   = gid
+      res[group][:users] = users
     end
 
     if use_cache
@@ -36,55 +34,67 @@ class Rouster
     res
   end
 
-  def get_packages(use_cache=true)
+  def get_packages(use_cache=true, deep=true)
+    # returns { package => '<version>', package2 => '<version>' }
+
     if use_cache and ! self.deltas[:packages].nil?
       self.deltas[:packages]
     end
 
     res = Hash.new()
 
-    # TODO ask Vagrant for this information
     uname = self.run('uname -a')
 
     if uname =~ /darwin/
-      # returns { package => '?', package2 => '?' }
+
       raw = self.run('pkgutil --pkgs')
       raw.split("\n").each do |line|
-        # can get actual version with 'pkgutil --pkg-info=#{line}', but do we really want to? is there a better way?
-        res[line] = '?'
+
+        if deep
+          # can get install time, volume and location as well
+          local_res = self.run(sprintf('pkgutil --pkg-info=%s', line))
+          local     = $1 if local_res.match(/version\:\s+(.*?)$/)
+        else
+          local = '?'
+        end
+
+        res[line] = local
       end
 
     elsif uname =~ /SunOS/
-      # returns { category => { package => name, package2 => name2 }, catergory2 => { ... } }
       raw = self.run('pkginfo')
       raw.split("\n").each do |line|
-        # can get actual version with 'pkginfo -c #{package}', but do we really want to?
-        next if line.grep(/(.*?)\s+(.*?)\s(.*)$/).empty?
+        next if line.match(/(.*?)\s+(.*?)\s(.*)$/).empty?
 
-        category = $1
-        package  = $2
-        name     = $3
+        if deep
+          local_res = self.run(sprintf('pkginfo -l %s', $2))
+          local     = $1 if local_res.match(/VERSION\:\s+(.*?)$/i)
+        else
+          local = '?'
+        end
 
-        res[category] = Hash.new() if res[category].nil?
-        res[category][package] = name
-
+        res[$2] = local
       end
 
     elsif uname =~ /Ubuntu/
-      # returns { package => '?', package2 => '?' }
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
-        # can get actual version with 'dpkg -s #{package}'
-        next if line.grep(/^(.*?)\s/).empty?
+        next if line.match(/^(.*?)\s/).empty?
 
-        res[package] = '?'
+        if deep
+          local_res = self.run(sprintf('dpkg -s %s', $1))
+          local     = $1 if local_res.match(/Version\:\s(.*?)$/)
+        else
+          local = '?'
+        end
+
+        res[$1] = local
       end
 
     elsif self.is_file?('/etc/redhat-release')
-      # returns { package => 'version', package2 => 'version2' }
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
-        next if line.grep(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
+        next if line.match(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
         res[$1] = $2
       end
 
@@ -115,10 +125,10 @@ class Rouster
       data = line.split(":")
 
       res[user] = Hash.new()
-      res[user]['shell'] = data[-1]
-      res[user]['home']  = data[-2]
-      #res[user]['home_exists'] = self.is_directory?(data[-2]) # do we really want this?
-      res[user]['uid']   = data[2]
+      res[user][:shell] = data[-1]
+      res[user][:home]  = data[-2]
+      res[user][:home_exists] = self.is_directory?(data[-2])
+      res[user][:uid]   = data[2]
     end
 
     if use_cache
@@ -135,29 +145,42 @@ class Rouster
 
     res = Hash.new()
 
-    # TODO ask Vagrant for this information
     uname = self.run('uname -a')
 
     if uname =~ /darwin/
 
-      raw = self.run('launchctl') # TODO is this really what we're looking for?
+      raw = self.run('launchctl list')
       raw.split("\n").each do |line|
         next if line.grep(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).empty
 
         service = $2
-        mode    = $1 # this is either '-', '0', or '-9'
+        mode    = $1
+
+        if mode.grep(/^\d/)
+          mode = 'running'
+        else
+          mode = 'stopped'
+        end
 
         res[service] = mode
       end
 
     elsif uname =~ /SunOS/
 
-      raw = self.run('svcs') # TODO ensure that this is giving all services, not just those that are started
+      raw = self.run('svcs')
       raw.split("\n").each do |line|
         next if line.grep(/(.*?)\s+(?:.*?)\s+(.*?)$/).empty?
 
         service = $2
         mode    = $1
+
+        if mode.match(/online/)
+          mode = 'running'
+        elsif mode.match(/legacy_run/)
+          mode = 'running'
+        elsif mode.match(//)
+          mode = 'stopped'
+        end
 
         res[service] = mode
 
