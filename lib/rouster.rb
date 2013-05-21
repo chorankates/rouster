@@ -37,9 +37,10 @@ class Rouster
       @sudo = true
     end
 
-    @output      = Array.new
-    @deltas      = Hash.new # should probably rename this, but need container for deltas.rb/get_*
-    @exitcode    = nil
+    @output   = Array.new
+    @deltas   = Hash.new # should probably rename this, but need container for deltas.rb/get_*
+    @facts    = Hash.new()
+    @exitcode = nil
 
     # set up logging
     require 'log4r/config'
@@ -69,7 +70,6 @@ class Rouster
     @log.debug('instantiating Vagrant::VM')
     @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
 
-    # no key is specified
     if @sshkey.nil?
       if @passthrough.eql?(true)
         raise InternalError.new('must specify sshkey when using a passthrough host')
@@ -83,6 +83,16 @@ class Rouster
     # TODO want to catch the exception coming out of 'check_key_permissions', but can't figure out the right model
     if @sshkey.nil? or @_vm.ssh.check_key_permissions(@sshkey)
       raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
+    end
+
+    if opts.has_key?(:sshtunnel) and opts[:sshtunnel]
+      unless @_vm.state.to_s.eql?('running')
+        @log.info(sprintf('upping machine[%s] in order to open SSH tunnel', @name))
+        self.up()
+      end
+
+      @log.debug('opening SSH tunnel during..')
+      @_vm.channel.ready?()
     end
 
     @log.debug('Rouster object successfully instantiated')
