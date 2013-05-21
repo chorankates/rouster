@@ -1,6 +1,6 @@
 # stripped down example piab Vagrantfile for rouster
 
-box_name = 'rhel6_u2_v2'
+box_name = 'rhel6_u2'
 boxes    = [:ppm, :app]
 
 Vagrant::Config.run do |config|
