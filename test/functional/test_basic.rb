@@ -15,6 +15,7 @@ class TestPut < Test::Unit::TestCase
     @app.destroy() if @app.get_status().eql?('running')
 
     # TODO how do we properly test this? we really need the rspec should_call mechanism...  end
+  end
 
   def teardown
     # noop
