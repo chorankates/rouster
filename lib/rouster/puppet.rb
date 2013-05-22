@@ -131,8 +131,8 @@ class Rouster
 
   end
 
-  def run_puppet
-    self.run('/sbin/service puppet once -t')
+  def run_puppet(expected_exitcode=0)
+    self.run('/sbin/service puppet once -t', expected_exitcode)
   end
 
 end
