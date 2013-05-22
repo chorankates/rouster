@@ -185,15 +185,23 @@ class Rouster
       self.up()
     end
 
-    raise NotImplementedError.new() if self.is_passthrough?
+    if self.is_passthrough?
+      uname = self.run('uname -a')
 
-    case self._vm.guest.vm.guest.class.to_s
-      when /Redhat/i
-        :RedHat
-      when /Solaris/i
-        :Solaris
-      when /Ubuntu/i
-        :Ubuntu
+      case uname
+        when /Sun|Solaris/i
+          :solaris
+        when /Ubuntu/i
+          :ubuntu
+        else
+          if self.is_file?('/etc/redhat/release')
+            :redhat
+          else
+            nil
+          end
+      end
+    else
+      self._vm.guest.distro_dispatch()
     end
 
   end
