@@ -54,23 +54,23 @@ class Rouster
     expectations.each do |k,v|
 
       case k
-        when :ensure, :exists:
+        when :ensure, :exists
           local = (! properties.nil? and ! v.match(/absent|false/).nil?)
-        when :file:
+        when :file
           local = (! properties.nil? and properties[:file?].true?)
-        when :directory:
+        when :directory
           local = (! properties.nil? and properties[:directory?].true?)
-        when :contains:
+        when :contains
           v.each do |regex|
             local = true
             begin
-              self.run("grep -c '%s' %s")
+              self.run(sprintf("grep -c '%s' %s", name, regex))
             rescue
               local = false
             end
             next if local.false?
           end
-        when :mode, :permissions:
+        when :mode, :permissions
           local = (! properties.nil? and ! v.match(/properties[:mode]/).nil?)
         when :owner
           local = (! properties.nil? and ! v.match(/properties[:owner]/).nil?)
@@ -126,11 +126,11 @@ class Rouster
 
     expectations.each do |k,v|
       case k
-        when :ensure, :exists:
+        when :ensure, :exists
           local = (groups.has_key?(name) and ! v.match(/absent|false/).nil?)
-        when :gid:
+        when :gid
           local = ! v.match(/groups[name][:gid]/).nil?
-        when :user:
+        when :user
           v.each do |user|
             local = groups[name][:users].has_key?(user)
             next if local.false? # TODO don't fail fast here -- until it's optional
@@ -184,9 +184,9 @@ class Rouster
 
     expectations.each do |k,v|
       case k
-        when :ensure, :exists:
+        when :ensure, :exists
           local = (packages.has_key?(name) and ! v.match(/absent|false/).nil? )
-        when :version:
+        when :version
           local = ! v.match(/packages[name][:version]/).nil?
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
@@ -232,9 +232,9 @@ class Rouster
 
     expectations.each do |k,v|
       case k
-        when :ensure, :exists:
+        when :ensure, :exists
           local = (services.has_key?(name) and ! v.match(/absent|false/).nil? )
-        when :state:
+        when :state
           local = ! v.match(/services[name]/).nil?
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
@@ -285,9 +285,9 @@ class Rouster
 
     expectations.each do |k,v|
       case k
-        when :ensure, :exists:
+        when :ensure, :exists
           local = (users.has_key?(name) and ! v.match(/absent|false/).nil? )
-        when :home:
+        when :home
           local = ! v.match(/users[:home]/).nil?
         when :shell
           local = ! v.match(/users[:shell]/).nil?
