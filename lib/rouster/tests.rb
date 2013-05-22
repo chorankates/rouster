@@ -3,46 +3,72 @@ require 'rouster/deltas'
 
 class Rouster
 
-  def dir(dir)
-    begin
-      res = self.run(sprintf('ls -ld %s', dir))
-    rescue Rouster::RemoteExecutionError
+  def dir(dir, use_cache=false)
+
+    self.deltas[:files] = Hash.new if self.deltas[:files].nil?
+    if use_cache and ! self.deltas[:files][dir].nil?
+      self.deltas[:files][dir]
     end
 
-    if res.match(/No such file or directory/)
-      nil
-    elsif res.match(/Permission denied/)
-      @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
-      nil
-    else
-      parse_ls_string(res)
+    begin
+      raw = self.run(sprintf('ls -ld %s', dir))
+    rescue Rouster::RemoteExecutionError
+      raw = self.get_output()
     end
+
+    if raw.match(/No such file or directory/)
+      res = nil
+    elsif raw.match(/Permission denied/)
+      @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
+      res = nil
+    else
+      res = parse_ls_string(raw)
+    end
+
+    if use_cache
+      self.deltas[:files][dir] = res
+    end
+
+    res
   end
 
-  def file(file)
-    begin
-      res = self.run(sprintf('ls -l %s', file))
-    rescue Rouster::RemoteExecutionError
+  def file(file, use_cache=false)
+
+    self.deltas[:files] = Hash.new if self.deltas[:files].nil?
+    if use_cache and ! self.deltas[:files][file].nil?
+      self.deltas[:files][file]
     end
 
-    if res.match(/No such file or directory/)
-      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
-      nil
-    elsif res.match(/Permission denied/)
-      nil
-    else
-      parse_ls_string(res)
+    begin
+      raw = self.run(sprintf('ls -l %s', file))
+    rescue Rouster::RemoteExecutionError
+      raw = self.get_output()
     end
+
+    if raw.match(/No such file or directory/)
+      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
+      res = nil
+    elsif raw.match(/Permission denied/)
+      res = nil
+    else
+      res = parse_ls_string(raw)
+    end
+
+    if use_cache
+      self.deltas[:files][file] = res
+    end
+
+    res
   end
 
   def is_dir?(dir)
     res = self.dir(dir)
-    res[:directory?]
+    res.class.eql?(Hash) ? res[:directory?] : false
   end
 
   def is_executable?(filename, level='u')
 
-    res = is_file?(filename)
+    res = file(filename)
 
     if res
       array = res[:executable?]
@@ -66,7 +92,7 @@ class Rouster
 
   def is_file?(file)
     res = self.file(file)
-    res[:file?]
+    res.class.eql?(Hash) ? res[:file?] : false
   end
 
   def is_group?(group)
@@ -115,7 +141,7 @@ class Rouster
 
   def is_readable?(filename, level='u')
 
-    res = is_file?(filename)
+    res = file(filename)
 
     if res
       array = res[:readable?]
@@ -146,7 +172,9 @@ class Rouster
     services = self.get_services(use_cache)
 
     if services.has_key?(service)
-      services[service].eql?('running')
+      services[service].eql?('running').true?
+    else
+      false
     end
   end
 
@@ -157,7 +185,7 @@ class Rouster
 
   def is_writeable?(filename, level='u')
 
-    res = is_file?(filename)
+    res = file(filename)
 
     if res
       array = res[:writeable?]
