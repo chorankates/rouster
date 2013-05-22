@@ -189,6 +189,8 @@ class Rouster
       uname = self.run('uname -a')
 
       case uname
+        when /Darwin/i
+          :osx
         when /Sun|Solaris/i
           :solaris
         when /Ubuntu/i
