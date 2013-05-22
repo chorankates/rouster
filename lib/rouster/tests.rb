@@ -103,8 +103,8 @@ class Rouster
     true
   end
 
-  def is_package?(package)
-    packages = self.get_packages()
+  def is_package?(package, use_cache=true)
+    packages = self.get_packages(use_cache)
     packages.has_key?(package)
   end
 
@@ -132,21 +132,21 @@ class Rouster
 
   end
 
-  def is_service?(service)
-    services = self.get_services()
+  def is_service?(service, use_cache=true)
+    services = self.get_services(use_cache)
     services.has_key?(service)
   end
 
-  def is_service_running?(service)
-    services = self.get_services()
+  def is_service_running?(service, use_cache=true)
+    services = self.get_services(use_cache)
 
     if services.has_key?(service)
-      services[service].grep(/running|enabled|started/)
+      services[service].eql?('running')
     end
   end
 
-  def is_user?(user)
-    users = self.get_users()
+  def is_user?(user, use_cache=true)
+    users = self.get_users(use_cache)
     users.has_key?(user)
   end
 
@@ -194,14 +194,14 @@ class Rouster
       for j in 0..2 do
         chr = element[j].chr
         case chr
-          when 'r':
+          when 'r'
             value += 4
-          when 'w':
+          when 'w'
             value += 2
-          when 'x', 't':
+          when 'x', 't'
             # is 't' really right here? copying Salesforce::Vagrant
             value += 1
-          when '-':
+          when '-'
             # noop
           else
             raise InternalError.new(sprintf('unexpected character[%s]', chr))
