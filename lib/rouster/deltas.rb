@@ -79,7 +79,7 @@ class Rouster
     elsif os.eql?(:ubuntu)
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
-        next if line.match(/^(.*?)\s/).empty?
+        next if line.match(/^(.*?)\s/).nil?
 
         if deep
           local_res = self.run(sprintf('dpkg -s %s', $1))
@@ -94,7 +94,7 @@ class Rouster
     elsif os.eql?(:redhat)
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
-        next if line.match(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
+        next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
         res[$1] = $2
       end
 
@@ -119,15 +119,15 @@ class Rouster
     raw = self.run('cat /etc/passwd')
 
     raw.split("\n").each do |line|
-      next if line.grep(/(\w+)(?::\w+){3,}/).empty?
+      next if line.match(/(\w+)(?::\w+){3,}/).nil?
 
       user = $1
-      data = line.split(":")
+      data = line.split(':')
 
       res[user] = Hash.new()
       res[user][:shell] = data[-1]
       res[user][:home]  = data[-2]
-      res[user][:home_exists] = self.is_directory?(data[-2])
+      res[user][:home_exists] = self.is_dir?(data[-2])
       res[user][:uid]   = data[2]
     end
 
@@ -151,7 +151,7 @@ class Rouster
 
       raw = self.run('launchctl list')
       raw.split("\n").each do |line|
-        next if line.grep(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).empty
+        next if line.match(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).nil?
 
         service = $2
         mode    = $1
@@ -169,7 +169,7 @@ class Rouster
 
       raw = self.run('svcs')
       raw.split("\n").each do |line|
-        next if line.grep(/(.*?)\s+(?:.*?)\s+(.*?)$/).empty?
+        next if line.match(/(.*?)\s+(?:.*?)\s+(.*?)$/).nil?
 
         service = $2
         mode    = $1
@@ -190,7 +190,7 @@ class Rouster
 
       raw = self.run('service --status-all 2>&1')
       raw.split("\n").each do |line|
-        next if line.grep(/\[(.*?)\]\s+(.*)$/).empty?
+        next if line.match(/\[(.*?)\]\s+(.*)$/).nil?
         mode    = $1
         service = $2
 
@@ -206,7 +206,7 @@ class Rouster
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
         #next if line.grep(/([\w\s-]+?)\sis\s(\w*?)/).empty?
-        next if line.grep(/^([^\s]*).*\s(\w*)\.?$/).empty?
+        next if line.match(/^([^\s]*).*\s(\w*)\.?$/).nil?
         res[$1] = $2
       end
 
