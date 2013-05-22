@@ -3,22 +3,41 @@ require 'rouster/deltas'
 
 class Rouster
 
-  def is_dir?(dir)
+  def dir(dir)
     begin
       res = self.run(sprintf('ls -ld %s', dir))
     rescue Rouster::RemoteExecutionError
-      # noop, process output instead of exit code
     end
 
     if res.match(/No such file or directory/)
-      false
+      nil
     elsif res.match(/Permission denied/)
       @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
-      false
+      nil
     else
-      #true
       parse_ls_string(res)
     end
+  end
+
+  def file(file)
+    begin
+      res = self.run(sprintf('ls -l %s', file))
+    rescue Rouster::RemoteExecutionError
+    end
+
+    if res.match(/No such file or directory/)
+      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
+      nil
+    elsif res.match(/Permission denied/)
+      nil
+    else
+      parse_ls_string(res)
+    end
+  end
+
+  def is_dir?(dir)
+    res = self.dir(dir)
+    res[:directory?]
   end
 
   def is_executable?(filename, level='u')
@@ -46,22 +65,8 @@ class Rouster
   end
 
   def is_file?(file)
-    begin
-      res = self.run(sprintf('ls -l %s', file))
-    rescue Rouster::RemoteExecutionError
-      # noop, process output
-    end
-
-    if res.match(/No such file or directory/)
-      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
-      false
-    elsif res.match(/Permission denied/)
-      false
-    else
-      #true
-      parse_ls_string(res)
-    end
-
+    res = self.file(file)
+    res[:file?]
   end
 
   def is_group?(group)
