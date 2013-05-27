@@ -11,7 +11,7 @@ class TestPut < Test::Unit::TestCase
     @ppm.rebuild() # destroy / rebuild
 
     assert_nothing_raised do
-		  @ppm.run_puppet(2)
+		  @ppm.run_puppet([0,2])
     end
 
     assert_match(/Finished catalog run in/, @ppm.get_output())
