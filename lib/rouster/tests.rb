@@ -3,27 +3,72 @@ require 'rouster/deltas'
 
 class Rouster
 
-  def is_dir?(dir)
-    begin
-      res = self.run(sprintf('ls -ld %s', dir))
-    rescue Rouster::RemoteExecutionError
-      # noop, process output instead of exit code
+  def dir(dir, use_cache=false)
+
+    self.deltas[:files] = Hash.new if self.deltas[:files].nil?
+    if use_cache and ! self.deltas[:files][dir].nil?
+      self.deltas[:files][dir]
     end
 
-    if res.match(/No such file or directory/)
-      false
-    elsif res.match(/Permission denied/)
-      @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, res)) unless self.uses_sudo?
-      false
-    else
-      #true
-      parse_ls_string(res)
+    begin
+      raw = self.run(sprintf('ls -ld %s', dir))
+    rescue Rouster::RemoteExecutionError
+      raw = self.get_output()
     end
+
+    if raw.match(/No such file or directory/)
+      res = nil
+    elsif raw.match(/Permission denied/)
+      @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
+      res = nil
+    else
+      res = parse_ls_string(raw)
+    end
+
+    if use_cache
+      self.deltas[:files][dir] = res
+    end
+
+    res
+  end
+
+  def file(file, use_cache=false)
+
+    self.deltas[:files] = Hash.new if self.deltas[:files].nil?
+    if use_cache and ! self.deltas[:files][file].nil?
+      self.deltas[:files][file]
+    end
+
+    begin
+      raw = self.run(sprintf('ls -l %s', file))
+    rescue Rouster::RemoteExecutionError
+      raw = self.get_output()
+    end
+
+    if raw.match(/No such file or directory/)
+      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
+      res = nil
+    elsif raw.match(/Permission denied/)
+      res = nil
+    else
+      res = parse_ls_string(raw)
+    end
+
+    if use_cache
+      self.deltas[:files][file] = res
+    end
+
+    res
+  end
+
+  def is_dir?(dir)
+    res = self.dir(dir)
+    res.class.eql?(Hash) ? res[:directory?] : false
   end
 
   def is_executable?(filename, level='u')
 
-    res = is_file?(filename)
+    res = file(filename)
 
     if res
       array = res[:executable?]
@@ -46,22 +91,8 @@ class Rouster
   end
 
   def is_file?(file)
-    begin
-      res = self.run(sprintf('ls -l %s', file))
-    rescue Rouster::RemoteExecutionError
-      # noop, process output
-    end
-
-    if res.match(/No such file or directory/)
-      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
-      false
-    elsif res.match(/Permission denied/)
-      false
-    else
-      #true
-      parse_ls_string(res)
-    end
-
+    res = self.file(file)
+    res.class.eql?(Hash) ? res[:file?] : false
   end
 
   def is_group?(group)
@@ -103,14 +134,14 @@ class Rouster
     true
   end
 
-  def is_package?(package)
-    packages = self.get_packages()
+  def is_package?(package, use_cache=true)
+    packages = self.get_packages(use_cache)
     packages.has_key?(package)
   end
 
   def is_readable?(filename, level='u')
 
-    res = is_file?(filename)
+    res = file(filename)
 
     if res
       array = res[:readable?]
@@ -132,27 +163,29 @@ class Rouster
 
   end
 
-  def is_service?(service)
-    services = self.get_services()
+  def is_service?(service, use_cache=true)
+    services = self.get_services(use_cache)
     services.has_key?(service)
   end
 
-  def is_service_running?(service)
-    services = self.get_services()
+  def is_service_running?(service, use_cache=true)
+    services = self.get_services(use_cache)
 
     if services.has_key?(service)
-      services[service].grep(/running|enabled|started/)
+      services[service].eql?('running').true?
+    else
+      false
     end
   end
 
-  def is_user?(user)
-    users = self.get_users()
+  def is_user?(user, use_cache=true)
+    users = self.get_users(use_cache)
     users.has_key?(user)
   end
 
   def is_writeable?(filename, level='u')
 
-    res = is_file?(filename)
+    res = file(filename)
 
     if res
       array = res[:writeable?]
@@ -194,14 +227,14 @@ class Rouster
       for j in 0..2 do
         chr = element[j].chr
         case chr
-          when 'r':
+          when 'r'
             value += 4
-          when 'w':
+          when 'w'
             value += 2
-          when 'x', 't':
+          when 'x', 't'
             # is 't' really right here? copying Salesforce::Vagrant
             value += 1
-          when '-':
+          when '-'
             # noop
           else
             raise InternalError.new(sprintf('unexpected character[%s]', chr))

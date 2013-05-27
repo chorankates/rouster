@@ -142,7 +142,7 @@ class Rouster
   end
 
   ## internal methods
-  def run(command)
+  def run(command, expected_exit_code=0)
     # runs a command inside the Vagrant VM
     output = nil
 
@@ -163,8 +163,8 @@ class Rouster
 
     self.output.push(output)
 
-    unless @exitcode.eql?(0)
-      raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}]")
+    unless @exitcode.eql?(expected_exit_code)
+      raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exit_code}]")
     end
 
     @exitcode ||= 0
@@ -174,6 +174,38 @@ class Rouster
   def is_available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
     @_vm.channel.ready?()
+  end
+
+  def os_type(start_if_not_running=true)
+    # if the machine isn't created, typically see 'Vagrant::Guest::Linux'
+    # returns :RedHat, :Solaris or :Ubuntu
+
+    if start_if_not_running and self.status.eql?('running').false?
+      @log.debug('starting machine to determine OS type')
+      self.up()
+    end
+
+    if self.is_passthrough?
+      uname = self.run('uname -a')
+
+      case uname
+        when /Darwin/i
+          :osx
+        when /Sun|Solaris/i
+          :solaris
+        when /Ubuntu/i
+          :ubuntu
+        else
+          if self.is_file?('/etc/redhat/release')
+            :redhat
+          else
+            nil
+          end
+      end
+    else
+      self._vm.guest.distro_dispatch()
+    end
+
   end
 
   def get(remote_file, local_file=nil)
@@ -272,7 +304,8 @@ class Rouster
 
   def generate_unique_mac
     # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
-    (1..6).map{"%0.2X" % rand(256)}.join('').downcase # causes a fatal error with VboxManage if colons are left in
+    #(1..6).map{"%0.2X" % rand(256)}.join('').downcase # causes a fatal error with VboxManage if colons are left in
+    sprintf('b88d12%s', (1..3).map{"%0.2X" % rand(256)}.join('').downcase)
   end
 
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)

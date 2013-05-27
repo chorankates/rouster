@@ -88,6 +88,12 @@ class Rouster
       # file resource
       # {"exported"=>false, "file"=>"/etc/puppet/modules/p4users/manifests/init.pp", "parameters"=>{"owner"=>"root", "group"=>"root", "ensure"=>"present", "source"=>"puppet:///modules/p4users/p4"}, "line"=>34, "type"=>"File", "title"=>"/usr/local/bin/p4", "tags"=>["file", "class", "p4users", "baseclass", "node", "default"]}
 
+      # user resource
+
+      # group resource
+
+      # service resource
+
       # stage resource
       # {"exported"=>false, "parameters"=>{"name"=>"main"}, "type"=>"Stage", "title"=>"main", "tags"=>["stage"]}
 
@@ -125,8 +131,8 @@ class Rouster
 
   end
 
-  def run_puppet
-    self.run('/sbin/service puppet once -t')
+  def run_puppet(expected_exitcode=0)
+    self.run('/sbin/service puppet once -t', expected_exitcode)
   end
 
 end

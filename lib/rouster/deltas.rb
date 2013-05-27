@@ -43,9 +43,9 @@ class Rouster
 
     res = Hash.new()
 
-    uname = self.run('uname -a')
+    os = self.os_type
 
-    if uname =~ /darwin/
+    if os.eql?(:osx)
 
       raw = self.run('pkgutil --pkgs')
       raw.split("\n").each do |line|
@@ -61,14 +61,14 @@ class Rouster
         res[line] = local
       end
 
-    elsif uname =~ /SunOS/
+    elsif os.eql?(:solaris)
       raw = self.run('pkginfo')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\s+(.*?)\s(.*)$/).empty?
 
         if deep
-          local_res = self.run(sprintf('pkginfo -c %s', $2))
-          local     = $1 if local_res.match(/version\:\s+(.*?)$/i)
+          local_res = self.run(sprintf('pkginfo -l %s', $2))
+          local     = $1 if local_res.match(/VERSION\:\s+(.*?)$/i)
         else
           local = '?'
         end
@@ -76,10 +76,10 @@ class Rouster
         res[$2] = local
       end
 
-    elsif uname =~ /Ubuntu/
+    elsif os.eql?(:ubuntu)
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
-        next if line.match(/^(.*?)\s/).empty?
+        next if line.match(/^(.*?)\s/).nil?
 
         if deep
           local_res = self.run(sprintf('dpkg -s %s', $1))
@@ -91,10 +91,10 @@ class Rouster
         res[$1] = local
       end
 
-    elsif self.is_file?('/etc/redhat-release')
+    elsif os.eql?(:redhat)
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
-        next if line.match(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
+        next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
         res[$1] = $2
       end
 
@@ -119,15 +119,15 @@ class Rouster
     raw = self.run('cat /etc/passwd')
 
     raw.split("\n").each do |line|
-      next if line.grep(/(\w+)(?::\w+){3,}/).empty?
+      next if line.match(/(\w+)(?::\w+){3,}/).nil?
 
       user = $1
-      data = line.split(":")
+      data = line.split(':')
 
       res[user] = Hash.new()
       res[user][:shell] = data[-1]
       res[user][:home]  = data[-2]
-      res[user][:home_exists] = self.is_directory?(data[-2])
+      res[user][:home_exists] = self.is_dir?(data[-2])
       res[user][:uid]   = data[2]
     end
 
@@ -145,13 +145,13 @@ class Rouster
 
     res = Hash.new()
 
-    uname = self.run('uname -a')
+    os = self.os_type
 
-    if uname =~ /darwin/
+    if os.eql?(:osx)
 
       raw = self.run('launchctl list')
       raw.split("\n").each do |line|
-        next if line.grep(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).empty
+        next if line.match(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).nil?
 
         service = $2
         mode    = $1
@@ -165,24 +165,32 @@ class Rouster
         res[service] = mode
       end
 
-    elsif uname =~ /SunOS/
+    elsif os.eql?(:solaris)
 
       raw = self.run('svcs')
       raw.split("\n").each do |line|
-        next if line.grep(/(.*?)\s+(?:.*?)\s+(.*?)$/).empty?
+        next if line.match(/(.*?)\s+(?:.*?)\s+(.*?)$/).nil?
 
         service = $2
         mode    = $1
+
+        if mode.match(/online/)
+          mode = 'running'
+        elsif mode.match(/legacy_run/)
+          mode = 'running'
+        elsif mode.match(//)
+          mode = 'stopped'
+        end
 
         res[service] = mode
 
       end
 
-    elsif uname =~ /Ubuntu/
+    elsif os.eql?(:ubuntu)
 
       raw = self.run('service --status-all 2>&1')
       raw.split("\n").each do |line|
-        next if line.grep(/\[(.*?)\]\s+(.*)$/).empty?
+        next if line.match(/\[(.*?)\]\s+(.*)$/).nil?
         mode    = $1
         service = $2
 
@@ -193,12 +201,12 @@ class Rouster
         res[service] = mode
       end
 
-    elsif self.is_file?('/etc/redhat-release')
+    elsif os.eql?(:redhat)
 
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
         #next if line.grep(/([\w\s-]+?)\sis\s(\w*?)/).empty?
-        next if line.grep(/^([^\s]*).*\s(\w*)\.?$/).empty?
+        next if line.match(/^([^\s]*).*\s(\w*)\.?$/).nil?
         res[$1] = $2
       end
 

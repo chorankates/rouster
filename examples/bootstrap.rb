@@ -45,11 +45,25 @@ workers.each do |w|
   p sprintf('%s uname -a via run:    %s', w.name, w.run('uname -a'))
   p sprintf('%s uname -a via output: %s', w.name, w.get_output())
 
-  p sprintf('%s fizzy:    %s', w.name, w.run('fizzy'))
-  p sprintf('%s ls /dne/  %s', w.name, w.run('ls /dne/'))
+  begin
+    p sprintf('%s fizzy:    %s', w.name, w.run('fizzy'))
+  rescue => e
+    p e
+  end
+
+  begin
+    p sprintf('%s ls /dne/  %s', w.name, w.run('ls /dne/'))
+  rescue => e
+    p e
+  end
+
+  p sprintf('%s ls /dne/ expected exit code 2 %s', w.name, w.run('ls /dne/', 2))
 
   # tear the box down
   w.destroy()
+
+  # bring it back again
+  w.up()
 
   p sprintf('%s status: %s', w.name, w.status())
   p sprintf('%s available via ssh: %s', w, w.is_available_via_ssh?())

@@ -34,6 +34,28 @@ class TestPut < Test::Unit::TestCase
 
     assert_not_equal(original_uptime, new_uptime)
 
+    os = self.os_type
+
+    if os.eql?(:RedHat)
+
+      original_minutes_seconds = $1 if original_uptime.match(/\d+:.*up.*(\d+:\d+)/)
+      original_seconds =
+          original_minutes_seconds.split(':').at(-3) * 3600 +
+          original_minutes_seconds.split(':').at(-2) * 60 +
+          original_minutes_seconds.split(':').at(-1)
+
+      new_minutes_seconds = $1 if new_uptime.match(/\d+:.*up.*(\d+:\d+)/)
+      new_seconds =
+          new_minutes_seconds.split(':').at(-3) * 3600 +
+          new_minutes_seconds.split(':').at(-2) * 60 +
+          new_minutes_seconds.split(':').at(-1)
+
+      assert_equal(true, original_seconds > new_seconds)
+    else
+      # noop
+      #raise NotImplementedError.new()
+    end
+
   end
 
 

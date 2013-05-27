@@ -121,23 +121,9 @@ class TestPuppetRun < Test::Unit::TestCase
       w.destroy()
       w.up()
 
-      res = nil
-
-      begin
-        #res = w.run('puppet agent -t --environment development')
-        res = w.run_puppet()
-      rescue Rouster::RemoteExecutionError
-        # puppet gives a 2 exit code if a resource changes, need to catch the exception
-        unless w.exitcode.eql?(2)
-          raise RemoteExecutionError.new("puppet run returned exitcode[#{w.exitcode}] and output[#{w.get_output()}]")
-        end
-
-        res = w.get_output()
-
-        assert_equal(0 or 2, w.exitcode, "exit code [#{w.exitcode}] considered success")
-        assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
-
-      end
+      #res = w.run('puppet agent -t --environment development')
+      res = w.run_puppet(2)
+      assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
     end
   end
 
