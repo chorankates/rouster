@@ -293,11 +293,9 @@ class Rouster
   end
 
   # truly internal methods
-  def get_output(index = 0)
-    # return index'th array of output in LIFO order
-
-    reversed = self.output.reverse
-    reversed[index]
+  def get_output(index = 1)
+    # return index'th array of output in LIFO order (recasts positive or negative as best as it can)
+    index.is_a?(Fixnum) and index > 0 ? self.output[-index] : self.output[index]
   end
 
   #private
