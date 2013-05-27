@@ -142,9 +142,10 @@ class Rouster
   end
 
   ## internal methods
-  def run(command, expected_exit_code=0)
+  def run(command, expected_exitcode=[0])
     # runs a command inside the Vagrant VM
     output = nil
+    expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck
 
     @log.info(sprintf('vm running: [%s]', command))
 
@@ -163,8 +164,8 @@ class Rouster
 
     self.output.push(output)
 
-    unless @exitcode.eql?(expected_exit_code)
-      raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exit_code}]")
+    unless expected_exitcode.member?(@exitcode)
+      raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
     end
 
     @exitcode ||= 0
