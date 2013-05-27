@@ -11,10 +11,9 @@ class TestPut < Test::Unit::TestCase
     @ppm.rebuild() # destroy / rebuild
 
     assert_nothing_raised do
-      @ppm.run_puppet()
+		  @ppm.run_puppet(2)
     end
 
-    assert(@ppm.exitcode.eql?(0) or @ppm.exitcode.eql?(2))
     assert_match(/Finished catalog run in/, @ppm.get_output())
 
     # define base here
@@ -48,12 +47,10 @@ class TestPut < Test::Unit::TestCase
 
     }.merge(@expected_files)
 
-    e = assert_raise Rouster::InternalError do
-      app.run_puppet()
+    assert_raises_nothing do
+      app.run_puppet(2)
     end
 
-    assert(app.exitcode.eql?(2))
-    assert_match(/Finished catalog run in/, e, 'ensuring exception is expected')
     assert_match(/Finished catalog run in/, app.get_output())
 
     app.destroy()
@@ -71,16 +68,14 @@ class TestPut < Test::Unit::TestCase
         '/root' => { :ensure => 'directory' }
     }.merge(@expected_files)
 
-    e = assert_raise Rouster::InternalError do
-      db.run_puppet()
+
+    assert_raises_nothing do
+      db.run_puppet(2)
     end
 
-    assert(db.exitcode.eql?(2))
-    assert_match(/Finished catalog run in/, e, 'ensuring exception is expected')
     assert_match(/Finished catalog run in/, db.get_output())
 
-    app.destroy()
-
+    db.destroy()
   end
 
   def teardown
