@@ -4,7 +4,7 @@ node default {
   include baseclass
 }
 
-node 'app' {
+node 'app.hsd1.ca.comcast.net' {
   include app_role
 }
 
@@ -41,12 +41,16 @@ class app_role {
 
   user { 'foo':
     ensure  => present,
-    group   => 'bar',
-    require => Group['bar'],
+    groups  => 'bar',
   }
 
   group { 'bar':
     ensure => present,
+    before => User['foo'],
+  }
+
+  service { 'snmpd':
+    ensure => stopped,
   }
 
 }
@@ -63,5 +67,9 @@ class db_role {
     owner    => 'vagrant',
     group    => 'vagrant',
     mode     => '0444',
+  }
+
+  service { 'httpd':
+    ensure => running,
   }
 }
