@@ -38,7 +38,6 @@ class TestPut < Test::Unit::TestCase
     app = Rouster.new(:name => 'app')
 
     app_expected_packages = {
-      'perl-DBI' => { :ensure => 'present' },
       'rsync'    => { :ensure => 'present' }
     }.merge(@expected_packages)
 
@@ -89,7 +88,7 @@ class TestPut < Test::Unit::TestCase
     db = Rouster.new(:name => 'db')
 
     # TODO implement parse_catalog here
-    catalog = db.get_catalog()
+    catalog      = db.get_catalog()
     expectations = db.parse_catalog(catalog)
 
     assert_nothing_raised do
@@ -101,14 +100,17 @@ class TestPut < Test::Unit::TestCase
 
     expectations.each_pair do |k,v|
       res = nil
-      case v[:type]
-        when :dir
-
-        when :file
+      case v[:type] # TODO need to implement this marker in parse_catalog(), it will be ignored by validate_*
+        when :dir, :file
+          res = db.validate_file(k, v)
         when :group
+          res = db.validate_group(k, v)
         when :package
+          res = db.validate_package(k, v)
         when :user
+          res = db.validate_user(k, v)
         when :service
+          res = db.validate_service(k, v)
       end
 
       assert_equal(true, res, sprintf('failed[%s]: %s',v, res))
