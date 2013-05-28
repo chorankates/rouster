@@ -79,11 +79,9 @@ class Rouster
       raise InternalError.new(sprintf('catalog does not contain a resources key[%s]', catalog))
     end
 
-    resources = catalog['data']['resources']
+    raw_resources = catalog['data']['resources']
 
-    resources.each do |r|
-      # first array element -- looks like this element comes before each set of resources for the class in question
-      # {"exported"=>false, "type"=>"Class", "title"=>"P4users", "tags"=>["class", "p4users", "baseclass", "node", "default"]}
+    raw_resources.each do |r|
 
       # file resource
       # {"exported"=>false,
@@ -99,18 +97,6 @@ class Rouster
 
       # service resource
 
-      # stage resource
-      # {"exported"=>false, "parameters"=>{"name"=>"main"}, "type"=>"Stage", "title"=>"main", "tags"=>["stage"]}
-
-      # node resource
-      # {"exported"=>false, "type"=>"Node", "title"=>"default", "tags"=>["node", "default", "class"]}
-
-      # file resource with a stage
-      # {"exported"=>false,
-      # "file"=>"/etc/puppet/manifests/templates.pp",
-      # "parameters"=>{"before"=>"Stage[main]"},
-      # "line"=>18, "type"=>"Stage", "title"=>"first",
-      # "tags"=>["stage", "first", "class"]}
       type = r['type']
       case type
         when 'File'
@@ -137,6 +123,8 @@ class Rouster
           raise NotImplementedError.new()
         when 'Service'
           raise NotImplementedError.new()
+        when 'Class'
+          classes.push(r['title'])
         else
           raise NotImplementedError.new(sprintf('parsing support for [%s] is incomplete', type))
       end
