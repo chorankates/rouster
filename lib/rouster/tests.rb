@@ -183,6 +183,13 @@ class Rouster
     users.has_key?(user)
   end
 
+  def is_user_in_group?(user, group, use_cache=true)
+    users  = self.get_users(use_cache)
+    groups = self.get_groups(use_cache)
+
+    users.has_key?(user) and groups.has_key?(group) and groups[group][:users].member?(user)
+  end
+
   def is_writeable?(filename, level='u')
 
     res = file(filename)

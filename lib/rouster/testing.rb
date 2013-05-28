@@ -135,7 +135,7 @@ class Rouster
         when :user
           v.each do |user|
             local = groups[name][:users].has_key?(user)
-            next if local.false? # TODO don't fail fast here -- until it's optional
+            break unless local.true?
           end
         when :type
           # noop
@@ -273,6 +273,7 @@ class Rouster
     # supported keys:
     #  :exists|ensure
     #  :home
+    #  :group
     #  :shell
     #  :uid
     #  :constrain
@@ -295,6 +296,11 @@ class Rouster
       case k
         when :ensure, :exists
           local = (users.has_key?(name) and ! v.match(/absent|false/).nil? )
+        when :group
+          v.each do |group|
+            local = is_user_in_group?(name, group)
+            break unless local.true?
+          end
         when :home
           local = ! v.match(/users[:home]/).nil?
         when :shell
