@@ -76,6 +76,8 @@ class Rouster
           local = (! properties.nil? and ! v.match(/properties[:owner]/).nil?)
         when :group
           local = (! properties.nil? and ! v.match(/properties[:group]/).nil?)
+        when :type
+          # noop
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
@@ -135,6 +137,8 @@ class Rouster
             local = groups[name][:users].has_key?(user)
             next if local.false? # TODO don't fail fast here -- until it's optional
           end
+        when :type
+          # noop
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
@@ -188,6 +192,8 @@ class Rouster
           local = (packages.has_key?(name) and ! v.match(/absent|false/).nil? )
         when :version
           local = ! v.match(/packages[name][:version]/).nil?
+        when :type
+          # noop
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
@@ -236,6 +242,8 @@ class Rouster
           local = (services.has_key?(name) and ! v.match(/absent|false/).nil? )
         when :state
           local = ! v.match(/services[name]/).nil?
+        when :type
+          # noop
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
@@ -293,6 +301,8 @@ class Rouster
           local = ! v.match(/users[:shell]/).nil?
         when :uid
           local = ! v.match(/users[:uid]/).nil?
+        when :type
+          # noop
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
