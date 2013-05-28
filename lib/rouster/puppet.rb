@@ -26,7 +26,7 @@ class Rouster
     json
   end
 
-  def get_catalog(hostname)
+  def get_catalog(hostname=nil)
     certname = hostname.nil? ? self.run('hostname --fqdn') : hostname
 
     json = nil
@@ -86,7 +86,12 @@ class Rouster
       # {"exported"=>false, "type"=>"Class", "title"=>"P4users", "tags"=>["class", "p4users", "baseclass", "node", "default"]}
 
       # file resource
-      # {"exported"=>false, "file"=>"/etc/puppet/modules/p4users/manifests/init.pp", "parameters"=>{"owner"=>"root", "group"=>"root", "ensure"=>"present", "source"=>"puppet:///modules/p4users/p4"}, "line"=>34, "type"=>"File", "title"=>"/usr/local/bin/p4", "tags"=>["file", "class", "p4users", "baseclass", "node", "default"]}
+      # {"exported"=>false,
+      # "file"=>"/etc/puppet/modules/p4users/manifests/init.pp",
+      # "parameters"=>{"owner"=>"root", "group"=>"root",
+      # "ensure"=>"present", "source"=>"puppet:///modules/p4users/p4"},
+      # "line"=>34, "type"=>"File", "title"=>"/usr/local/bin/p4",
+      # "tags"=>["file", "class", "p4users", "baseclass", "node", "default"]}
 
       # user resource
 
@@ -101,7 +106,39 @@ class Rouster
       # {"exported"=>false, "type"=>"Node", "title"=>"default", "tags"=>["node", "default", "class"]}
 
       # file resource with a stage
-      # {"exported"=>false, "file"=>"/etc/puppet/manifests/templates.pp", "parameters"=>{"before"=>"Stage[main]"}, "line"=>18, "type"=>"Stage", "title"=>"first", "tags"=>["stage", "first", "class"]}
+      # {"exported"=>false,
+      # "file"=>"/etc/puppet/manifests/templates.pp",
+      # "parameters"=>{"before"=>"Stage[main]"},
+      # "line"=>18, "type"=>"Stage", "title"=>"first",
+      # "tags"=>["stage", "first", "class"]}
+      type = r['type']
+      case type
+        when 'File'
+          name = r['title']
+          resources[name] = Hash.new()
+
+          # TODO add some error checking
+          resources[name][:directory] = false
+          resources[name][:ensure]    = r['ensure'] ||= 'file'
+          resources[name][:file]      = true
+          resources[name][:group]     = r['parameters']['group']
+          resources[name][:mode]      = r['parameters']['mode'] # unsure of this one
+          resources[name][:owner]     = r['parameters']['owner']
+
+          # only thing we can't get from this is :contains
+
+        # guessing on these as well
+        when 'User'
+          raise NotImplementedError.new()
+        when 'Group'
+          raise NotImplementedError.new()
+        when 'Package'
+          raise NotImplementedError.new()
+        when 'Service'
+          raise NotImplementedError.new()
+        else
+          raise NotImplementedError.new(sprintf('parsing support for [%s] is incomplete', type))
+      end
 
     end
 
