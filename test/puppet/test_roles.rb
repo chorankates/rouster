@@ -24,8 +24,17 @@ class TestPut < Test::Unit::TestCase
 
     @expected_files = {
       '/etc/passwd' => {
+        :contains => [ 'vagrant', 'root'],
         :ensure   => 'file',
-        :contains => [ 'puppet', 'root']
+        :group    => 'root',
+        :mode     => '0644',
+        :owner    => 'root'
+      },
+
+      '/tmp/foo/' => {
+        :ensure => 'directory',
+        :group  => 'root',
+        :owner  => 'root',
       }
     }
 
@@ -43,8 +52,10 @@ class TestPut < Test::Unit::TestCase
 
     app_expected_files = {
       '/etc/hosts' => {
+          :contains => [ 'localhost', 'app' ],
           :ensure   => 'present',
-          :contains => [ 'localhost', 'app' ]
+          :group    => 'root',
+          :owner    => 'root',
       },
     }.merge(@expected_files)
 
@@ -100,7 +111,7 @@ class TestPut < Test::Unit::TestCase
 
     expectations.each_pair do |k,v|
       res = nil
-      case v[:type] # TODO need to implement this marker in parse_catalog(), it will be ignored by validate_*
+      case v[:type]
         when :dir, :file
           res = db.validate_file(k, v)
         when :group
