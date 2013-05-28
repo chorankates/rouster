@@ -17,19 +17,22 @@ task :buildgem do
 end
 
 Rake::TestTask.new do |t|
-  t.libs << 'test'
+  t.name = 'test'
+  t.libs << 'lib'
   t.test_files = FileList['test/**/test_*.rb']
   t.verbose = true
 end
 
 Rake::TestTask.new do |t|
-  t.libs << 'unit'
+  t.name = 'unit'
+  t.libs << 'lib'
   t.test_files = FileList['test/unit/**/test_*.rb']
   t.verbose = true
 end
 
 Rake::TestTask.new do |t|
-  t.libs << 'functional'
+  t.name = 'functional'
+  t.libs << 'lib'
   t.test_files = FileList['test/functional/**/test_*.rb']
   t.verbose = true
 end
