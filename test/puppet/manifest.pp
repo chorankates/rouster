@@ -35,8 +35,18 @@ class baseclass {
 
 class app_role {
 
-package { 'rsync':
+  package { 'rsync':
     ensure => installed,
+  }
+
+  user { 'foo':
+    ensure  => present,
+    group   => 'bar',
+    require => Group['bar'],
+  }
+
+  group { 'bar':
+    ensure => present,
   }
 
 }

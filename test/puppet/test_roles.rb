@@ -59,9 +59,20 @@ class TestPut < Test::Unit::TestCase
       },
     }.merge(@expected_files)
 
-    app_expected_groups   = {}.merge(@expected_groups)
+    app_expected_groups   = {
+      'bar' => {
+        :ensure => 'present',
+      }
+    }.merge(@expected_groups)
+
     app_expected_services = {}.merge(@expected_services)
-    app_expected_users    = {}.merge(@expected_users)
+
+    app_expected_users    = {
+      'foo' => {
+        :ensure => 'present',
+        :group  => 'bar',
+      }
+    }.merge(@expected_users)
 
     assert_nothing_raised do
       app.up()
