@@ -34,6 +34,66 @@ class TestPut < Test::Unit::TestCase
     assert_equal(expectation, res)
   end
 
+  def test_readable_by_u
+    str = "-r-------- 1 root root 199 May 27 22:51 /readable\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0400',
+        :owner       => 'root',
+        :group       => 'root',
+        :size        => '199',
+        :executable? => [false, false, false],
+        :readable?   => [true,  false, false],
+        :writeable?  => [false, false, false]
+    }
+
+    res = @app.parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
+  def test_readable_by_g
+    str = "----r----- 1 root root 199 May 27 22:51 /readable\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0040',
+        :owner       => 'root',
+        :group       => 'root',
+        :size        => '199',
+        :executable? => [false, false, false],
+        :readable?   => [false, true, false],
+        :writeable?  => [false, false, false]
+    }
+
+    res = @app.parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
+  def test_readable_by_o
+    str = "-------r-- 1 root root 199 May 27 22:51 /readable\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0004',
+        :owner       => 'root',
+        :group       => 'root',
+        :size        => '199',
+        :executable? => [false, false, false],
+        :readable?   => [false, false, true],
+        :writeable?  => [false, false, false]
+    }
+
+    res = @app.parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
   def test_executable_by_all
     str = "-rwxrwxrwx 1 root root 199 May 27 22:51 /executable\n"
 
@@ -54,19 +114,139 @@ class TestPut < Test::Unit::TestCase
     assert_equal(expectation, res)
   end
 
-  def test_writable_by_all
-    str = "-r--r--r-- 1 root root 199 May 27 22:51 /readable\n"
+  def test_executable_by_u
+    str = "-rwx------ 1 root root 199 May 27 22:51 /executable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
-        :mode        => '0666',
+        :mode        => '0700',
+        :owner       => 'root',
+        :group       => 'root',
+        :size        => '199',
+        :executable? => [true, false, false],
+        :readable?   => [true, false, false],
+        :writeable?  => [true, false, false]
+    }
+
+    res = @app.parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
+  def test_executable_by_g
+    str = "----rwx--- 1 root root 199 May 27 22:51 /executable\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0070',
+        :owner       => 'root',
+        :group       => 'root',
+        :size        => '199',
+        :executable? => [false, true, false],
+        :readable?   => [false, true, false],
+        :writeable?  => [false, true, false]
+    }
+
+    res = @app.parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
+  def test_executable_by_o
+    str = "-------rwx 1 root root 199 May 27 22:51 /executable\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0007',
+        :owner       => 'root',
+        :group       => 'root',
+        :size        => '199',
+        :executable? => [false, false, true],
+        :readable?   => [false, false, true],
+        :writeable?  => [false, false, true]
+    }
+
+    res = @app.parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
+  def test_writable_by_all
+    str = "--w--w--w- 1 root root 199 May 27 22:51 /writable\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0222',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
         :executable? => [false, false, false],
-        :readable?   => [true, true, true],
+        :readable?   => [false, false, false],
         :writeable?  => [true, true, true]
+    }
+
+    res = @app.parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
+  def test_writable_by_u
+    str = "-r-------- 1 root root 199 May 27 22:51 /writable\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0200',
+        :owner       => 'root',
+        :group       => 'root',
+        :size        => '199',
+        :executable? => [false, false, false],
+        :readable?   => [false, false, false],
+        :writeable?  => [true, false, false]
+    }
+
+    res = @app.parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
+  def test_writable_by_g
+    str = "-----w---- 1 root root 199 May 27 22:51 /writable\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0020',
+        :owner       => 'root',
+        :group       => 'root',
+        :size        => '199',
+        :executable? => [false, false, false],
+        :readable?   => [false, false, false],
+        :writeable?  => [false, true, false]
+    }
+
+    res = @app.parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
+  def test_writable_by_o
+    str = "--------w- 1 root root 199 May 27 22:51 /writable\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0002',
+        :owner       => 'root',
+        :group       => 'root',
+        :size        => '199',
+        :executable? => [false, false, false],
+        :readable?   => [false, false, false],
+        :writeable?  => [false, false, true]
     }
 
     res = @app.parse_ls_string(str)
