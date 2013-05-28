@@ -141,10 +141,13 @@ class Rouster
 
   def is_process_running?(name)
     # TODO support other flavors - this will work on RHEL and OSX
-    res = self.run(sprintf('ps ax | grep -c %s', name))
-    res.chomp!.to_i
+    begin
+      res = self.run(sprintf('ps ax | grep -c %s', name))
+    rescue
+      false
+    end
 
-    res > 1
+    res.chomp.to_i > 1
   end
 
   def is_readable?(filename, level='u')
