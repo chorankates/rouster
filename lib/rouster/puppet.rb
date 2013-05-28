@@ -118,8 +118,9 @@ class Rouster
           resources[name] = Hash.new()
 
           # TODO add some error checking
+          resources[name][:type]      = 'file'
           resources[name][:directory] = false
-          resources[name][:ensure]    = r['ensure'] ||= 'file'
+          resources[name][:ensure]    = r['ensure']
           resources[name][:file]      = true
           resources[name][:group]     = r['parameters']['group']
           resources[name][:mode]      = r['parameters']['mode'] # unsure of this one
