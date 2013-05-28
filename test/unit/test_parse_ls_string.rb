@@ -95,18 +95,18 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_executable_by_all
-    str = "-rwxrwxrwx 1 root root 199 May 27 22:51 /executable\n"
+    str = "---x--x--x 1 root root 199 May 27 22:51 /executable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
-        :mode        => '0777',
+        :mode        => '0111',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
         :executable? => [true, true, true],
-        :readable?   => [true, true, true],
-        :writeable?  => [true, true, true]
+        :readable?   => [false, false, false],
+        :writeable?  => [false, false, false]
     }
 
     res = @app.parse_ls_string(str)
@@ -115,18 +115,18 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_executable_by_u
-    str = "-rwx------ 1 root root 199 May 27 22:51 /executable\n"
+    str = "---x------ 1 root root 199 May 27 22:51 /executable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
-        :mode        => '0700',
+        :mode        => '0100',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
         :executable? => [true, false, false],
-        :readable?   => [true, false, false],
-        :writeable?  => [true, false, false]
+        :readable?   => [false, false, false],
+        :writeable?  => [false, false, false]
     }
 
     res = @app.parse_ls_string(str)
@@ -135,18 +135,18 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_executable_by_g
-    str = "----rwx--- 1 root root 199 May 27 22:51 /executable\n"
+    str = "------x--- 1 root root 199 May 27 22:51 /executable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
-        :mode        => '0070',
+        :mode        => '0010',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
         :executable? => [false, true, false],
-        :readable?   => [false, true, false],
-        :writeable?  => [false, true, false]
+        :readable?   => [false, false, false],
+        :writeable?  => [false, false, false]
     }
 
     res = @app.parse_ls_string(str)
@@ -155,18 +155,18 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_executable_by_o
-    str = "-------rwx 1 root root 199 May 27 22:51 /executable\n"
+    str = "---------x 1 root root 199 May 27 22:51 /executable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
-        :mode        => '0007',
+        :mode        => '0001',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
         :executable? => [false, false, true],
-        :readable?   => [false, false, true],
-        :writeable?  => [false, false, true]
+        :readable?   => [false, false, false],
+        :writeable?  => [false, false, false]
     }
 
     res = @app.parse_ls_string(str)
@@ -174,7 +174,7 @@ class TestPut < Test::Unit::TestCase
     assert_equal(expectation, res)
   end
 
-  def test_writable_by_all
+  def test_writeable_by_all
     str = "--w--w--w- 1 root root 199 May 27 22:51 /writable\n"
 
     expectation = {
@@ -194,8 +194,8 @@ class TestPut < Test::Unit::TestCase
     assert_equal(expectation, res)
   end
 
-  def test_writable_by_u
-    str = "-r-------- 1 root root 199 May 27 22:51 /writable\n"
+  def test_writeable_by_u
+    str = "--w------- 1 root root 199 May 27 22:51 /writable\n"
 
     expectation = {
         :directory?  => false,
@@ -214,7 +214,7 @@ class TestPut < Test::Unit::TestCase
     assert_equal(expectation, res)
   end
 
-  def test_writable_by_g
+  def test_writeable_by_g
     str = "-----w---- 1 root root 199 May 27 22:51 /writable\n"
 
     expectation = {
@@ -234,7 +234,7 @@ class TestPut < Test::Unit::TestCase
     assert_equal(expectation, res)
   end
 
-  def test_writable_by_o
+  def test_writeable_by_o
     str = "--------w- 1 root root 199 May 27 22:51 /writable\n"
 
     expectation = {
