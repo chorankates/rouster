@@ -139,6 +139,14 @@ class Rouster
     packages.has_key?(package)
   end
 
+  def is_process_running?(name)
+    # TODO support other flavors - this will work on RHEL and OSX
+    res = self.run(sprintf('ps ax | grep -c %s', name))
+    res.chomp!.to_i
+
+    res > 1
+  end
+
   def is_readable?(filename, level='u')
 
     res = file(filename)
