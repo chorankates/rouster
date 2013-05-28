@@ -301,7 +301,7 @@ class Rouster
     reversed[index]
   end
 
-  #private
+  private
 
   def generate_unique_mac
     # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
