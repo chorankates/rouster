@@ -84,7 +84,6 @@ class Rouster
       raise InternalError.new('ssh key not specified') if @sshkey.nil?
       raise InternalError.new('ssh key does not exist') unless File.file?(@sshkey)
       @_vm.ssh.check_key_permissions(@sshkey)
-      end
     rescue Errors::SSHKeyBadPermissions
       raise InternalError.new("specified key [#{@sshkey}] has bad permissions")
     end
@@ -95,7 +94,8 @@ class Rouster
         self.up()
       end
 
-      @log.debug('opening SSH tunnel during..')
+      # could we call self.is_available_via_ssh? or does that need to happen outside initialize
+      @log.debug('opening SSH tunnel..')
       @_vm.channel.ready?()
     end
 
