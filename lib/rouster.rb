@@ -276,7 +276,7 @@ class Rouster
 
     if wait.to_i
       inc = wait.to_i / 10
-      0..wait each do |e|
+      0..wait.each do |e|
         @log.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
         true if self.is_available_via_ssh?()
         sleep inc
@@ -309,7 +309,6 @@ class Rouster
     output
   end
 
-  # truly internal methods
   def get_output(index = 1)
     # return index'th array of output in LIFO order (recasts positive or negative as best as it can)
     index.is_a?(Fixnum) and index > 0 ? self.output[-index] : self.output[index]

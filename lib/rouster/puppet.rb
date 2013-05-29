@@ -73,8 +73,6 @@ class Rouster
       raise InternalError.new(sprintf('catalog does not contain a classes key[%s]', catalog))
     end
 
-    classes = catalog['data']['classes']
-
     unless catalog.has_key?('data') and catalog['data'].has_key?('resources')
       raise InternalError.new(sprintf('catalog does not contain a resources key[%s]', catalog))
     end
@@ -100,6 +98,8 @@ class Rouster
 
       type = r['type']
       case type
+        when 'Class'
+          classes.push(r['title'])
         when 'File'
           name = r['title']
           resources[name] = Hash.new()
@@ -113,9 +113,6 @@ class Rouster
           resources[name][:mode]      = r['parameters'].has_key?('mode')  ? r['parameters']['mode']  : nil # unsure of this one
           resources[name][:owner]     = r['parameters'].has_key?('owner') ? r['parameters']['owner'] : nil
           resources[name][:contains]  = r.has_key?('contents') ? r['contents'] : nil # unsure of this one
-
-        when 'Class'
-          classes.push(r['title'])
 
         when 'Group'
           name = r['title']
