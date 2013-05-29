@@ -104,9 +104,9 @@ class Rouster
           resources[name] = Hash.new()
 
           # TODO add some error checking
-          resources[name][:type]      = 'file'
+          resources[name][:type]      = :file
           resources[name][:directory] = false
-          resources[name][:ensure]    = r['ensure']
+          resources[name][:ensure]    = r['ensure'] ||= 'present'
           resources[name][:file]      = true
           resources[name][:group]     = r['parameters']['group']
           resources[name][:mode]      = r['parameters']['mode'] # unsure of this one
@@ -117,12 +117,39 @@ class Rouster
         # guessing on these as well
         when 'User'
           raise NotImplementedError.new()
+          name = r['title']
+          resources[name] = Hash.new()
+
+          resources[name][:type]   = :user
+          resources[name][:ensure] = r['ensure'] ||= 'present'
+
         when 'Group'
           raise NotImplementedError.new()
+
+          name = r['title']
+          resources[name] = Hash.new()
+
+          resources[name][:type] = :group
+          resources[name][:ensure] = r['ensure'] ||= 'present'
+
         when 'Package'
           raise NotImplementedError.new()
+
+          name = r['title']
+          resources[name] = Hash.new()
+
+          resources[name][:type] = :package
+          resources[name][:ensure] = r['ensure'] ||= 'present'
+
         when 'Service'
           raise NotImplementedError.new()
+
+          name = r['title']
+          resources[name] = Hash.new()
+
+          resources[name][:type] = :service
+          resources[name][:ensure] = r['ensure'] ||= 'present'
+
         when 'Class'
           classes.push(r['title'])
         else
