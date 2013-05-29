@@ -83,6 +83,8 @@ class Rouster
 
     raw_resources.each do |r|
 
+      # directory resource
+
       # file resource
       # {"exported"=>false,
       # "file"=>"/etc/puppet/modules/p4users/manifests/init.pp",
@@ -91,11 +93,10 @@ class Rouster
       # "line"=>34, "type"=>"File", "title"=>"/usr/local/bin/p4",
       # "tags"=>["file", "class", "p4users", "baseclass", "node", "default"]}
 
-      # user resource
-
       # group resource
-
+      # package resource
       # service resource
+      # user resource
 
       type = r['type']
       case type
@@ -103,25 +104,18 @@ class Rouster
           name = r['title']
           resources[name] = Hash.new()
 
-          # TODO add some error checking
+
           resources[name][:type]      = :file
           resources[name][:directory] = false
           resources[name][:ensure]    = r['ensure'] ||= 'present'
           resources[name][:file]      = true
-          resources[name][:group]     = r['parameters']['group']
-          resources[name][:mode]      = r['parameters']['mode'] # unsure of this one
-          resources[name][:owner]     = r['parameters']['owner']
+          resources[name][:group]     = r['parameters'].has_key?('group') ? r['parameters']['group'] : nil
+          resources[name][:mode]      = r['parameters'].has_key?('mode')  ? r['parameters']['mode']  : nil # unsure of this one
+          resources[name][:owner]     = r['parameters'].has_key?('owner') ? r['parameters']['owner'] : nil
+          resources[name][:contains]  = r.has_key?('contents') ? r['contents'] : nil # unsure of this one
 
-          # only thing we can't get from this is :contains
-
-        # guessing on these as well
-        when 'User'
-          raise NotImplementedError.new()
-          name = r['title']
-          resources[name] = Hash.new()
-
-          resources[name][:type]   = :user
-          resources[name][:ensure] = r['ensure'] ||= 'present'
+        when 'Class'
+          classes.push(r['title'])
 
         when 'Group'
           raise NotImplementedError.new()
@@ -132,6 +126,8 @@ class Rouster
           resources[name][:type] = :group
           resources[name][:ensure] = r['ensure'] ||= 'present'
 
+          #  :gid
+
         when 'Package'
           raise NotImplementedError.new()
 
@@ -140,6 +136,8 @@ class Rouster
 
           resources[name][:type] = :package
           resources[name][:ensure] = r['ensure'] ||= 'present'
+
+          #  :version
 
         when 'Service'
           raise NotImplementedError.new()
@@ -150,13 +148,37 @@ class Rouster
           resources[name][:type] = :service
           resources[name][:ensure] = r['ensure'] ||= 'present'
 
-        when 'Class'
-          classes.push(r['title'])
+          #  :state
+
+        when 'User'
+          raise NotImplementedError.new()
+          name = r['title']
+          resources[name] = Hash.new()
+
+          resources[name][:type]   = :user
+          resources[name][:ensure] = r['ensure'] ||= 'present'
+
+          #  :home
+          #  :group
+          #  :shell
+          #  :uid
+
         else
           raise NotImplementedError.new(sprintf('parsing support for [%s] is incomplete', type))
       end
 
     end
+
+    # remove all nil references
+    # TODO make this more rubyish
+    resources.each_key do |name|
+      resources[name].each_pair do |k,v|
+        unless v
+          resources[name].delete(k)
+        end
+      end
+    end
+
 
     results[:classes]   = classes
     results[:resources] = resources
