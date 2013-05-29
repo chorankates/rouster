@@ -80,22 +80,10 @@ class Rouster
     raw_resources = catalog['data']['resources']
 
     raw_resources.each do |r|
-
-      # directory resource
-
-      # file resource
-      # {"exported"=>false,
-      # "file"=>"/etc/puppet/modules/p4users/manifests/init.pp",
-      # "parameters"=>{"owner"=>"root", "group"=>"root",
-      # "ensure"=>"present", "source"=>"puppet:///modules/p4users/p4"},
-      # "line"=>34, "type"=>"File", "title"=>"/usr/local/bin/p4",
-      # "tags"=>["file", "class", "p4users", "baseclass", "node", "default"]}
-
-      # group resource
-      # package resource
-      # service resource
-      # user resource
-
+      # samples of eacb type of resource is available at
+      # https://github.com/chorankates/rouster/issues/20#issuecomment-18635576
+      #
+      # we can do a lot better here
       type = r['type']
       case type
         when 'Class'
@@ -104,15 +92,14 @@ class Rouster
           name = r['title']
           resources[name] = Hash.new()
 
-
           resources[name][:type]      = :file
           resources[name][:directory] = false
           resources[name][:ensure]    = r['ensure'] ||= 'present'
           resources[name][:file]      = true
           resources[name][:group]     = r['parameters'].has_key?('group') ? r['parameters']['group'] : nil
-          resources[name][:mode]      = r['parameters'].has_key?('mode')  ? r['parameters']['mode']  : nil # unsure of this one
+          resources[name][:mode]      = r['parameters'].has_key?('mode')  ? r['parameters']['mode']  : nil
           resources[name][:owner]     = r['parameters'].has_key?('owner') ? r['parameters']['owner'] : nil
-          resources[name][:contains]  = r.has_key?('contents') ? r['contents'] : nil # unsure of this one
+          resources[name][:contains]  = r.has_key?('content') ? r['content'] : nil
 
         when 'Group'
           name = r['title']
@@ -128,7 +115,7 @@ class Rouster
 
           resources[name][:type]    = :package
           resources[name][:ensure]  = r['ensure'] ||= 'present'
-          resources[name][:version] = r['parameters'].has_key?('version') ? r['parameters']['version'] : nil
+          resources[name][:version] = r['ensure'] =~ /\d/ ? r['ensure'] : nil
 
         when 'Service'
           name = r['title']
@@ -136,7 +123,7 @@ class Rouster
 
           resources[name][:type]   = :service
           resources[name][:ensure] = r['ensure'] ||= 'present'
-          resources[name][:state]  = r['parameters'].has_key?('state') ? r['parameters']['state'] : nil
+          resources[name][:state]  = r['ensure']
 
         when 'User'
           name = r['title']
@@ -144,12 +131,11 @@ class Rouster
 
           resources[name][:type]   = :user
           resources[name][:ensure] = r['ensure'] ||= 'present'
-          resources[name][:home]   = r['parameters'].has_key?('home')  ? r['parameters']['home']   : nil
-          resources[name][:gid]    = r['parameters'].has_key?('gid')   ? r['parameters']['gid']    : nil
-          resources[name][:group]  = r['parameters'].has_key?('group') ? r['parameters']['groups'] : nil # is this already an array?
-          resources[name][:shell]  = r['parameters'].has_key?('shell') ? r['parameters']['shell']  : nil
-          resources[name][:uid]    = r['parameters'].has_key?('uid')   ? r['parameters']['uid']    : nil
-
+          resources[name][:home]   = r['parameters'].has_key?('home')   ? r['parameters']['home']   : nil
+          resources[name][:gid]    = r['parameters'].has_key?('gid')    ? r['parameters']['gid']    : nil
+          resources[name][:group]  = r['parameters'].has_key?('groups') ? r['parameters']['groups'] : nil
+          resources[name][:shell]  = r['parameters'].has_key?('shell')  ? r['parameters']['shell']  : nil
+          resources[name][:uid]    = r['parameters'].has_key?('uid')    ? r['parameters']['uid']    : nil
 
         else
           raise NotImplementedError.new(sprintf('parsing support for [%s] is incomplete', type))

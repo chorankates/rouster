@@ -63,7 +63,7 @@ class db_role {
 
   file { '/tmp/fizzy':
     ensure   => file,
-    contents => 'this is a test',
+    content  => 'this is a test',
     owner    => 'vagrant',
     group    => 'vagrant',
     mode     => '0444',
