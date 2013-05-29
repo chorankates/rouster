@@ -118,30 +118,22 @@ class Rouster
           classes.push(r['title'])
 
         when 'Group'
-          raise NotImplementedError.new()
-
           name = r['title']
           resources[name] = Hash.new()
 
-          resources[name][:type] = :group
+          resources[name][:type]   = :group
           resources[name][:ensure] = r['ensure'] ||= 'present'
-
-          #  :gid
+          resources[name][:gid]    = r['parameters'].has_key?('gid') ? r['parameters']['gid'] : nil
 
         when 'Package'
-          raise NotImplementedError.new()
-
           name = r['title']
           resources[name] = Hash.new()
 
-          resources[name][:type] = :package
-          resources[name][:ensure] = r['ensure'] ||= 'present'
-
-          #  :version
+          resources[name][:type]    = :package
+          resources[name][:ensure]  = r['ensure'] ||= 'present'
+          resources[name][:version] = r['parameters'].has_key?('version') ? r['parameters']['version'] : nil
 
         when 'Service'
-          raise NotImplementedError.new()
-
           name = r['title']
           resources[name] = Hash.new()
 
@@ -151,17 +143,17 @@ class Rouster
           #  :state
 
         when 'User'
-          raise NotImplementedError.new()
           name = r['title']
           resources[name] = Hash.new()
 
           resources[name][:type]   = :user
           resources[name][:ensure] = r['ensure'] ||= 'present'
+          resources[name][:home]   = r['parameters'].has_key?('home')  ? r['parameters']['home']   : nil
+          resources[name][:gid]    = r['parameters'].has_key?('gid')   ? r['parameters']['gid']    : nil
+          resources[name][:group]  = r['parameters'].has_key?('group') ? r['parameters']['groups'] : nil # is this already an array?
+          resources[name][:shell]  = r['parameters'].has_key?('shell') ? r['parameters']['shell']  : nil
+          resources[name][:uid]    = r['parameters'].has_key?('uid')   ? r['parameters']['uid']    : nil
 
-          #  :home
-          #  :group
-          #  :shell
-          #  :uid
 
         else
           raise NotImplementedError.new(sprintf('parsing support for [%s] is incomplete', type))
