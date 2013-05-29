@@ -4,8 +4,8 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 
 class Rouster
   # deltas.rb reimplementation
-  def get_groups(use_cache=true)
-    if use_cache and ! self.deltas[:groups].nil?
+  def get_groups(cache=true)
+    if cache and ! self.deltas[:groups].nil?
       self.deltas[:groups]
     end
 
@@ -27,17 +27,17 @@ class Rouster
       res[group][:users] = users
     end
 
-    if use_cache
+    if cache
       self.deltas[:groups] = res
     end
 
     res
   end
 
-  def get_packages(use_cache=true, deep=true)
+  def get_packages(cache=true, deep=true)
     # returns { package => '<version>', package2 => '<version>' }
 
-    if use_cache and ! self.deltas[:packages].nil?
+    if cache and ! self.deltas[:packages].nil?
       self.deltas[:packages]
     end
 
@@ -102,15 +102,15 @@ class Rouster
       raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
     end
 
-    if use_cache
+    if cache
       self.deltas[:packages] = res
     end
 
     res
   end
 
-  def get_services(use_cache=true)
-    if use_cache and ! self.deltas[:services].nil?
+  def get_services(cache=true)
+    if cache and ! self.deltas[:services].nil?
       self.deltas[:services]
     end
 
@@ -185,15 +185,15 @@ class Rouster
       raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
     end
 
-    if use_cache
+    if cache
       self.deltas[:services] = res
     end
 
     res
   end
 
-  def get_users(use_cache=true)
-    if use_cache and ! self.deltas[:users].nil?
+  def get_users(cache=true)
+    if cache and ! self.deltas[:users].nil?
       self.deltas[:users]
     end
 
@@ -215,7 +215,7 @@ class Rouster
       res[user][:gid]   = data[3]
     end
 
-    if use_cache
+    if cache
       self.deltas[:users] = res
     end
 

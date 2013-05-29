@@ -3,10 +3,10 @@ require 'rouster/deltas'
 
 class Rouster
 
-  def dir(dir, use_cache=false)
+  def dir(dir, cache=false)
 
     self.deltas[:files] = Hash.new if self.deltas[:files].nil?
-    if use_cache and ! self.deltas[:files][dir].nil?
+    if cache and ! self.deltas[:files][dir].nil?
       self.deltas[:files][dir]
     end
 
@@ -25,17 +25,17 @@ class Rouster
       res = exposed_parse_ls_string(raw)
     end
 
-    if use_cache
+    if cache
       self.deltas[:files][dir] = res
     end
 
     res
   end
 
-  def file(file, use_cache=false)
+  def file(file, cache=false)
 
     self.deltas[:files] = Hash.new if self.deltas[:files].nil?
-    if use_cache and ! self.deltas[:files][file].nil?
+    if cache and ! self.deltas[:files][file].nil?
       self.deltas[:files][file]
     end
 
@@ -54,7 +54,7 @@ class Rouster
       res = parse_ls_string(raw)
     end
 
-    if use_cache
+    if cache
       self.deltas[:files][file] = res
     end
 
@@ -134,8 +134,8 @@ class Rouster
     true
   end
 
-  def is_package?(package, use_cache=true)
-    packages = self.get_packages(use_cache)
+  def is_package?(package, cache=true)
+    packages = self.get_packages(cache)
     packages.has_key?(package)
   end
 
@@ -174,13 +174,13 @@ class Rouster
 
   end
 
-  def is_service?(service, use_cache=true)
-    services = self.get_services(use_cache)
+  def is_service?(service, cache=true)
+    services = self.get_services(cache)
     services.has_key?(service)
   end
 
-  def is_service_running?(service, use_cache=true)
-    services = self.get_services(use_cache)
+  def is_service_running?(service, cache=true)
+    services = self.get_services(cache)
 
     if services.has_key?(service)
       services[service].eql?('running').true?
@@ -189,14 +189,14 @@ class Rouster
     end
   end
 
-  def is_user?(user, use_cache=true)
-    users = self.get_users(use_cache)
+  def is_user?(user, cache=true)
+    users = self.get_users(cache)
     users.has_key?(user)
   end
 
-  def is_user_in_group?(user, group, use_cache=true)
-    users  = self.get_users(use_cache)
-    groups = self.get_groups(use_cache)
+  def is_user_in_group?(user, group, cache=true)
+    users  = self.get_users(cache)
+    groups = self.get_groups(cache)
 
     users.has_key?(user) and groups.has_key?(group) and groups[group][:users].member?(user)
   end

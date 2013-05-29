@@ -324,7 +324,7 @@ class Rouster
   ## internal methods
   private
 
-  def meets_constraint?(fact, expectation, use_cache=true)
+  def meets_constraint?(fact, expectation, cache=true)
 
     unless self.respond_to?('facter')
       # if we haven't loaded puppet.rb, we won't have access to facts
@@ -332,7 +332,7 @@ class Rouster
       false
     end
 
-    if use_cache.false?
+    if cache.false?
       self.facts = self.facter(false)
     end
 

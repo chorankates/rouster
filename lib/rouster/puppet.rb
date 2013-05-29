@@ -3,10 +3,21 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 require 'json'
 require 'socket'
 
+# == rouster/puppet
+# an extension to Rouster containing Puppet related code:
+#  * facter()
+#  * get_catalog()
+#  * get_puppet_errors()
+#  * get_puppet_notices()
+#  * parse_catalog()
+#  * remove_existing_certs()
+#  * run_puppet()
+#
+
 class Rouster
 
-  def facter(use_cache=true, custom_facts=true)
-    if use_cache.true? and ! self.facts.nil?
+  def facter(cache=true, custom_facts=true)
+    if cache.true? and ! self.facts.nil?
       self.facts
     end
 
@@ -19,7 +30,7 @@ class Rouster
       raise InternalError.new(sprintf('unable to parse[%s] as JSON', res))
     end
 
-    if use_cache.true?
+    if cache.true?
       self.facts = res
     end
 
