@@ -10,7 +10,8 @@ Vagrant::Config.run do |config|
       worker.vm.box            = box_name
       worker.vm.box_url        = '%s.box' % box_name
       worker.vm.host_name      = box.to_s
-      worker.ssh.forward_agent =true
+      worker.vm.network        :hostonly, sprintf('10.0.0.%s', rand(254))
+      worker.ssh.forward_agent = true
 
       if box.to_s.eql?('ppm') and File.directory?('../puppet')
         worker.vm.share_folder('puppet', '/etc/puppet/', '../puppet/')
