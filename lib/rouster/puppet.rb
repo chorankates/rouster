@@ -137,10 +137,9 @@ class Rouster
           name = r['title']
           resources[name] = Hash.new()
 
-          resources[name][:type] = :service
+          resources[name][:type]   = :service
           resources[name][:ensure] = r['ensure'] ||= 'present'
-
-          #  :state
+          resources[name][:state]  = r['parameters'].has_key?('state') ? r['parameters']['state'] : nil
 
         when 'User'
           name = r['title']
