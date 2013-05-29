@@ -10,7 +10,7 @@ It was conceived as the missing piece needed to functionally test Puppet manifes
 ```
 app = Rouster.new(:name => 'app' )
 app.up()
-p app.run('/sbin/service puppet once -t')
+p app.run('/sbin/service puppet once -t', 2) # or p app.run_puppet(2), if you've required 'rouster/puppet'
 app.destroy()
 ```
 
@@ -54,6 +54,7 @@ And depending on which pieces of rouster you 'require':
   * get_catalog()
   * get_puppet_errors()
   * get_puppet_notices()
+  * parse_catalog()
   * run_puppet()
 
 * rouster/tests
@@ -68,6 +69,7 @@ And depending on which pieces of rouster you 'require':
   * is_service?()
   * is_service_running?()
   * is_user?()
+  * is_user_in_group?()
   * is_writeable?()
 
 * rouster/testing
@@ -85,7 +87,7 @@ These additional methods are added to the Rouster via class extension.
 require 'rouster'
 
 # the value for the 'name' attribute should be a name shown when you execute `vagrant status`
-app = Rouster.new({:name => 'app' })
+app = Rouster.new(:name => 'app')
 
 # equivalent to `vagrant up app`
 app.up()
@@ -108,8 +110,8 @@ require 'test/unit'
 class TestPuppetRun < Test::Unit::TestCase
 
   def setup
-    @ppm = Rouster.new({:name => 'ppm', :verbose => 4})
-    @app = Rouster.new({:name => 'app'})
+    @ppm = Rouster.new(:name => 'ppm', :verbose => 4)
+    @app = Rouster.new(:name => 'app')
   end
 
   def test_it
@@ -121,7 +123,7 @@ class TestPuppetRun < Test::Unit::TestCase
       w.destroy()
       w.up()
 
-      #res = w.run('puppet agent -t --environment development')
+      #res = w.run('puppet agent -t --environment development', 2)
       res = w.run_puppet(2)
       assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
     end
