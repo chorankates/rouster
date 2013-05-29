@@ -109,35 +109,6 @@ class Rouster
     res
   end
 
-  def get_users(use_cache=true)
-    if use_cache and ! self.deltas[:users].nil?
-      self.deltas[:users]
-    end
-
-    res = Hash.new()
-
-    raw = self.run('cat /etc/passwd')
-
-    raw.split("\n").each do |line|
-      next if line.match(/(\w+)(?::\w+){3,}/).nil?
-
-      user = $1
-      data = line.split(':')
-
-      res[user] = Hash.new()
-      res[user][:shell] = data[-1]
-      res[user][:home]  = data[-2]
-      res[user][:home_exists] = self.is_dir?(data[-2])
-      res[user][:uid]   = data[2]
-    end
-
-    if use_cache
-      self.deltas[:users] = res
-    end
-
-    res
-  end
-
   def get_services(use_cache=true)
     if use_cache and ! self.deltas[:services].nil?
       self.deltas[:services]
@@ -216,6 +187,36 @@ class Rouster
 
     if use_cache
       self.deltas[:services] = res
+    end
+
+    res
+  end
+
+  def get_users(use_cache=true)
+    if use_cache and ! self.deltas[:users].nil?
+      self.deltas[:users]
+    end
+
+    res = Hash.new()
+
+    raw = self.run('cat /etc/passwd')
+
+    raw.split("\n").each do |line|
+      next if line.match(/(\w+)(?::\w+){3,}/).nil?
+
+      user = $1
+      data = line.split(':')
+
+      res[user] = Hash.new()
+      res[user][:shell] = data[-1]
+      res[user][:home]  = data[-2]
+      res[user][:home_exists] = self.is_dir?(data[-2])
+      res[user][:uid]   = data[2]
+      res[user][:gid]   = data[3]
+    end
+
+    if use_cache
+      self.deltas[:users] = res
     end
 
     res
