@@ -12,6 +12,10 @@ class TestPut < Test::Unit::TestCase
 
     @app = Rouster.new(:name => 'app')
 
+    def @app.exposed_parse_ls_string(*args)
+      parse_ls_string(*args)
+    end
+
   end
 
   def test_readable_by_all
@@ -29,7 +33,7 @@ class TestPut < Test::Unit::TestCase
       :writeable?  => [false, false, false]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -49,7 +53,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [false, false, false]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -69,7 +73,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [false, false, false]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -89,7 +93,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [false, false, false]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -109,7 +113,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [false, false, false]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -129,7 +133,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [false, false, false]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -149,7 +153,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [false, false, false]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -169,7 +173,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [false, false, false]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -189,7 +193,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [true, true, true]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -209,7 +213,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [true, false, false]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -229,7 +233,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [false, true, false]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -249,7 +253,7 @@ class TestPut < Test::Unit::TestCase
         :writeable?  => [false, false, true]
     }
 
-    res = @app.parse_ls_string(str)
+    res = @app.exposed_parse_ls_string(str)
 
     assert_equal(expectation, res)
   end
@@ -258,8 +262,8 @@ class TestPut < Test::Unit::TestCase
     dir_str = "drwxrwxrwt 5 root root 4096 May 28 00:26 /tmp/\n"
     file_str  = "-rw-r--r-- 1 root    root      906 Oct  2  2012 grub.conf\n"
 
-    dir  = @app.parse_ls_string(dir_str)
-    file = @app.parse_ls_string(file_str)
+    dir  = @app.exposed_parse_ls_string(dir_str)
+    file = @app.exposed_parse_ls_string(file_str)
 
     assert_equal(true,  dir[:directory?])
     assert_equal(false, dir[:file?])

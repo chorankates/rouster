@@ -22,7 +22,7 @@ class Rouster
       @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
       res = nil
     else
-      res = parse_ls_string(raw)
+      res = exposed_parse_ls_string(raw)
     end
 
     if use_cache
@@ -226,6 +226,7 @@ class Rouster
   end
 
   # non-test, helper methods
+  private
   def parse_ls_string(string)
     # ht avaghti
 
