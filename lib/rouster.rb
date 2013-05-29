@@ -80,9 +80,13 @@ class Rouster
     end
 
     # confirm found/specified key exists
-    # TODO want to catch the exception coming out of 'check_key_permissions', but can't figure out the right model
-    if @sshkey.nil? or @_vm.ssh.check_key_permissions(@sshkey)
-      raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
+    begin
+      raise InternalError.new('ssh key not specified') if @sshkey.nil?
+      raise InternalError.new('ssh key does not exist') unless File.file?(@sshkey)
+      @_vm.ssh.check_key_permissions(@sshkey)
+      end
+    rescue Errors::SSHKeyBadPermissions
+      raise InternalError.new("specified key [#{@sshkey}] has bad permissions")
     end
 
     if opts.has_key?(:sshtunnel) and opts[:sshtunnel]
