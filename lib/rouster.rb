@@ -65,7 +65,7 @@ class Rouster
     end
 
     @_vm_config = @_config.for_vm(@name.to_sym)
-    @_vm_config.vm.base_mac = generate_unique_mac()
+    @_vm_config.vm.base_mac = generate_unique_mac() if @_vm_config.vm.base_mac.nil?
 
     @log.debug('instantiating Vagrant::VM')
     @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
