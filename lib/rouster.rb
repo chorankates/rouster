@@ -146,6 +146,8 @@ class Rouster
   end
 
   ## internal methods
+  private
+
   def run(command, expected_exitcode=[0])
     # runs a command inside the Vagrant VM
     output = nil
@@ -259,11 +261,10 @@ class Rouster
     @_vm.up
   end
 
-  def restart
+  def restart(wait=nil)
     @log.debug('restart()')
     # restarts a Vagrant machine, wait time is same as rebuild()
     # how do we do this in a generic way? shutdown -rf works for Unix, but not Solaris
-    #   we can ask Vagrant what kind of machine this is, but how far down this hole do we really want to go?
 
     if self.is_passthrough? and self.passthrough.eql?(local)
       @log.warn(sprintf('intercepted [restart] sent to a local passthrough, no op'))
@@ -273,6 +274,17 @@ class Rouster
     # MVP
     self.run('/sbin/shutdown -rf now')
 
+    if wait.to_i
+      inc = wait.to_i / 10
+      0..wait each do |e|
+        @log.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
+        true if self.is_available_via_ssh?()
+        sleep inc
+      end
+
+      false
+    end
+
   end
 
   def _run(command)
@@ -280,7 +292,7 @@ class Rouster
     # returns STDOUT|STDERR, raises Rouster::LocalExecutionError on non 0 exit code
 
     tmp_file = sprintf('/tmp/rouster.%s.%s', Time.now.to_i, $$)
-    cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file)
+    cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file) # this is a holdover from Salesforce::Vagrant, can we use '2&>1' here?
     res      = `#{cmd}` # what does this actually hold?
 
     @log.info(sprintf('host running: [%s]', cmd))
@@ -302,8 +314,6 @@ class Rouster
     # return index'th array of output in LIFO order (recasts positive or negative as best as it can)
     index.is_a?(Fixnum) and index > 0 ? self.output[-index] : self.output[index]
   end
-
-  private
 
   def generate_unique_mac
     # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
