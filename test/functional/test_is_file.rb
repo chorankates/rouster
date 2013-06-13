@@ -1,4 +1,4 @@
-require sprintf('%s/../../../path_helper', File.dirname(File.expand_path(__FILE__)))
+require sprintf('%s/../../path_helper', File.dirname(File.expand_path(__FILE__)))
 
 require 'rouster'
 require 'rouster/deltas'
