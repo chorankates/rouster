@@ -1,7 +1,7 @@
 require sprintf('%s/../../path_helper', File.dirname(File.expand_path(__FILE__)))
 
 require 'rouster'
-require 'rouster/deltas'
+require 'rouster/tests'
 require 'test/unit'
 
 class TestPut < Test::Unit::TestCase
@@ -9,7 +9,7 @@ class TestPut < Test::Unit::TestCase
   def setup
     assert_nothing_raised do
       # no reason not to do this as a passthrough once we can
-      @app = Rouster.new(:name => 'app')
+      @app = Rouster.new(:name => 'app', :sudo => false)
       @app.up()
     end
 
@@ -30,51 +30,51 @@ class TestPut < Test::Unit::TestCase
     @app.run("touch #{@file_user_rwx}")
     @app.run("chmod 700 #{@file_user_rwx}")
 
-    assert_equal(true, @app.is_readable(@file_user_rwx,   'u'))
-    assert_equal(true, @app.is_writeable(@file_user_rwx,  'u'))
-    assert_equal(true, @app.is_executable(@file_user_rwx, 'u'))
+    assert_equal(true, @app.is_readable?(@file_user_rwx,   'u'))
+    assert_equal(true, @app.is_writeable?(@file_user_rwx,  'u'))
+    assert_equal(true, @app.is_executable?(@file_user_rwx, 'u'))
 
-    assert_equal(false, @app.is_readable(@file_user_rwx,   'g'))
-    assert_equal(false, @app.is_writeable(@file_user_rwx,  'g'))
-    assert_equal(false, @app.is_executable(@file_user_rwx, 'g'))
+    assert_equal(false, @app.is_readable?(@file_user_rwx,   'g'))
+    assert_equal(false, @app.is_writeable?(@file_user_rwx,  'g'))
+    assert_equal(false, @app.is_executable?(@file_user_rwx, 'g'))
 
-    assert_equal(false, @app.is_readable(@file_user_rwx,   'o'))
-    assert_equal(false, @app.is_writeable(@file_user_rwx,  'o'))
-    assert_equal(false, @app.is_executable(@file_user_rwx, 'o'))
+    assert_equal(false, @app.is_readable?(@file_user_rwx,   'o'))
+    assert_equal(false, @app.is_writeable?(@file_user_rwx,  'o'))
+    assert_equal(false, @app.is_executable?(@file_user_rwx, 'o'))
   end
 
   def test_group
     @app.run("touch #{@file_group_rwx}")
     @app.run("chmod 070 #{@file_group_rwx}")
 
-    assert_equal(false, @app.is_readable(@file_group_rwx,   'u'))
-    assert_equal(false, @app.is_writeable(@file_group_rwx,  'u'))
-    assert_equal(false, @app.is_executable(@file_group_rwx, 'u'))
+    assert_equal(false, @app.is_readable?(@file_group_rwx,   'u'))
+    assert_equal(false, @app.is_writeable?(@file_group_rwx,  'u'))
+    assert_equal(false, @app.is_executable?(@file_group_rwx, 'u'))
 
-    assert_equal(true, @app.is_readable(@file_group_rwx,   'g'))
-    assert_equal(true, @app.is_writeable(@file_group_rwx,  'g'))
-    assert_equal(true, @app.is_executable(@file_group_rwx, 'g'))
+    assert_equal(true, @app.is_readable?(@file_group_rwx,   'g'))
+    assert_equal(true, @app.is_writeable?(@file_group_rwx,  'g'))
+    assert_equal(true, @app.is_executable?(@file_group_rwx, 'g'))
 
-    assert_equal(false, @app.is_readable(@file_group_rwx,   'o'))
-    assert_equal(false, @app.is_writeable(@file_group_rwx,  'o'))
-    assert_equal(false, @app.is_executable(@file_group_rwx, 'o'))
+    assert_equal(false, @app.is_readable?(@file_group_rwx,   'o'))
+    assert_equal(false, @app.is_writeable?(@file_group_rwx,  'o'))
+    assert_equal(false, @app.is_executable?(@file_group_rwx, 'o'))
   end
 
   def test_other
     @app.run("touch #{@file_other_rwx}")
-    @app.run("chmod 700 #{@file_other_rwx}")
+    @app.run("chmod 007 #{@file_other_rwx}")
 
-    assert_equal(false, @app.is_readable(@file_other_rwx,   'u'))
-    assert_equal(false, @app.is_writeable(@file_other_rwx,  'u'))
-    assert_equal(false, @app.is_executable(@file_other_rwx, 'u'))
+    assert_equal(false, @app.is_readable?(@file_other_rwx,   'u'))
+    assert_equal(false, @app.is_writeable?(@file_other_rwx,  'u'))
+    assert_equal(false, @app.is_executable?(@file_other_rwx, 'u'))
 
-    assert_equal(false, @app.is_readable(@file_other_rwx,   'g'))
-    assert_equal(false, @app.is_writeable(@file_other_rwx,  'g'))
-    assert_equal(false, @app.is_executable(@file_other_rwx, 'g'))
+    assert_equal(false, @app.is_readable?(@file_other_rwx,   'g'))
+    assert_equal(false, @app.is_writeable?(@file_other_rwx,  'g'))
+    assert_equal(false, @app.is_executable?(@file_other_rwx, 'g'))
 
-    assert_equal(true, @app.is_readable(@file_other_rwx,   'o'))
-    assert_equal(true, @app.is_writeable(@file_other_rwx,  'o'))
-    assert_equal(true, @app.is_executable(@file_other_rwx, 'o'))
+    assert_equal(true, @app.is_readable?(@file_other_rwx,   'o'))
+    assert_equal(true, @app.is_writeable?(@file_other_rwx,  'o'))
+    assert_equal(true, @app.is_executable?(@file_other_rwx, 'o'))
 
   end
 
@@ -82,45 +82,38 @@ class TestPut < Test::Unit::TestCase
     @app.run("touch #{@file_644}")
     @app.run("chmod 644 #{@file_644}")
 
-    assert_equal(true, @app.is_readable(@file_644,   'u'))
-    assert_equal(true, @app.is_writeable(@file_644,  'u'))
-    assert_equal(false, @app.is_executable(@file_644, 'u'))
+    assert_equal(true, @app.is_readable?(@file_644,    'u'))
+    assert_equal(true, @app.is_writeable?(@file_644,   'u'))
+    assert_equal(false, @app.is_executable?(@file_644, 'u'))
 
-    assert_equal(true, @app.is_readable(@file_644,   'g'))
-    assert_equal(false, @app.is_writeable(@file_644,  'g'))
-    assert_equal(false, @app.is_executable(@file_644, 'g'))
+    assert_equal(true, @app.is_readable?(@file_644,    'g'))
+    assert_equal(false, @app.is_writeable?(@file_644,  'g'))
+    assert_equal(false, @app.is_executable?(@file_644, 'g'))
 
-    assert_equal(true, @app.is_readable(@file_644,   'o'))
-    assert_equal(false, @app.is_writeable(@file_644,  'o'))
-    assert_equal(false, @app.is_executable(@file_644, 'o'))
+    assert_equal(true, @app.is_readable?(@file_644,    'o'))
+    assert_equal(false, @app.is_writeable?(@file_644,  'o'))
+    assert_equal(false, @app.is_executable?(@file_644, 'o'))
   end
 
   def test_755
     @app.run("touch #{@file_755}")
     @app.run("chmod 755 #{@file_755}")
 
-    assert_equal(true, @app.is_readable(@file_755,   'u'))
-    assert_equal(true, @app.is_writeable(@file_755,  'u'))
-    assert_equal(true, @app.is_executable(@file_755, 'u'))
+    assert_equal(true, @app.is_readable?(@file_755,   'u'))
+    assert_equal(true, @app.is_writeable?(@file_755,  'u'))
+    assert_equal(true, @app.is_executable?(@file_755, 'u'))
 
-    assert_equal(true, @app.is_readable(@file_755,   'g'))
-    assert_equal(false, @app.is_writeable(@file_755,  'g'))
-    assert_equal(true, @app.is_executable(@file_755, 'g'))
+    assert_equal(true, @app.is_readable?(@file_755,   'g'))
+    assert_equal(false, @app.is_writeable?(@file_755, 'g'))
+    assert_equal(true, @app.is_executable?(@file_755, 'g'))
 
-    assert_equal(true, @app.is_readable(@file_755,   'o'))
-    assert_equal(false, @app.is_writeable(@file_755,  'o'))
-    assert_equal(true, @app.is_executable(@file_755, 'o'))
+    assert_equal(true, @app.is_readable?(@file_755,   'o'))
+    assert_equal(false, @app.is_writeable?(@file_755, 'o'))
+    assert_equal(true, @app.is_executable?(@file_755, 'o'))
   end
 
   def teardown
-
-    # this probably makes more sense once we're in a passthrough, not as necessary in a throwaway VM
-    @files.each do |f|
-      File.delete(f)
-    end
-
-    Dir.delete(@dir_tmp)
-
+    # noop
   end
 
 end

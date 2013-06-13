@@ -46,7 +46,7 @@ class Rouster
     end
 
     if raw.match(/No such file or directory/)
-      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, res)) unless self.uses_sudo?
+      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, raw)) unless self.uses_sudo?
       res = nil
     elsif raw.match(/Permission denied/)
       res = nil
