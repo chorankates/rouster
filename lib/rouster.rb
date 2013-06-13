@@ -84,8 +84,8 @@ class Rouster
       raise InternalError.new('ssh key not specified') if @sshkey.nil?
       raise InternalError.new('ssh key does not exist') unless File.file?(@sshkey)
       @_vm.ssh.check_key_permissions(@sshkey)
-    rescue Errors::SSHKeyBadPermissions
-      raise InternalError.new("specified key [#{@sshkey}] has bad permissions")
+    rescue => e
+      raise InternalError.new("specified key [#{@sshkey}] has bad permissions. Vagrant exception: [#{e.message}]")
     end
 
     if opts.has_key?(:sshtunnel) and opts[:sshtunnel]
@@ -146,7 +146,7 @@ class Rouster
   end
 
   ## internal methods
-  private
+  #private -- commented out so that unit tests can pass, should probably use the 'make all private methods public' method discussed in issue #28
 
   def run(command, expected_exitcode=[0])
     # runs a command inside the Vagrant VM

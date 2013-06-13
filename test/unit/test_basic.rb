@@ -71,7 +71,7 @@ class TestPut < Test::Unit::TestCase
 
   def test_5_bad_sshkey_instantiation
 
-    assert_raise Errno::ENOENT do
+    assert_raise Rouster::InternalError do
       @app = Rouster.new(:name => 'app', :sshkey => '/this/file/dne')
     end
 
