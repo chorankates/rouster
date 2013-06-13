@@ -258,6 +258,46 @@ class TestPut < Test::Unit::TestCase
     assert_equal(expectation, res)
   end
 
+  def test_mix_and_match_1
+    str = "-------rwx 1 vagrant vagrant 1909 May 27 22:51 /able\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0007',
+        :owner       => 'vagrant',
+        :group       => 'vagrant',
+        :size        => '1909',
+        :executable? => [false, false, true],
+        :readable?   => [false, false, true],
+        :writeable?  => [false, false, true]
+    }
+
+    res = @app.exposed_parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
+  def test_mix_and_match_2
+    str = "-rw-r--r--  1 vagrant  root  0 Jun 13 09:35 foo\n"
+
+    expectation = {
+        :directory?  => false,
+        :file?       => true,
+        :mode        => '0644',
+        :owner       => 'vagrant',
+        :group       => 'root',
+        :size        => '0',
+        :executable? => [false, false, false],
+        :readable?   => [true, true, true],
+        :writeable?  => [true, false, false]
+    }
+
+    res = @app.exposed_parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
   def test_dir_detection
     dir_str = "drwxrwxrwt 5 root root 4096 May 28 00:26 /tmp/\n"
     file_str  = "-rw-r--r-- 1 root    root      906 Oct  2  2012 grub.conf\n"
