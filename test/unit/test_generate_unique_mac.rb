@@ -26,6 +26,7 @@ class TestPut < Test::Unit::TestCase
 
   def test_uniqueness
 
+    # is this really a valid test?
     (0..100).each do |i|
       a = @app.exposed_generate_unique_mac
       b = @app.exposed_generate_unique_mac
