@@ -44,7 +44,7 @@ class TestRun < Test::Unit::TestCase
       @app.run('ls -l', 2)
     end
 
-    assert_equal(0, @app.exit_code)
+    assert_equal(0, @app.exitcode)
     assert_not_nil(@app.get_output())
     assert_match(/total/, @app.get_output())
   end
