@@ -23,6 +23,17 @@ class TestPut < Test::Unit::TestCase
 
     assert_equal(Hash, res.class)
     assert_not_nil(@app.deltas[:users])
+
+    res.each_key do |k|
+      assert_not_nil(res[k][:shell])
+      assert_not_nil(res[k][:uid])
+      assert_match(/^\d+$/, res[k][:uid])
+      assert_not_nil(res[k][:gid])
+      assert_match(/^\d+$/, res[k][:gid])
+      assert_not_nil(res[k][:home])
+      assert_not_nil(res[k][:home_exists])
+    end
+
   end
 
   # TODO add some caching tests

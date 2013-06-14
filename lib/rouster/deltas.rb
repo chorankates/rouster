@@ -1,6 +1,7 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 # deltas.rb - get information about groups, packages, services and users inside a Vagrant VM
+require 'rouster/tests'
 
 class Rouster
   # deltas.rb reimplementation
@@ -179,6 +180,7 @@ class Rouster
         #next if line.grep(/([\w\s-]+?)\sis\s(\w*?)/).empty?
         next if line.match(/^([^\s]*).*\s(\w*)\.?$/).nil?
         res[$1] = $2
+
       end
 
     else

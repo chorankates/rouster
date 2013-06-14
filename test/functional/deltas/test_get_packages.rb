@@ -23,6 +23,12 @@ class TestPut < Test::Unit::TestCase
 
     assert_equal(Hash, res.class)
     assert_not_nil(@app.deltas[:packages])
+
+    res.each_key do |k|
+      assert_not_nil(res[k])
+      # ideally, we'd confirm that these are numerical, but we're not quite there yet
+    end
+
   end
 
   # TODO add some caching tests

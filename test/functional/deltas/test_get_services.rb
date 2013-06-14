@@ -23,6 +23,11 @@ class TestPut < Test::Unit::TestCase
 
     assert_equal(Hash, res.class)
     assert_not_nil(@app.deltas[:services])
+
+    res.each_key do |k|
+      assert_not_nil(res[k]) # do this in a smarter way
+    end
+
   end
 
   # TODO add some caching tests

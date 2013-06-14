@@ -1,4 +1,5 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
+
 require 'rouster/deltas'
 
 class Rouster
@@ -22,7 +23,7 @@ class Rouster
       @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
       res = nil
     else
-      res = exposed_parse_ls_string(raw)
+      res = parse_ls_string(raw)
     end
 
     if cache
