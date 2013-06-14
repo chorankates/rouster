@@ -14,7 +14,7 @@ class TestPut < Test::Unit::TestCase
     @app.up()
   end
 
-  def happy_path
+  def test_happy_path
     res = nil
 
     assert_nothing_raised do
