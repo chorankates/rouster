@@ -34,7 +34,7 @@ class TestPut < Test::Unit::TestCase
   # TODO add some caching tests
 
   def teardown
-    # noop
+    @app = nil
   end
 
 end
