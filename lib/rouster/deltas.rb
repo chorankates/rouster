@@ -1,11 +1,12 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 # deltas.rb - get information about groups, packages, services and users inside a Vagrant VM
+require 'rouster/tests'
 
 class Rouster
   # deltas.rb reimplementation
-  def get_groups(use_cache=true)
-    if use_cache and ! self.deltas[:groups].nil?
+  def get_groups(cache=true)
+    if cache and ! self.deltas[:groups].nil?
       self.deltas[:groups]
     end
 
@@ -27,25 +28,25 @@ class Rouster
       res[group][:users] = users
     end
 
-    if use_cache
+    if cache
       self.deltas[:groups] = res
     end
 
     res
   end
 
-  def get_packages(use_cache=true, deep=true)
+  def get_packages(cache=true, deep=true)
     # returns { package => '<version>', package2 => '<version>' }
 
-    if use_cache and ! self.deltas[:packages].nil?
+    if cache and ! self.deltas[:packages].nil?
       self.deltas[:packages]
     end
 
     res = Hash.new()
 
-    uname = self.run('uname -a')
+    os = self.os_type
 
-    if uname =~ /darwin/
+    if os.eql?(:osx)
 
       raw = self.run('pkgutil --pkgs')
       raw.split("\n").each do |line|
@@ -61,7 +62,7 @@ class Rouster
         res[line] = local
       end
 
-    elsif uname =~ /SunOS/
+    elsif os.eql?(:solaris)
       raw = self.run('pkginfo')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\s+(.*?)\s(.*)$/).empty?
@@ -76,10 +77,10 @@ class Rouster
         res[$2] = local
       end
 
-    elsif uname =~ /Ubuntu/
+    elsif os.eql?(:ubuntu)
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
-        next if line.match(/^(.*?)\s/).empty?
+        next if line.match(/^(.*?)\s/).nil?
 
         if deep
           local_res = self.run(sprintf('dpkg -s %s', $1))
@@ -91,10 +92,10 @@ class Rouster
         res[$1] = local
       end
 
-    elsif self.is_file?('/etc/redhat-release')
+    elsif os.eql?(:redhat)
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
-        next if line.match(/(.*?)-(\d*\..*)/).empty? # ht petersen.allen
+        next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
         res[$1] = $2
       end
 
@@ -102,56 +103,27 @@ class Rouster
       raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
     end
 
-    if use_cache
+    if cache
       self.deltas[:packages] = res
     end
 
     res
   end
 
-  def get_users(use_cache=true)
-    if use_cache and ! self.deltas[:users].nil?
-      self.deltas[:users]
-    end
-
-    res = Hash.new()
-
-    raw = self.run('cat /etc/passwd')
-
-    raw.split("\n").each do |line|
-      next if line.grep(/(\w+)(?::\w+){3,}/).empty?
-
-      user = $1
-      data = line.split(":")
-
-      res[user] = Hash.new()
-      res[user][:shell] = data[-1]
-      res[user][:home]  = data[-2]
-      res[user][:home_exists] = self.is_directory?(data[-2])
-      res[user][:uid]   = data[2]
-    end
-
-    if use_cache
-      self.deltas[:users] = res
-    end
-
-    res
-  end
-
-  def get_services(use_cache=true)
-    if use_cache and ! self.deltas[:services].nil?
+  def get_services(cache=true)
+    if cache and ! self.deltas[:services].nil?
       self.deltas[:services]
     end
 
     res = Hash.new()
 
-    uname = self.run('uname -a')
+    os = self.os_type
 
-    if uname =~ /darwin/
+    if os.eql?(:osx)
 
       raw = self.run('launchctl list')
       raw.split("\n").each do |line|
-        next if line.grep(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).empty
+        next if line.match(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).nil?
 
         service = $2
         mode    = $1
@@ -165,11 +137,11 @@ class Rouster
         res[service] = mode
       end
 
-    elsif uname =~ /SunOS/
+    elsif os.eql?(:solaris)
 
       raw = self.run('svcs')
       raw.split("\n").each do |line|
-        next if line.grep(/(.*?)\s+(?:.*?)\s+(.*?)$/).empty?
+        next if line.match(/(.*?)\s+(?:.*?)\s+(.*?)$/).nil?
 
         service = $2
         mode    = $1
@@ -186,11 +158,11 @@ class Rouster
 
       end
 
-    elsif uname =~ /Ubuntu/
+    elsif os.eql?(:ubuntu)
 
       raw = self.run('service --status-all 2>&1')
       raw.split("\n").each do |line|
-        next if line.grep(/\[(.*?)\]\s+(.*)$/).empty?
+        next if line.match(/\[(.*?)\]\s+(.*)$/).nil?
         mode    = $1
         service = $2
 
@@ -201,21 +173,52 @@ class Rouster
         res[service] = mode
       end
 
-    elsif self.is_file?('/etc/redhat-release')
+    elsif os.eql?(:redhat)
 
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
         #next if line.grep(/([\w\s-]+?)\sis\s(\w*?)/).empty?
-        next if line.grep(/^([^\s]*).*\s(\w*)\.?$/).empty?
+        next if line.match(/^([^\s]*).*\s(\w*)\.?$/).nil?
         res[$1] = $2
+
       end
 
     else
       raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
     end
 
-    if use_cache
+    if cache
       self.deltas[:services] = res
+    end
+
+    res
+  end
+
+  def get_users(cache=true)
+    if cache and ! self.deltas[:users].nil?
+      self.deltas[:users]
+    end
+
+    res = Hash.new()
+
+    raw = self.run('cat /etc/passwd')
+
+    raw.split("\n").each do |line|
+      next if line.match(/(\w+)(?::\w+){3,}/).nil?
+
+      user = $1
+      data = line.split(':')
+
+      res[user] = Hash.new()
+      res[user][:shell] = data[-1]
+      res[user][:home]  = data[-2]
+      res[user][:home_exists] = self.is_dir?(data[-2])
+      res[user][:uid]   = data[2]
+      res[user][:gid]   = data[3]
+    end
+
+    if cache
+      self.deltas[:users] = res
     end
 
     res

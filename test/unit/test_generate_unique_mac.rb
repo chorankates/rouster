@@ -9,21 +9,27 @@ class TestPut < Test::Unit::TestCase
     assert_nothing_raised do
       @app = Rouster.new(:name => 'app')
     end
+
+    def @app.exposed_generate_unique_mac(*args)
+      generate_unique_mac
+    end
+
   end
 
   def test_happy_path
 
     assert_nothing_raised do
-      @app.generate_unique_mac
+      @app.exposed_generate_unique_mac
     end
 
   end
 
   def test_uniqueness
 
+    # is this really a valid test?
     (0..100).each do |i|
-      a = @app.generate_unique_mac
-      b = @app.generate_unique_mac
+      a = @app.exposed_generate_unique_mac
+      b = @app.exposed_generate_unique_mac
 
       assert_not_equal(a, b)
     end

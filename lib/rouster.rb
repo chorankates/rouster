@@ -65,7 +65,7 @@ class Rouster
     end
 
     @_vm_config = @_config.for_vm(@name.to_sym)
-    @_vm_config.vm.base_mac = generate_unique_mac()
+    @_vm_config.vm.base_mac = generate_unique_mac() if @_vm_config.vm.base_mac.nil?
 
     @log.debug('instantiating Vagrant::VM')
     @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
@@ -80,9 +80,12 @@ class Rouster
     end
 
     # confirm found/specified key exists
-    # TODO want to catch the exception coming out of 'check_key_permissions', but can't figure out the right model
-    if @sshkey.nil? or @_vm.ssh.check_key_permissions(@sshkey)
-      raise InternalError.new("specified key [#{@sshkey}] does not exist/has bad permissions")
+    begin
+      raise InternalError.new('ssh key not specified') if @sshkey.nil?
+      raise InternalError.new('ssh key does not exist') unless File.file?(@sshkey)
+      @_vm.ssh.check_key_permissions(@sshkey)
+    rescue => e
+      raise InternalError.new("specified key [#{@sshkey}] has bad permissions. Vagrant exception: [#{e.message}]")
     end
 
     if opts.has_key?(:sshtunnel) and opts[:sshtunnel]
@@ -91,7 +94,8 @@ class Rouster
         self.up()
       end
 
-      @log.debug('opening SSH tunnel during..')
+      # could we call self.is_available_via_ssh? or does that need to happen outside initialize
+      @log.debug('opening SSH tunnel..')
       @_vm.channel.ready?()
     end
 
@@ -142,9 +146,12 @@ class Rouster
   end
 
   ## internal methods
-  def run(command)
+  #private -- commented out so that unit tests can pass, should probably use the 'make all private methods public' method discussed in issue #28
+
+  def run(command, expected_exitcode=[0])
     # runs a command inside the Vagrant VM
     output = nil
+    expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck
 
     @log.info(sprintf('vm running: [%s]', command))
 
@@ -163,8 +170,8 @@ class Rouster
 
     self.output.push(output)
 
-    unless @exitcode.eql?(0)
-      raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}]")
+    unless expected_exitcode.member?(@exitcode)
+      raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
     end
 
     @exitcode ||= 0
@@ -174,6 +181,38 @@ class Rouster
   def is_available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
     @_vm.channel.ready?()
+  end
+
+  def os_type(start_if_not_running=true)
+    # if the machine isn't created, typically see 'Vagrant::Guest::Linux'
+    # returns :RedHat, :Solaris or :Ubuntu
+
+    if start_if_not_running and self.status.eql?('running').false?
+      @log.debug('starting machine to determine OS type')
+      self.up()
+    end
+
+    if self.is_passthrough?
+      uname = self.run('uname -a')
+
+      case uname
+        when /Darwin/i
+          :osx
+        when /Sun|Solaris/i
+          :solaris
+        when /Ubuntu/i
+          :ubuntu
+        else
+          if self.is_file?('/etc/redhat/release')
+            :redhat
+          else
+            nil
+          end
+      end
+    else
+      self._vm.guest.distro_dispatch()
+    end
+
   end
 
   def get(remote_file, local_file=nil)
@@ -222,11 +261,10 @@ class Rouster
     @_vm.up
   end
 
-  def restart
+  def restart(wait=nil)
     @log.debug('restart()')
     # restarts a Vagrant machine, wait time is same as rebuild()
     # how do we do this in a generic way? shutdown -rf works for Unix, but not Solaris
-    #   we can ask Vagrant what kind of machine this is, but how far down this hole do we really want to go?
 
     if self.is_passthrough? and self.passthrough.eql?(local)
       @log.warn(sprintf('intercepted [restart] sent to a local passthrough, no op'))
@@ -236,6 +274,17 @@ class Rouster
     # MVP
     self.run('/sbin/shutdown -rf now')
 
+    if wait.to_i
+      inc = wait.to_i / 10
+      0..wait.each do |e|
+        @log.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
+        true if self.is_available_via_ssh?()
+        sleep inc
+      end
+
+      false
+    end
+
   end
 
   def _run(command)
@@ -243,7 +292,7 @@ class Rouster
     # returns STDOUT|STDERR, raises Rouster::LocalExecutionError on non 0 exit code
 
     tmp_file = sprintf('/tmp/rouster.%s.%s', Time.now.to_i, $$)
-    cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file)
+    cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file) # this is a holdover from Salesforce::Vagrant, can we use '2&>1' here?
     res      = `#{cmd}` # what does this actually hold?
 
     @log.info(sprintf('host running: [%s]', cmd))
@@ -260,19 +309,15 @@ class Rouster
     output
   end
 
-  # truly internal methods
-  def get_output(index = 0)
-    # return index'th array of output in LIFO order
-
-    reversed = self.output.reverse
-    reversed[index]
+  def get_output(index = 1)
+    # return index'th array of output in LIFO order (recasts positive or negative as best as it can)
+    index.is_a?(Fixnum) and index > 0 ? self.output[-index] : self.output[index]
   end
-
-  #private
 
   def generate_unique_mac
     # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
-    (1..6).map{"%0.2X" % rand(256)}.join('').downcase # causes a fatal error with VboxManage if colons are left in
+    #(1..6).map{"%0.2X" % rand(256)}.join('').downcase # causes a fatal error with VboxManage if colons are left in
+    sprintf('b88d12%s', (1..3).map{"%0.2X" % rand(256)}.join('').downcase)
   end
 
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)

@@ -38,6 +38,17 @@ class TestRun < Test::Unit::TestCase
     assert_match(/fizzbang/, @app.get_output(), 'output matches expectations')
   end
 
+  def test_bad_custom_exit_codes
+
+    assert_raise Rouster::RemoteExecutionError do
+      @app.run('ls -l', 2)
+    end
+
+    assert_equal(0, @app.exitcode)
+    assert_not_nil(@app.get_output())
+    assert_match(/total/, @app.get_output())
+  end
+
   def test_sudo_enabled
 
     assert_nothing_raised do

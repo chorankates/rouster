@@ -3,10 +3,21 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 require 'json'
 require 'socket'
 
+# == rouster/puppet
+# an extension to Rouster containing Puppet related code:
+#  * facter()
+#  * get_catalog()
+#  * get_puppet_errors()
+#  * get_puppet_notices()
+#  * parse_catalog()
+#  * remove_existing_certs()
+#  * run_puppet()
+#
+
 class Rouster
 
-  def facter(use_cache=true, custom_facts=true)
-    if use_cache.true? and ! self.facts.nil?
+  def facter(cache=true, custom_facts=true)
+    if cache.true? and ! self.facts.nil?
       self.facts
     end
 
@@ -19,14 +30,14 @@ class Rouster
       raise InternalError.new(sprintf('unable to parse[%s] as JSON', res))
     end
 
-    if use_cache.true?
+    if cache.true?
       self.facts = res
     end
 
     json
   end
 
-  def get_catalog(hostname)
+  def get_catalog(hostname=nil)
     certname = hostname.nil? ? self.run('hostname --fqdn') : hostname
 
     json = nil
@@ -73,31 +84,86 @@ class Rouster
       raise InternalError.new(sprintf('catalog does not contain a classes key[%s]', catalog))
     end
 
-    classes = catalog['data']['classes']
-
     unless catalog.has_key?('data') and catalog['data'].has_key?('resources')
       raise InternalError.new(sprintf('catalog does not contain a resources key[%s]', catalog))
     end
 
-    resources = catalog['data']['resources']
+    raw_resources = catalog['data']['resources']
 
-    resources.each do |r|
-      # first array element -- looks like this element comes before each set of resources for the class in question
-      # {"exported"=>false, "type"=>"Class", "title"=>"P4users", "tags"=>["class", "p4users", "baseclass", "node", "default"]}
+    raw_resources.each do |r|
+      # samples of eacb type of resource is available at
+      # https://github.com/chorankates/rouster/issues/20#issuecomment-18635576
+      #
+      # we can do a lot better here
+      type = r['type']
+      case type
+        when 'Class'
+          classes.push(r['title'])
+        when 'File'
+          name = r['title']
+          resources[name] = Hash.new()
 
-      # file resource
-      # {"exported"=>false, "file"=>"/etc/puppet/modules/p4users/manifests/init.pp", "parameters"=>{"owner"=>"root", "group"=>"root", "ensure"=>"present", "source"=>"puppet:///modules/p4users/p4"}, "line"=>34, "type"=>"File", "title"=>"/usr/local/bin/p4", "tags"=>["file", "class", "p4users", "baseclass", "node", "default"]}
+          resources[name][:type]      = :file
+          resources[name][:directory] = false
+          resources[name][:ensure]    = r['ensure'] ||= 'present'
+          resources[name][:file]      = true
+          resources[name][:group]     = r['parameters'].has_key?('group') ? r['parameters']['group'] : nil
+          resources[name][:mode]      = r['parameters'].has_key?('mode')  ? r['parameters']['mode']  : nil
+          resources[name][:owner]     = r['parameters'].has_key?('owner') ? r['parameters']['owner'] : nil
+          resources[name][:contains]  = r.has_key?('content') ? r['content'] : nil
 
-      # stage resource
-      # {"exported"=>false, "parameters"=>{"name"=>"main"}, "type"=>"Stage", "title"=>"main", "tags"=>["stage"]}
+        when 'Group'
+          name = r['title']
+          resources[name] = Hash.new()
 
-      # node resource
-      # {"exported"=>false, "type"=>"Node", "title"=>"default", "tags"=>["node", "default", "class"]}
+          resources[name][:type]   = :group
+          resources[name][:ensure] = r['ensure'] ||= 'present'
+          resources[name][:gid]    = r['parameters'].has_key?('gid') ? r['parameters']['gid'] : nil
 
-      # file resource with a stage
-      # {"exported"=>false, "file"=>"/etc/puppet/manifests/templates.pp", "parameters"=>{"before"=>"Stage[main]"}, "line"=>18, "type"=>"Stage", "title"=>"first", "tags"=>["stage", "first", "class"]}
+        when 'Package'
+          name = r['title']
+          resources[name] = Hash.new()
+
+          resources[name][:type]    = :package
+          resources[name][:ensure]  = r['ensure'] ||= 'present'
+          resources[name][:version] = r['ensure'] =~ /\d/ ? r['ensure'] : nil
+
+        when 'Service'
+          name = r['title']
+          resources[name] = Hash.new()
+
+          resources[name][:type]   = :service
+          resources[name][:ensure] = r['ensure'] ||= 'present'
+          resources[name][:state]  = r['ensure']
+
+        when 'User'
+          name = r['title']
+          resources[name] = Hash.new()
+
+          resources[name][:type]   = :user
+          resources[name][:ensure] = r['ensure'] ||= 'present'
+          resources[name][:home]   = r['parameters'].has_key?('home')   ? r['parameters']['home']   : nil
+          resources[name][:gid]    = r['parameters'].has_key?('gid')    ? r['parameters']['gid']    : nil
+          resources[name][:group]  = r['parameters'].has_key?('groups') ? r['parameters']['groups'] : nil
+          resources[name][:shell]  = r['parameters'].has_key?('shell')  ? r['parameters']['shell']  : nil
+          resources[name][:uid]    = r['parameters'].has_key?('uid')    ? r['parameters']['uid']    : nil
+
+        else
+          raise NotImplementedError.new(sprintf('parsing support for [%s] is incomplete', type))
+      end
 
     end
+
+    # remove all nil references
+    # TODO make this more rubyish
+    resources.each_key do |name|
+      resources[name].each_pair do |k,v|
+        unless v
+          resources[name].delete(k)
+        end
+      end
+    end
+
 
     results[:classes]   = classes
     results[:resources] = resources
@@ -125,8 +191,8 @@ class Rouster
 
   end
 
-  def run_puppet
-    self.run('/sbin/service puppet once -t')
+  def run_puppet(expected_exitcode=0)
+    self.run('/sbin/service puppet once -t', expected_exitcode)
   end
 
 end

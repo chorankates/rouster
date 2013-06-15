@@ -14,7 +14,7 @@ class TestPut < Test::Unit::TestCase
     @app.up()
   end
 
-  def happy_path
+  def test_happy_path
     res = nil
 
     assert_nothing_raised do
@@ -23,12 +23,19 @@ class TestPut < Test::Unit::TestCase
 
     assert_equal(Hash, res.class)
     assert_not_nil(@app.deltas[:groups])
+
+    res.each_key do |k|
+      assert_not_nil(res[k][:users])
+      assert_equal(res[k][:users].class, Array)
+      assert_not_nil(res[k][:gid])
+    end
+
   end
 
-  # TODO add some caching tests
+  # TODO add some non-caching tests
 
   def teardown
-    # noop
+    @app = nil
   end
 
 end
