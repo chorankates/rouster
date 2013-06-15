@@ -6,15 +6,24 @@ require 'test/unit'
 class TestPut < Test::Unit::TestCase
 
   def setup
-    @app = nil
+    @app = Rouster.new(:name => 'app')
+    @app.destroy() if @app.status().eql?('running')
   end
 
-  def test_1_good_openssh_tunnel
+  def test_1_able_to_instantiate
+
+    assert_nothing_raised do
+      @app = Rouster.new(:name => 'app')
+    end
+
+  end
+
+  def test_2_good_openssh_tunnel
     @app = Rouster.new(:name => 'app', :sshtunnel => true)
 
-    @app.destroy() if @app.get_status().eql?('running')
+    # TODO how do we properly test this? we really need the rspec should_call mechanism...
 
-    # TODO how do we properly test this? we really need the rspec should_call mechanism...  end
+    assert_equal(true, @app.is_available_via_ssh?)
   end
 
   def teardown
