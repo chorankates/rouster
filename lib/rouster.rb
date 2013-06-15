@@ -133,6 +133,7 @@ class Rouster
 
   def destroy
     @log.info('destroy()')
+    return if self.status().eql?('not_created') # noop catch because UUID is nil if the machine is not created. do better later
     @_vm.destroy
   end
 
