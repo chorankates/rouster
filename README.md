@@ -124,8 +124,10 @@ class TestPuppetRun < Test::Unit::TestCase
       w.up()
 
       #res = w.run('puppet agent -t --environment development', 2)
-      res = w.run_puppet(2)
-      assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
+      assert_raises_nothing do
+			  res = w.run_puppet(2)
+      end
+			assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
     end
   end
 
