@@ -6,7 +6,7 @@ require 'rouster'
 require 'rouster/tests'
 require 'test/unit'
 
-class TestPut < Test::Unit::TestCase
+class TestParseLsString < Test::Unit::TestCase
 
   def setup
 

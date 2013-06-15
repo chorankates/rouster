@@ -4,7 +4,7 @@ require 'rouster'
 require 'rouster/puppet'
 require 'test/unit'
 
-class TestPut < Test::Unit::TestCase
+class TestPuppetRoles < Test::Unit::TestCase
 
   def setup
     @ppm = Rouster.new(:name => 'ppm')

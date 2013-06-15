@@ -3,7 +3,7 @@ require sprintf('%s/../../path_helper', File.dirname(File.expand_path(__FILE__))
 require 'rouster'
 require 'test/unit'
 
-class TestPut < Test::Unit::TestCase
+class TestInspect < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do

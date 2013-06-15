@@ -4,8 +4,6 @@ require 'rouster'
 require 'rouster/tests'
 require 'test/unit'
 
-
-
 class TestPut < Test::Unit::TestCase
 
   def setup

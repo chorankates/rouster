@@ -5,7 +5,7 @@ require 'test/unit'
 
 # TODO add a bad perms test -- though it should be fixed automagically
 
-class TestPut < Test::Unit::TestCase
+class TestBasic < Test::Unit::TestCase
 
   def setup
     @app = nil

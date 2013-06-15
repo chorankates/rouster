@@ -4,7 +4,7 @@ require 'rouster'
 require 'rouster/deltas'
 require 'test/unit'
 
-class TestPut < Test::Unit::TestCase
+class TestDeltasGetPackages < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
