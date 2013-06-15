@@ -45,7 +45,7 @@ class TestPut < Test::Unit::TestCase
   end
 
   def teardown
-    # noop
+    @app = nil
   end
 
 end
