@@ -2,9 +2,10 @@ require 'rubygems'
 require 'json'
 
 $LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.0.5/lib/'
+$LOAD_PATH << '/Applications/Vagrant/embedded/gems/gems/vagrant-1.2.2/lib/'
 require 'vagrant'
 
-require 'rouster/vagrant'
+#require 'rouster/vagrant'
 
 class Rouster
   VERSION = 0.2
@@ -55,7 +56,11 @@ class Rouster
     end
 
     @log.debug('instantiating Vagrant::Environment')
-    @_env = Vagrant::Environment.new({:vagrantfile_name => @vagrantfile})
+    @_env = Vagrant::Environment.new(
+        :vagrantfile_name => @vagrantfile,
+        :ui_class         => Vagrant::UI::Interface,
+        :local_data_path  => sprintf('%s/%s', File.dirname(@vagrantfile), '.vagrant')
+    )
 
     @log.debug('loading Vagrantfile configuration')
     @_config = @_env.load_config!
