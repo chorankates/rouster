@@ -59,6 +59,7 @@ class Rouster
     @_env = Vagrant::Environment.new(
         :vagrantfile_name => @vagrantfile,
         :ui_class         => Vagrant::UI::Interface,
+        :home_path        => File.dirname(@vagrantfile),
         :local_data_path  => sprintf('%s/%s', File.dirname(@vagrantfile), '.vagrant')
     )
 
