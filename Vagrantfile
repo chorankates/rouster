@@ -3,7 +3,7 @@
 box_name = 'rhel6_u2_v2'
 boxes    = [:ppm, :app]
 
-Vagrant::Config.run do |config|
+Vagrant.configure("1") do |config|
   boxes.each do |box|
     config.vm.define box do |worker|
 
@@ -12,10 +12,6 @@ Vagrant::Config.run do |config|
       worker.vm.host_name      = box.to_s
       worker.vm.network        :hostonly, sprintf('10.0.0.%s', rand(254))
       worker.ssh.forward_agent = true
-
-      if box.to_s.eql?('ppm') and File.directory?('../puppet')
-        worker.vm.share_folder('puppet', '/etc/puppet/', '../puppet/')
-      end
 
     end
   end
