@@ -3,7 +3,6 @@ require 'net/scp'
 
 # this library is a container for various Vagrant tweaks/extensions
 
-
 module Vagrant
   module Communication
 
@@ -34,4 +33,17 @@ module Vagrant
     end
 
   end
+
+  class Environment
+    def config_global
+      return @config_global if @config_global
+
+      @config_loader = Config::Loader.new(Config::VERSIONS, Config::VERSIONS_ORDER)
+      @config_loader.set(:found, find_vagrantfile(home_path))
+      @config_global, _ = @config_loader.load([:found])
+
+      @config_global
+    end
+  end
+
 end

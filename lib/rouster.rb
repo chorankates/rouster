@@ -62,18 +62,16 @@ class Rouster
         :local_data_path  => sprintf('%s/%s', File.dirname(@vagrantfile), '.vagrant')
     )
 
-    @log.debug('loading Vagrantfile configuration')
-    @_config = @_env.load_config!
-
-    unless @name and @_config.for_vm(@name.to_sym)
+    unless @name and @_env.machine_names.grep(/@name.to_s/)
       raise InternalError.new(sprintf('specified VM name [%s] not found in specified Vagrantfile', @name))
     end
 
-    @_vm_config = @_config.for_vm(@name.to_sym)
-    @_vm_config.vm.base_mac = generate_unique_mac() if @_vm_config.vm.base_mac.nil?
+    @_config = @_env.machine(@name.to_sym, :virtualbox)
+
+    @_config.vm.base_mac = generate_unique_mac() if @_config.vm.base_mac.nil?
 
     @log.debug('instantiating Vagrant::VM')
-    @_vm = Vagrant::VM.new(@name, @_env, @_vm_config)
+    @_vm = Vagrant::VM.new(@name, @_env, @_config)
 
     if @sshkey.nil?
       if @passthrough.eql?(true)
@@ -118,7 +116,6 @@ class Rouster
       vagrantfile[#{@vagrantfile}],
       verbosity[#{verbosity}],
       Vagrant Environment object[#{@_env.class}],
-      Vagrant Configuration object[#{@_config.class}],
       Vagrant VM object[#{@_vm.class}]\n"
   end
 
