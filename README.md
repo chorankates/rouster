@@ -26,6 +26,22 @@ Note: Vagrant itself requires VirtualBox or VMWare Fusion (1.0.3+)
 Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX (minus rouster/deltas.rb functionality, at least currently),
 but no real testing has been done to confirm this. Please file issues as appropriate.
 
+### Easiest configuration
+
+```
+gem install vagrant
+gem install rouster
+```
+
+This will pull in all of the various dependencies (Vagrant manages this itself):
+* childprocess
+* erubis
+* i18n
+* json
+* log4r
+* net-scp
+* net-ssh
+
 ## Using Rouster
 
 Rouster supports many of the vagrant faces:
