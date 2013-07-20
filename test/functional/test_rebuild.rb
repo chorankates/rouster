@@ -1,6 +1,7 @@
 require sprintf('%s/../../path_helper', File.dirname(File.expand_path(__FILE__)))
 
 require 'rouster'
+require 'rouster/tests'
 require 'test/unit'
 
 class TestRebuild < Test::Unit::TestCase
