@@ -152,10 +152,15 @@ class Rouster
 
   def is_available_via_ssh?
     # functional test to see if Vagrant machine can be logged into via ssh
-    raise NotImplementedError.new()
+    begin
+      self.run('echo foo')
+    rescue
+      false
+    end
+    true
   end
 
-  def get_ssh_command()
+  def get_ssh_command
 
     if self.ssh_command
       self.ssh_command
@@ -177,15 +182,41 @@ class Rouster
       end
     end
 
-    sprintf('ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s', h[:ssh_port], h[:identity_file], h[:user], h[:hostname])
+    cmd = sprintf('ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s', h[:ssh_port], h[:identity_file], h[:user], h[:hostname])
+    @ssh_command = cmd
+    cmd
   end
 
-  def get_scp_command
-    if self.scp_command
-      self.scp_command
+  def get_scp_command(local, remote)
+
+    # TODO implement this in a better way
+
+    h   = Hash.new()
+    res = nil
+
+    if @scp_command
+      # this is a misnomer, and when we rewrite, will go away
+      res = @scp_command
+    else
+      res = self._run(sprintf('cd %s; vagrant ssh-info %s', File.dirname(@vagrantfile), @name))
     end
 
-    raise NotImplementedError.new()
+    res.split("\n").each do |line|
+      if line.grep(/HostName (.*?)$/)
+        h[:hostname] = $1
+      elsif line.grep(/User (\w*?)$/)
+        h[:user] = $1
+      elsif line.grep(/Port (\d*?)$/)
+        h[:ssh_port] = $1
+      elsif line.grep(/IdentityFile (.*?)$/)
+        # TODO what to do if the user has specified @sshkey ?
+        h[:identity_file] = $1
+      end
+    end
+
+    cmd = sprintf('scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s %s@%s:%s', h[:identity_file], h[:ssh_port], local, h[:user], h[:hostname], remote)
+    @ssh_command = cmd
+    cmd
   end
 
   def os_type(start_if_not_running=true)
