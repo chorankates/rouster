@@ -66,12 +66,8 @@ class Rouster
       raise InternalError.new(sprintf('specified VM name [%s] not found in specified Vagrantfile', @name))
     end
 
-    @_config = @_env.machine(@name.to_sym, :virtualbox)
-
-    @_config.vm.base_mac = generate_unique_mac() if @_config.vm.base_mac.nil?
-
-    @log.debug('instantiating Vagrant::VM')
-    @_vm = Vagrant::VM.new(@name, @_env, @_config)
+    # TODO derive type from Vagrantfile
+    @_vm = @_env.machine(@name.to_sym, :virtualbox)
 
     if @sshkey.nil?
       if @passthrough.eql?(true)
@@ -86,13 +82,15 @@ class Rouster
     begin
       raise InternalError.new('ssh key not specified') if @sshkey.nil?
       raise InternalError.new('ssh key does not exist') unless File.file?(@sshkey)
-      @_vm.ssh.check_key_permissions(@sshkey)
+
+      require 'vagrant/util/ssh'
+      Vagrant::Util::SSH.check_key_permissions(@sshkey)
     rescue => e
       raise InternalError.new("specified key [#{@sshkey}] has bad permissions. Vagrant exception: [#{e.message}]")
     end
 
     if opts.has_key?(:sshtunnel) and opts[:sshtunnel]
-      unless @_vm.state.to_s.eql?('running')
+      unless @_vm.state.id.eql?(:running)
         @log.info(sprintf('upping machine[%s] in order to open SSH tunnel', @name))
         self.up()
       end
@@ -103,6 +101,9 @@ class Rouster
     end
 
     @log.debug('Rouster object successfully instantiated')
+
+    f = @_vm.action(:up)
+
 
   end
 
@@ -124,28 +125,24 @@ class Rouster
     @log.info('up()')
     @_vm.channel.destroy_ssh_connection()
 
-    # TODO need to dig deeper into this one -- issue #21
-    if @_vm.created?
-      self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
-    else
-      @_vm.up
-    end
-
+    @_vm.action(:up)
   end
 
   def destroy
     @log.info('destroy()')
     return if self.status().eql?('not_created') # noop catch because UUID is nil if the machine is not created. do better later
-    @_vm.destroy
+
+    @_vm.action(:destroy)
   end
 
   def status
-    @_vm.state.to_s
+    @_vm.state.id.to_s
   end
 
   def suspend
     @log.info('suspend()')
-    @_vm.suspend
+
+    @_vm.action(:suspend)
   end
 
   ## internal methods
