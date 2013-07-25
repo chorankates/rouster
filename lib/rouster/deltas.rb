@@ -15,7 +15,7 @@ class Rouster
     raw = self.run('cat /etc/group')
 
     raw.split("\n").each do |line|
-      next if line.grep(/\w+:\w+:\w+/).empty?
+      next unless line.match(/\w+:\w+:\w+/)
 
       data = line.split(':')
 
@@ -128,7 +128,7 @@ class Rouster
         service = $2
         mode    = $1
 
-        if mode.grep(/^\d/)
+        if mode.match(/^\d/)
           mode = 'running'
         else
           mode = 'stopped'

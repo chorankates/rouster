@@ -59,7 +59,7 @@ class Rouster
       if @passthrough.eql?(true)
         raise InternalError.new('must specify sshkey when using a passthrough host')
       else
-        @sshkey = sprintf('%s/.vagrant/insecure_private_key', ENV['HOME'])
+        @sshkey = sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME'])
       end
     end
 
@@ -117,7 +117,7 @@ class Rouster
     self._run(sprintf('cd %s; vagrant status %s', File.dirname(@vagrantfile), @name))
 
     # else case here is handled by non-0 exit code
-    if self.get_output().grep(/^@name\s*(.*)$/)
+    if self.get_output().match(/^@name\s*(.*)$/)
       $1
     end
 
@@ -170,13 +170,13 @@ class Rouster
     h   = Hash.new()
 
     res.split("\n").each do |line|
-      if line.grep(/HostName (.*?)$/)
+      if line.match(/HostName (.*?)$/)
         h[:hostname] = $1
-      elsif line.grep(/User (\w*?)$/)
+      elsif line.match(/User (\w*?)$/)
         h[:user] = $1
-      elsif line.grep(/Port (\d*?)$/)
+      elsif line.match(/Port (\d*?)$/)
         h[:ssh_port] = $1
-      elsif line.grep(/IdentityFile (.*?)$/)
+      elsif line.match(/IdentityFile (.*?)$/)
         # TODO what to do if the user has specified @sshkey ?
         h[:identity_file] = $1
       end
@@ -202,13 +202,13 @@ class Rouster
     end
 
     res.split("\n").each do |line|
-      if line.grep(/HostName (.*?)$/)
+      if line.match(/HostName (.*?)$/)
         h[:hostname] = $1
-      elsif line.grep(/User (\w*?)$/)
+      elsif line.match(/User (\w*?)$/)
         h[:user] = $1
-      elsif line.grep(/Port (\d*?)$/)
+      elsif line.match(/Port (\d*?)$/)
         h[:ssh_port] = $1
-      elsif line.grep(/IdentityFile (.*?)$/)
+      elsif line.match(/IdentityFile (.*?)$/)
         # TODO what to do if the user has specified @sshkey ?
         h[:identity_file] = $1
       end
