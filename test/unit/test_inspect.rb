@@ -16,7 +16,6 @@ class TestInspect < Test::Unit::TestCase
 
     res = @app.inspect()
 
-    assert_not_nil(res.match(/created/))
     assert_not_nil(res.match(/passthrough\[false\]/))
     assert_not_nil(res.match(/sshkey/))
     assert_not_nil(res.match(/status/))

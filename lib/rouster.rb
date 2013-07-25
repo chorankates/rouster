@@ -86,6 +86,15 @@ class Rouster
       #@_vm.channel.ready?()
     end
 
+    # make sure the name is valid
+    raise InternalError.new() if @name.nil?
+
+    begin
+      self.status()
+    rescue Rouster::LocalExecutionError
+      raise InternalError.new()
+    end
+
     @log.debug('Rouster object successfully instantiated')
 
   end
