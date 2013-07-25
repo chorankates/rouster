@@ -17,7 +17,7 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :deltas, :_env, :exitcode, :facts, :log, :name, :output, :passthrough, :sshkey, :sudo, :vagrantfile, :verbosity, :_vm, :_vm_config
+  attr_reader :deltas, :exitcode, :facts, :log, :name, :output, :passthrough, :ssh, :sshkey, :sudo, :vagrantfile, :verbosity, :_vm
 
   def initialize(opts = nil)
     # process hash keys passed
@@ -40,8 +40,7 @@ class Rouster
     @facts    = Hash.new()
 
     @exitcode = nil
-    @scp_command = nil
-    @ssh_command = nil
+    @ssh      = nil # will be hash containing connection information
 
     # set up logging
     require 'log4r/config'
@@ -166,61 +165,59 @@ class Rouster
 
   def get_ssh_command
 
-    if @ssh_command
-      @ssh_command
-    end
+    h = Hash.new()
 
-    res = self._run(sprintf('cd %s; vagrant ssh-config %s', File.dirname(@vagrantfile), @name))
-    h   = Hash.new()
-
-    res.split("\n").each do |line|
-      if line.match(/HostName (.*?)$/)
-        h[:hostname] = $1
-      elsif line.match(/User (\w*?)$/)
-        h[:user] = $1
-      elsif line.match(/Port (\d*?)$/)
-        h[:ssh_port] = $1
-      elsif line.match(/IdentityFile (.*?)$/)
-        # TODO what to do if the user has specified @sshkey ?
-        h[:identity_file] = $1
-      end
-    end
-
-    cmd = sprintf('ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s', h[:ssh_port], h[:identity_file], h[:user], h[:hostname])
-    @ssh_command = cmd
-    cmd
-  end
-
-  def get_scp_command(local, remote)
-
-    # TODO implement this in a better way
-
-    h   = Hash.new()
-    res = nil
-
-    if @scp_command
-      # this is a misnomer, and when we rewrite, will go away
-      res = @scp_command
+    if @ssh.class.eql?(Hash)
+      h = @ssh
     else
       res = self._run(sprintf('cd %s; vagrant ssh-config %s', File.dirname(@vagrantfile), @name))
-    end
 
-    res.split("\n").each do |line|
-      if line.match(/HostName (.*?)$/)
-        h[:hostname] = $1
-      elsif line.match(/User (\w*?)$/)
-        h[:user] = $1
-      elsif line.match(/Port (\d*?)$/)
-        h[:ssh_port] = $1
-      elsif line.match(/IdentityFile (.*?)$/)
-        # TODO what to do if the user has specified @sshkey ?
-        h[:identity_file] = $1
+      res.split("\n").each do |line|
+        if line.match(/HostName (.*?)$/)
+          h[:hostname] = $1
+        elsif line.match(/User (\w*?)$/)
+          h[:user] = $1
+        elsif line.match(/Port (\d*?)$/)
+          h[:ssh_port] = $1
+        elsif line.match(/IdentityFile (.*?)$/)
+          # TODO what to do if the user has specified @sshkey ?
+          h[:identity_file] = $1
+        end
       end
+
+      @ssh = h
     end
 
-    cmd = sprintf('scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s %s@%s:%s', h[:identity_file], h[:ssh_port], local, h[:user], h[:hostname], remote)
-    @ssh_command = cmd
-    cmd
+    sprintf('ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s', h[:ssh_port], h[:identity_file], h[:user], h[:hostname])
+  end
+
+  def get_scp_command
+
+    h = Hash.new()
+
+    if @ssh.class.eql?(Hash)
+      h = @ssh
+    else
+      res = self._run(sprintf('cd %s; vagrant ssh-config %s', File.dirname(@vagrantfile), @name))
+
+      res.split("\n").each do |line|
+        if line.match(/HostName (.*?)$/)
+          h[:hostname] = $1
+        elsif line.match(/User (\w*?)$/)
+          h[:user] = $1
+        elsif line.match(/Port (\d*?)$/)
+          h[:ssh_port] = $1
+        elsif line.match(/IdentityFile (.*?)$/)
+          # TODO what to do if the user has specified @sshkey ?
+          h[:identity_file] = $1
+        end
+      end
+
+      @ssh = h
+
+    end
+
+    sprintf('scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s', h[:ssh_port], h[:identity_file])
   end
 
   def os_type(start_if_not_running=true)
@@ -258,8 +255,7 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to get[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      raise NotImplementedError.new()
-      @_vm.channel.download(remote_file, local_file)
+      self._run(sprintf('%s %s@%s:%s %s', self.get_scp_command, @ssh[:user], @ssh[:hostname], remote_file, local_file))
     rescue => e
       raise FileTransferError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
@@ -274,8 +270,7 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to put[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      raise NotImplementedError.new()
-      @_vm.channel.upload(local_file, remote_file)
+      self._run(sprintf('%s %s %s@%s:%s', self.get_scp_command, local_file, @ssh[:user], @ssh[:hostname], remote_file))
     rescue => e
       raise FileTransferError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
     end
