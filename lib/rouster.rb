@@ -141,6 +141,7 @@ class Rouster
 
     cmd    = sprintf('%s %s 2>&1', self.get_ssh_command(), command)
     output = `#{cmd}`
+    @exitcode = $?.to_i()
     self.output.push(output)
 
     # TODO fix the bug here
@@ -157,8 +158,9 @@ class Rouster
     begin
       self.run('echo foo')
     rescue
-      false
+      return false
     end
+
     true
   end
 
