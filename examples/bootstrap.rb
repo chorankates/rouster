@@ -4,8 +4,8 @@ require 'rouster'
 require 'rouster/puppet'
 require 'rouster/tests'
 
-app = Rouster.new(:name => 'app', :verbosity => 1, :sudo => true)
-ppm = Rouster.new(:name => 'ppm', :verbosity => 4, :sudo => true)
+app = Rouster.new(:name => 'app', :verbosity => 4, :sudo => true)
+ppm = Rouster.new(:name => 'ppm', :verbosity => 1, :sudo => true)
 
 # passthrough boxes do not need to specify a name
 # commented out currently because passthrough is not MVP
@@ -57,16 +57,21 @@ workers.each do |w|
     p e
   end
 
-  p sprintf('%s ls /dne/ expected exit code 2 %s', w.name, w.run('ls /dne/', 2))
+  p sprintf('%s ls /dne/ expected exit code 512 %s', w.name, w.run('ls /dne/', 512))
 
   # tear the box down
+  p 'destroying the box'
   w.destroy()
 
+  p sprintf('%s status: %s', w.name, w.status())
+  p sprintf('%s available via ssh: %s', w.name, w.is_available_via_ssh?())
+
   # bring it back again
+  p 'upping the box again'
   w.up()
 
   p sprintf('%s status: %s', w.name, w.status())
-  p sprintf('%s available via ssh: %s', w, w.is_available_via_ssh?())
+  p sprintf('%s available via ssh: %s', w.name, w.is_available_via_ssh?())
 
   p w.is_dir?('/tmp')
   p w.is_executable?('/sbin/service')

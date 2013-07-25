@@ -239,7 +239,7 @@ class Rouster
       when /Ubuntu/i
         :ubuntu
       else
-        if self.is_file?('/etc/redhat/release')
+        if self.is_file?('/etc/redhat-release')
           :redhat
         else
           nil

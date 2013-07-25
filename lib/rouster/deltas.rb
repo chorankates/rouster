@@ -100,7 +100,7 @@ class Rouster
       end
 
     else
-      raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
+      raise InternalError.new(sprintf('VM operating system[%s] not currently supported', os))
     end
 
     if cache
