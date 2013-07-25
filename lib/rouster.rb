@@ -98,7 +98,7 @@ class Rouster
       status[#{self.status()}]
       sudo[#{@sudo}],
       vagrantfile[#{@vagrantfile}],
-      verbosity[#{verbosity}]\n"
+      verbosity[#{@verbosity}]\n"
   end
 
   ## Vagrant methods
@@ -117,7 +117,8 @@ class Rouster
     self._run(sprintf('cd %s; vagrant status %s', File.dirname(@vagrantfile), @name))
 
     # else case here is handled by non-0 exit code
-    if self.get_output().match(/^@name\s*(.*)$/)
+    if self.get_output().match(/^#{@name}\s*(.*)\s(.+)$/)
+      # $1 = name, $2 = provider
       $1
     end
 
@@ -142,6 +143,7 @@ class Rouster
     output = `#{cmd}`
     self.output.push(output)
 
+    # TODO fix the bug here
     unless expected_exitcode.member?(@exitcode)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
     end
@@ -162,11 +164,11 @@ class Rouster
 
   def get_ssh_command
 
-    if self.ssh_command
-      self.ssh_command
+    if @ssh_command
+      @ssh_command
     end
 
-    res = self._run(sprintf('cd %s; vagrant ssh-info %s', File.dirname(@vagrantfile), @name))
+    res = self._run(sprintf('cd %s; vagrant ssh-config %s', File.dirname(@vagrantfile), @name))
     h   = Hash.new()
 
     res.split("\n").each do |line|
@@ -198,7 +200,7 @@ class Rouster
       # this is a misnomer, and when we rewrite, will go away
       res = @scp_command
     else
-      res = self._run(sprintf('cd %s; vagrant ssh-info %s', File.dirname(@vagrantfile), @name))
+      res = self._run(sprintf('cd %s; vagrant ssh-config %s', File.dirname(@vagrantfile), @name))
     end
 
     res.split("\n").each do |line|
@@ -246,8 +248,6 @@ class Rouster
     end
 
   end
-
-
 
   def get(remote_file, local_file=nil)
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
