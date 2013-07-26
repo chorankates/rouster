@@ -38,6 +38,7 @@ class TestGet < Test::Unit::TestCase
     end
 
     assert_equal(false, File.file?(@kg_local_location), 'known bad local path DNE')
+    assert_match(//, )
   end
 
   def test_remote_path_dne
@@ -47,7 +48,6 @@ class TestGet < Test::Unit::TestCase
     end
 
     assert_equal(false, File.file?(@kg_local_location), 'known bad remote file path DNE')
-
   end
 
   def test_with_suspended_machine

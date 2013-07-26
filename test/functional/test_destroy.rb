@@ -23,7 +23,7 @@ class TestDestroy < Test::Unit::TestCase
     end
 
     assert_equal(false, @app.is_available_via_ssh?)
-    assert_equal('not_created', @app.status())
+    assert_equal('not created', @app.status())
   end
 
   def test_thats_what_we_call_overkill
@@ -34,13 +34,13 @@ class TestDestroy < Test::Unit::TestCase
     end
 
     assert_equal(false, @app.is_available_via_ssh?)
-    assert_equal('not_created', @app.status())
+    assert_equal('not created', @app.status())
 
     assert_nothing_raised do
       @app.destroy()
     end
 
-    assert_equal('not_created', @app.status())
+    assert_equal('not created', @app.status())
 
   end
 

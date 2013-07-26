@@ -13,7 +13,7 @@ class TestRebuild < Test::Unit::TestCase
 
   end
 
-  def test_happy_path
+  def test_1_happy_path
     @app.up()
 
     assert_equal(true, @app.is_available_via_ssh?)
@@ -37,6 +37,16 @@ class TestRebuild < Test::Unit::TestCase
     assert_equal(false, @app.is_file?(uploaded_to))
   end
 
+  def test_2_machine_already_destroyed
+    @app.destroy() if @app.status.eql?('running')
+
+    assert_equal(false, @app.is_available_via_ssh?)
+
+    assert_nothing_raised do
+      @app.rebuild()
+    end
+
+  end
 
   def teardown
     # noop

@@ -4,6 +4,8 @@ require 'json'
 
 require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
+require 'rouster/tests'
+
 class Rouster
   VERSION = 0.2
 
@@ -147,7 +149,7 @@ class Rouster
 
     @log.info(sprintf('vm running: [%s]', command))
 
-    cmd    = sprintf('%s %s 2>&1', self.get_ssh_command(), command)
+    cmd    = sprintf('%s %s%s 2>&1', self.get_ssh_command(), self.uses_sudo? ? 'sudo ' : '', command)
     output = `#{cmd}`
     @exitcode = $?.to_i()
     self.output.push(output)
@@ -316,7 +318,7 @@ class Rouster
     # MVP
     self.run('/sbin/shutdown -rf now')
 
-    if wait.to_i
+    if wait
       inc = wait.to_i / 10
       0..wait.each do |e|
         @log.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
