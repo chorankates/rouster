@@ -39,7 +39,7 @@ workers.each do |w|
 
   # put a file on the box and then bring it back
   w.put(__FILE__, '/tmp/foobar')
-  w.get('/tmp/foobar', 'foobar_from_piab_host')
+  w.get('/tmp/foobar', 'foobar_from_piab_host.tmp')
 
   # output should be the same
   p sprintf('%s uname -a via run:    %s', w.name, w.run('uname -a'))
