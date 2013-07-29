@@ -26,7 +26,10 @@ class TestDeltasGetPackages < Test::Unit::TestCase
 
     res.each_key do |k|
       assert_not_nil(res[k])
-      # ideally, we'd confirm that these are numerical, but we're not quite there yet
+
+      # this is not the best validation, but is not the worst either
+      assert_match(/^\d+\./, res[k]) # start with a number
+      assert_match(/\.(x86|i686|x86_64|noarch)$/, res[k]) # end with an arch type
     end
 
   end

@@ -30,6 +30,13 @@ class TestDeltasGetGroups < Test::Unit::TestCase
       assert_not_nil(res[k][:gid])
     end
 
+    ## only working on *nix right now, check some specific accounts
+    expected = %w[root vagrant]
+
+    expected.each do |e|
+      assert_not_nil(res[e])
+    end
+
   end
 
   # TODO add some non-caching tests

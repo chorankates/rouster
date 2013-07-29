@@ -12,6 +12,9 @@ class TestDeltasGetServices < Test::Unit::TestCase
     end
 
     @app.up()
+
+    # eventually this should be standardized (and symbolized?)
+    @allowed_states = %w(exists operational running stopped)
   end
 
   def test_happy_path
@@ -25,7 +28,7 @@ class TestDeltasGetServices < Test::Unit::TestCase
     assert_not_nil(@app.deltas[:services])
 
     res.each_key do |k|
-      assert_not_nil(res[k]) # do this in a smarter way
+      assert_not_nil(res[k])
     end
 
   end
