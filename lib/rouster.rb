@@ -1,6 +1,8 @@
 require 'rubygems'
 require 'log4r'
 require 'json'
+require 'net/scp'
+require 'net/ssh'
 
 require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
@@ -19,7 +21,7 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_reader :deltas, :exitcode, :facts, :log, :name, :output, :passthrough, :ssh, :sshkey, :sudo, :vagrantfile, :verbosity, :_vm
+  attr_reader :deltas, :exitcode, :facts, :log, :name, :output, :passthrough, :sshkey, :sudo, :vagrantfile, :verbosity, :_vm
 
   def initialize(opts = nil)
     # process hash keys passed
@@ -42,7 +44,8 @@ class Rouster
     @facts    = Hash.new()
 
     @exitcode = nil
-    @ssh      = nil # will be hash containing connection information
+    @ssh_info = nil # will be hash containing connection information
+    @tunnel   = nil
 
     # set up logging
     require 'log4r/config'
@@ -78,14 +81,21 @@ class Rouster
     end
 
     if opts.has_key?(:sshtunnel) and opts[:sshtunnel]
-      #unless @_vm.state.to_s.eql?('running')
+      unless self.status.eql?('running')
         @log.info(sprintf('upping machine[%s] in order to open SSH tunnel', @name))
         self.up()
-      #end
+      end
+
+      self.get_ssh_info()
 
       # could we call self.is_available_via_ssh? or does that need to happen outside initialize
       @log.debug('opening SSH tunnel..')
-      #@_vm.channel.ready?()
+
+      @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
+      @scp = Net::SCP.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
+
+
+      p 'DBGZ' if nil
     end
 
     # make sure the name is valid
@@ -174,12 +184,12 @@ class Rouster
     true
   end
 
-  def get_ssh_command
+  def get_ssh_info
 
     h = Hash.new()
 
-    if @ssh.class.eql?(Hash)
-      h = @ssh
+    if @ssh_info.class.eql?(Hash)
+      h = @ssh_info
     else
       res = self._run(sprintf('cd %s; vagrant ssh-config %s', File.dirname(@vagrantfile), @name))
 
@@ -196,39 +206,10 @@ class Rouster
         end
       end
 
-      @ssh = h
+      @ssh_info = h
     end
 
-    sprintf('ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s %s@%s', h[:ssh_port], h[:identity_file], h[:user], h[:hostname])
-  end
-
-  def get_scp_command
-
-    h = Hash.new()
-
-    if @ssh.class.eql?(Hash)
-      h = @ssh
-    else
-      res = self._run(sprintf('cd %s; vagrant ssh-config %s', File.dirname(@vagrantfile), @name))
-
-      res.split("\n").each do |line|
-        if line.match(/HostName (.*?)$/)
-          h[:hostname] = $1
-        elsif line.match(/User (\w*?)$/)
-          h[:user] = $1
-        elsif line.match(/Port (\d*?)$/)
-          h[:ssh_port] = $1
-        elsif line.match(/IdentityFile (.*?)$/)
-          # TODO what to do if the user has specified @sshkey ?
-          h[:identity_file] = $1
-        end
-      end
-
-      @ssh = h
-
-    end
-
-    sprintf('scp -B -P %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=Error -o IdentitiesOnly=yes -i %s', h[:ssh_port], h[:identity_file])
+    h
   end
 
   def os_type(start_if_not_running=true)
@@ -266,7 +247,8 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to get[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      self._run(sprintf('%s %s@%s:%s %s', self.get_scp_command, @ssh[:user], @ssh[:hostname], remote_file, local_file))
+      #self._run(sprintf('%s %s@%s:%s %s', self.get_scp_command, @ssh[:user], @ssh[:hostname], remote_file, local_file))
+      @scp.download(remote_file, local_file)
     rescue => e
       raise FileTransferError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
@@ -281,7 +263,8 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to put[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      self._run(sprintf('%s %s %s@%s:%s', self.get_scp_command, local_file, @ssh[:user], @ssh[:hostname], remote_file))
+      #self._run(sprintf('%s %s %s@%s:%s', self.get_scp_command, local_file, @ssh[:user], @ssh[:hostname], remote_file))
+      @scp.upload!(local_file, remote_file)
     rescue => e
       raise FileTransferError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
     end
