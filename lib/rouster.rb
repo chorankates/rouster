@@ -25,7 +25,7 @@ class Rouster
 
   def initialize(opts = nil)
     # process hash keys passed
-    @name        = opts[:name] # since we're constantly calling .to_sym on this, might want to just start there
+    @name        = opts[:name]
     @passthrough = opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey      = opts[:sshkey]
     @vagrantfile = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
@@ -115,14 +115,6 @@ class Rouster
     self.connect_ssh_tunnel()
   end
 
-  def connect_ssh_tunnel
-    @log.debug('opening SSH tunnel..')
-
-    self.get_sshinfo()
-    @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
-    @scp = Net::SCP.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
-  end
-
   def destroy
     @log.info('destroy()')
     self._run(sprintf('cd %s; vagrant destroy -f %s', File.dirname(@vagrantfile), @name))
@@ -133,7 +125,7 @@ class Rouster
     self._run(sprintf('cd %s; vagrant status %s', File.dirname(@vagrantfile), @name))
 
     # else case here is handled by non-0 exit code
-    if self.get_output().match(/^#{@name}\s*(.*)\s(.+)$/)
+    if self.get_output().match(/^#{@name}\s*(.*\s?\w+)\s(.+)$/)
       # $1 = name, $2 = provider
       $1
     end
@@ -155,12 +147,12 @@ class Rouster
 
     @log.info(sprintf('vm running: [%s]', command))
 
-    cmd    = sprintf('%s %s%s 2>&1', self.get_ssh_command(), self.uses_sudo? ? 'sudo ' : '', command)
-    output = `#{cmd}`
+    cmd    = sprintf('%s%s', self.uses_sudo? ? 'sudo ' : '')
+    #output = `#{cmd}`
+    output = @ssh.exec!(cmd)
     @exitcode = $?.to_i()
     self.output.push(output)
 
-    # TODO fix the bug here
     unless expected_exitcode.member?(@exitcode)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
     end
@@ -176,7 +168,7 @@ class Rouster
     end
 
     begin
-      self.run('echo foo')
+      self.run('echo functional test of SSH tunnel')
     rescue
       return false
     end
@@ -210,6 +202,14 @@ class Rouster
     end
 
     h
+  end
+
+  def connect_ssh_tunnel
+    @log.debug('opening SSH tunnel..')
+
+    self.get_ssh_info()
+    @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
+    @scp = Net::SCP.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
   end
 
   def os_type(start_if_not_running=true)
