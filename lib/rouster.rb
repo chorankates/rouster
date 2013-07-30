@@ -45,7 +45,6 @@ class Rouster
 
     @exitcode = nil
     @ssh_info = nil # will be hash containing connection information
-    @tunnel   = nil
 
     # set up logging
     require 'log4r/config'
@@ -55,10 +54,20 @@ class Rouster
     @log.outputters = Log4r::Outputter.stderr
     @log.level      = @verbosity # DEBUG (1) < INFO (2) < WARN < ERROR < FATAL (5)
 
+    @log.debug('Vagrantfile and VM name validation..')
     unless File.file?(@vagrantfile)
       raise InternalError.new(sprintf('specified Vagrantfile [%s] does not exist', @vagrantfile))
     end
 
+    raise InternalError.new() if @name.nil?
+
+    begin
+      self.status()
+    rescue Rouster::LocalExecutionError
+      raise InternalError.new()
+    end
+
+    @log.debug('SSH key discovery and viability tests..')
     if @sshkey.nil?
       if @passthrough.eql?(true)
         raise InternalError.new('must specify sshkey when using a passthrough host')
@@ -67,10 +76,6 @@ class Rouster
       end
     end
 
-    ## shellout hackiness
-    @_vm = nil
-
-    # confirm found/specified key exists
     begin
       raise InternalError.new('ssh key not specified') if @sshkey.nil?
       raise InternalError.new('ssh key does not exist') unless File.file?(@sshkey)
@@ -86,29 +91,10 @@ class Rouster
         self.up()
       end
 
-      self.get_ssh_info()
-
-      # could we call self.is_available_via_ssh? or does that need to happen outside initialize
-      @log.debug('opening SSH tunnel..')
-
-      @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
-      @scp = Net::SCP.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
-
-
-      p 'DBGZ' if nil
+      self.connect_ssh_tunnel()
     end
 
-    # make sure the name is valid
-    raise InternalError.new() if @name.nil?
-
-    begin
-      self.status()
-    rescue Rouster::LocalExecutionError
-      raise InternalError.new()
-    end
-
-    @log.debug('Rouster object successfully instantiated')
-
+    @log.info('Rouster object successfully instantiated')
   end
 
   def inspect
@@ -125,6 +111,16 @@ class Rouster
   def up
     @log.info('up()')
     self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
+
+    self.connect_ssh_tunnel()
+  end
+
+  def connect_ssh_tunnel
+    @log.debug('opening SSH tunnel..')
+
+    self.get_sshinfo()
+    @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
+    @scp = Net::SCP.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
   end
 
   def destroy
@@ -174,7 +170,11 @@ class Rouster
   end
 
   def is_available_via_ssh?
-    # functional test to see if Vagrant machine can be logged into via ssh
+
+    if @ssh.nil?
+      self.connect_ssh_tunnel()
+    end
+
     begin
       self.run('echo foo')
     rescue
