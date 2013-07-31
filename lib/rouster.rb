@@ -143,15 +143,24 @@ class Rouster
   def run(command, expected_exitcode=[0])
     # runs a command inside the Vagrant VM
     output = nil
-    expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck
+    expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
 
     @log.info(sprintf('vm running: [%s]', command))
 
-    cmd    = sprintf('%s%s', self.uses_sudo? ? 'sudo ' : '')
-    #output = `#{cmd}`
-    output = @ssh.exec!(cmd)
-    @exitcode = $?.to_i()
-    self.output.push(output)
+    cmd    = sprintf('%s%s', self.uses_sudo? ? 'sudo ' : '', command)
+
+    @ssh.exec!(cmd) do |channel, stream, output|
+
+      if stream.eql?(:stderr)
+        # how do we get the actual exit code?
+        @exitcode = 1
+      else
+        @exitcode = 0
+      end
+
+      self.output.push(output)
+
+    end
 
     unless expected_exitcode.member?(@exitcode)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
@@ -163,7 +172,7 @@ class Rouster
 
   def is_available_via_ssh?
 
-    if @ssh.nil?
+    if @ssh.nil? or @ssh.closed?
       self.connect_ssh_tunnel()
     end
 
@@ -209,7 +218,6 @@ class Rouster
 
     self.get_ssh_info()
     @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
-    @scp = Net::SCP.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
   end
 
   def os_type(start_if_not_running=true)
@@ -248,7 +256,7 @@ class Rouster
 
     begin
       #self._run(sprintf('%s %s@%s:%s %s', self.get_scp_command, @ssh[:user], @ssh[:hostname], remote_file, local_file))
-      @scp.download(remote_file, local_file)
+      @ssh.scp.download(remote_file, local_file)
     rescue => e
       raise FileTransferError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
@@ -264,7 +272,7 @@ class Rouster
 
     begin
       #self._run(sprintf('%s %s %s@%s:%s', self.get_scp_command, local_file, @ssh[:user], @ssh[:hostname], remote_file))
-      @scp.upload!(local_file, remote_file)
+      @ssh.scp.upload!(local_file, remote_file)
     rescue => e
       raise FileTransferError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
     end
