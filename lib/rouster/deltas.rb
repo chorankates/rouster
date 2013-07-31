@@ -177,8 +177,9 @@ class Rouster
 
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
+        # TODO - this needs quite a bit of work
         #next if line.grep(/([\w\s-]+?)\sis\s(\w*?)/).empty?
-        next if line.match(/^([^\s]*).*\s(\w*)\.?$/).nil?
+        next if line.match(/^([^\s\:]*).*\s(\w*)\.?$/).nil?
         res[$1] = $2
 
       end

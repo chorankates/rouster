@@ -113,6 +113,7 @@ class Rouster
     @log.info('up()')
     self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
 
+    @ssh_info = nil # in case the ssh-info has changed
     self.connect_ssh_tunnel()
   end
 
@@ -146,21 +147,18 @@ class Rouster
     output = nil
     expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
 
-    cmd = sprintf('%s%s', self.uses_sudo? ? 'sudo ' : '', command)
+    cmd = sprintf('%s%s; echo ec[$?]', self.uses_sudo? ? 'sudo ' : '', command)
     @log.info(sprintf('vm running: [%s]', cmd))
 
-    @ssh.exec!(cmd) do |channel, stream, output|
-
-      if stream.eql?(:stderr)
-        # how do we get the actual exit code?
-        @exitcode = 1
-      else
-        @exitcode = 0
-      end
-
-      self.output.push(output)
-
+    output = @ssh.exec!(cmd)
+    if output.match(/ec\[(\d+)\]/)
+      @exitcode = $1.to_i
+      output.gsub!(/ec\[(\d+)\]\n/, '')
+    else
+      @exitcode = 1
     end
+
+    self.output.push(output)
 
     unless expected_exitcode.member?(@exitcode)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")

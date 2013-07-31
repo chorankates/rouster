@@ -114,7 +114,7 @@ class Rouster
       command = sprintf("grep -c '%s' %s", regex, file)
       res     = self.run(command)
     rescue Rouster::RemoteExecutionError
-      false
+      return false
     end
 
     if res.nil?.false? and res.match(/^0/)
@@ -129,7 +129,7 @@ class Rouster
     begin
       self.run(sprintf('which %s', filename))
     rescue Rouster::RemoteExecutionError
-      false
+      return false
     end
 
     true
@@ -145,7 +145,7 @@ class Rouster
     begin
       res = self.run(sprintf('ps ax | grep -c %s', name))
     rescue
-      false
+      return false
     end
 
     res.chomp.to_i > 1
