@@ -13,6 +13,7 @@ class Rouster
 
   #TODO
   # set VirtualBox VM name to @name
+  # add caching to status() - for perf if you have stable environment/not edge testing
 
   # custom exceptions -- what else do we want them to include/do?
   class FileTransferError    < StandardError; end # thrown by get() and put()
@@ -145,9 +146,8 @@ class Rouster
     output = nil
     expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
 
-    @log.info(sprintf('vm running: [%s]', command))
-
-    cmd    = sprintf('%s%s', self.uses_sudo? ? 'sudo ' : '', command)
+    cmd = sprintf('%s%s', self.uses_sudo? ? 'sudo ' : '', command)
+    @log.info(sprintf('vm running: [%s]', cmd))
 
     @ssh.exec!(cmd) do |channel, stream, output|
 
