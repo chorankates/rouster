@@ -265,8 +265,7 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to get[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      #self._run(sprintf('%s %s@%s:%s %s', self.get_scp_command, @ssh[:user], @ssh[:hostname], remote_file, local_file))
-      @ssh.scp.download(remote_file, local_file)
+      @ssh.scp.download!(remote_file, local_file)
     rescue => e
       raise FileTransferError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
@@ -281,7 +280,6 @@ class Rouster
     raise SSHConnectionError.new(sprintf('unable to put[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
-      #self._run(sprintf('%s %s %s@%s:%s', self.get_scp_command, local_file, @ssh[:user], @ssh[:hostname], remote_file))
       @ssh.scp.upload!(local_file, remote_file)
     rescue => e
       raise FileTransferError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
