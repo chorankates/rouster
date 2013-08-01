@@ -171,7 +171,12 @@ class Rouster
   def is_available_via_ssh?
 
     if @ssh.nil? or @ssh.closed?
-      self.connect_ssh_tunnel()
+      begin
+        self.connect_ssh_tunnel()
+      rescue Rouster::InternalError
+        return false
+      end
+
     end
 
     begin
@@ -190,6 +195,7 @@ class Rouster
     if @ssh_info.class.eql?(Hash)
       h = @ssh_info
     else
+
       res = self._run(sprintf('cd %s; vagrant ssh-config %s', File.dirname(@vagrantfile), @name))
 
       res.split("\n").each do |line|
@@ -214,8 +220,14 @@ class Rouster
   def connect_ssh_tunnel
     @log.debug('opening SSH tunnel..')
 
-    self.get_ssh_info()
-    @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
+    if self.status.eql?('running')
+      self.get_ssh_info()
+      @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
+    else
+      raise InternalError.new('VM is not running, unable open SSH tunnel')
+    end
+
+    @ssh
   end
 
   def os_type(start_if_not_running=true)

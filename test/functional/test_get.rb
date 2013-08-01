@@ -28,17 +28,18 @@ class TestGet < Test::Unit::TestCase
       @app.get(@kg_remote_location, @kg_local_location)
     end
 
-    assert(File.file?(@kg_local_location))
+    assert(File.file?(@kg_local_location), 'downloaded file exists')
   end
 
   def test_local_path_dne
 
     assert_raise Rouster::FileTransferError do
       @app.get(@kg_remote_location, @kb_dne_location)
+
+      # TODO how can we check the contents of the expception message?
     end
 
     assert_equal(false, File.file?(@kg_local_location), 'known bad local path DNE')
-    assert_match(//, )
   end
 
   def test_remote_path_dne
