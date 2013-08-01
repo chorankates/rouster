@@ -330,6 +330,7 @@ class Rouster
       false
     end
 
+    @ssh, @ssh_info = nil, nil
   end
 
   def _run(command)

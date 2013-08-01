@@ -36,7 +36,7 @@
 
       os = @app.os_type
 
-      if os.eql?(:RedHat)
+      if os.eql?(:redhat)
 
         original_minutes_seconds = $1 if original_uptime.match(/\d+:.*up.*(\d+:\d+)/)
         original_seconds =
