@@ -17,6 +17,8 @@ class TestDeltasGetPackages < Test::Unit::TestCase
   def test_happy_path
     res = nil
 
+    assert_equal(false, @app.deltas.has_key?(:packages))
+
     assert_nothing_raised do
       res = @app.get_packages()
     end
@@ -34,7 +36,18 @@ class TestDeltasGetPackages < Test::Unit::TestCase
 
   end
 
-  # TODO add some caching tests
+  def test_caching_negative
+    res = nil
+
+    assert_equal(false, @app.deltas.has_key?(:packages))
+
+    assert_nothing_raised do
+      res = @app.get_packages(false)
+    end
+
+    assert_equal(Hash, res.class)
+    assert_equal(false, @app.deltas.has_key?(:packages))
+  end
 
   def teardown
     @app = nil
