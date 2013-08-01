@@ -9,11 +9,11 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 require 'rouster/tests'
 
 class Rouster
-  VERSION = 0.2
+  VERSION = 0.3
 
   #TODO
   # set VirtualBox VM name to @name
-  # add caching to status() - for perf if you have stable environment/not edge testing
+  # add caching to status()/is_available_via_ssh?() - for perf if you have stable environment/not edge testing
 
   # custom exceptions -- what else do we want them to include/do?
   class FileTransferError    < StandardError; end # thrown by get() and put()
