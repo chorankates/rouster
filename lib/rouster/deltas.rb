@@ -1,6 +1,7 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 # deltas.rb - get information about groups, packages, services and users inside a Vagrant VM
+require 'rouster'
 require 'rouster/tests'
 
 class Rouster
@@ -185,7 +186,7 @@ class Rouster
       end
 
     else
-      raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
+      raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os))
     end
 
     if cache
@@ -223,6 +224,41 @@ class Rouster
     end
 
     res
+  end
+
+  def get_ports(cache=false)
+    # really just ports we're listening on
+    # TODO add unix domain sockets
+
+    if cache and ! self.deltas[:ports].nil?
+      self.deltas[:ports]
+    end
+
+    res = Hash.new()
+    os  = self.os_type()
+
+    if os.eql?(:redhat)
+
+      raw = self.run('netstat -l')
+
+      raw.each do |line|
+
+        next unless line.match(/(\w+)\s+\d+\s+\d+(.*)\:(\w*)\s/)
+
+        protocol = $1
+        address  = $2
+        port     = $3
+
+        res[protcol] = Hash.new if res[protocol].nil?
+        res[protocol][port] = address
+
+      end
+
+    else
+      raise InternalError.new(sprintf('unable to get port information from VM operating system[%s]', os))
+    end
+
+
   end
 
 end
