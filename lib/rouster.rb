@@ -8,6 +8,7 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 
 require 'rouster/tests'
 
+# see README for general information
 class Rouster
   VERSION = 0.3
 
@@ -29,6 +30,7 @@ class Rouster
     @name        = opts[:name]
     @passthrough = opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey      = opts[:sshkey]
+    @sshtunnel   = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
     @vagrantfile = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
     @verbosity   = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 5
 
@@ -86,7 +88,7 @@ class Rouster
       raise InternalError.new("specified key [#{@sshkey}] has bad permissions. Vagrant exception: [#{e.message}]")
     end
 
-    if opts.has_key?(:sshtunnel) and opts[:sshtunnel]
+    if @sshtunnel
       unless self.status.eql?('running')
         @log.info(sprintf('upping machine[%s] in order to open SSH tunnel', @name))
         self.up()
@@ -98,30 +100,43 @@ class Rouster
     @log.info('Rouster object successfully instantiated')
   end
 
+
+  ##
+  # inspect - overloaded method to return useful information about Rouster objects
   def inspect
     "name [#{@name}]:
+      is_available_via_ssh?[#{self.is_available_via_ssh?}],
       passthrough[#{@passthrough}],
       sshkey[#{@sshkey}],
-      status[#{self.status()}]
+      status[#{self.status()}],
       sudo[#{@sudo}],
       vagrantfile[#{@vagrantfile}],
       verbosity[#{@verbosity}]\n"
   end
 
   ## Vagrant methods
+
+  ##
+  # up - shells out and runs 'vagrant up' from the Vagrantfile path
+  # if :sshtunnel is passed to the object during instantiation, the tunnel is created here as well
   def up
     @log.info('up()')
     self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
 
     @ssh_info = nil # in case the ssh-info has changed
-    self.connect_ssh_tunnel()
+    self.connect_ssh_tunnel() if @sshtunnel
   end
 
+  ##
+  # destroy - shells out and runs 'vagrant destroy <name>' from the Vagrantfile path
   def destroy
     @log.info('destroy()')
     self._run(sprintf('cd %s; vagrant destroy -f %s', File.dirname(@vagrantfile), @name))
   end
 
+  ##
+  # status - shells out and runs 'vagrant status <name>' from the Vagrantfile path
+  # parses the status and provider out of output, but only status is returned
   def status
     @log.info('status()')
     self._run(sprintf('cd %s; vagrant status %s', File.dirname(@vagrantfile), @name))
@@ -134,6 +149,8 @@ class Rouster
 
   end
 
+  ##
+  # suspend - shells out and runs 'vagrant suspend <name>' from the Vagrantfile path
   def suspend
     @log.info('suspend()')
     self._run(sprintf('cd %s; vagrant suspend %s', File.dirname(@vagrantfile), @name))
@@ -142,8 +159,16 @@ class Rouster
   ## internal methods
   #private -- commented out so that unit tests can pass, should probably use the 'make all private methods public' method discussed in issue #28
 
+  ##
+  # run - runs a command inside the Vagrant VM
+  #
+  # returns output (STDOUT and STDERR) from command run, sets @exitcode
+  # currently determines exitcode by tacking a 'echo $?' onto the command being run, which is then parsed out before returning
+  #
+  # parameters:
+  # * <command> = the command to run (sudo will be prepended if specified in object instantiation)
+  # * [expected_exitcode] = allows for non-0 exit codes to be returned without requiring exception handling
   def run(command, expected_exitcode=[0])
-    # runs a command inside the Vagrant VM
     output = nil
     expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
 
@@ -168,6 +193,12 @@ class Rouster
     output
   end
 
+  ##
+  # is_available_via_ssh?
+  #
+  # returns true or false after:
+  # * attempting to establish SSH tunnel if it is not currently up/open
+  # * running a functional test of the tunnel
   def is_available_via_ssh?
 
     if @ssh.nil? or @ssh.closed?
@@ -188,6 +219,10 @@ class Rouster
     true
   end
 
+  ##
+  # get_ssh_info - shells out and runs 'vagrant ssh-config <name>' from the Vagrantfile path
+  #
+  # returns a hash containing required data for opening an SSH connection to a VM
   def get_ssh_info
 
     h = Hash.new()
@@ -217,6 +252,10 @@ class Rouster
     h
   end
 
+  ##
+  # connect_ssh_tunnel - instantiates a Net::SSH persistent connection to the Vagrant VM
+  #
+  # raises its own exception if the machine isn't running, otherwise returns Net::SSH connection object
   def connect_ssh_tunnel
     @log.debug('opening SSH tunnel..')
 
@@ -230,9 +269,14 @@ class Rouster
     @ssh
   end
 
+  ##
+  # os_type - attempts to determine VM operating system based on `uname -a` output, supports OSX, Sun|Solaris, Ubuntu and Redhat
+  #
+  # parameters
+  #  * start_if_not_running - defaults to true, if machine is not running, starts it up
+  #
+  # if machine is not running and start_if_not_running is disabled, will throw a Rouster::InternalError exception after trying to run() a command
   def os_type(start_if_not_running=true)
-    # if the machine isn't created, typically see 'Vagrant::Guest::Linux'
-    # returns :RedHat, :Solaris or :Ubuntu
 
     if start_if_not_running and self.status.eql?('running').false?
       @log.debug('starting machine to determine OS type')
@@ -258,11 +302,19 @@ class Rouster
 
   end
 
+  ##
+  # get - downloads a file from VM to host
+  #
+  # parameters
+  # * <remote_file> - full or relative path (based on ~vagrant) of file to download
+  # * [local_file] - full or relative path (based on $PWD) of file to download to
+  #
+  # if no local_file is specified, will be downloaded to $PWD with the same shortname as it had in the VM
   def get(remote_file, local_file=nil)
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
     @log.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
 
-    raise SSHConnectionError.new(sprintf('unable to get[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
+    # TODO should we do a self.file?(remote_file) test before trying to download?
 
     begin
       @ssh.scp.download!(remote_file, local_file)
@@ -272,12 +324,17 @@ class Rouster
 
   end
 
+  ##
+  # put - uploads a file from host to VM
+  #
+  # parameters
+  # * <local_file> - full or relative path (based on $PWD) of file to upload
+  # * [remote_file] - full or relative path (based on ~vagrant) of filename to upload to
   def put(local_file, remote_file=nil)
     remote_file = remote_file.nil? ? File.basename(local_file) : remote_file
     @log.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
 
     raise FileTransferError.new(sprintf('unable to put[%s], local file does not exist', local_file)) unless File.file?(local_file)
-    raise SSHConnectionError.new(sprintf('unable to put[%s], SSH connection unavailable', remote_file)) unless self.is_available_via_ssh?
 
     begin
       @ssh.scp.upload!(local_file, remote_file)
