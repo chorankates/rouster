@@ -173,7 +173,7 @@ class Rouster
     if @ssh.nil? or @ssh.closed?
       begin
         self.connect_ssh_tunnel()
-      rescue Rouster::InternalError
+      rescue Rouster::InternalError, Net::SSH::Disconnect => e
         return false
       end
 
