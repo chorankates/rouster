@@ -141,14 +141,23 @@ class Rouster
     packages.has_key?(package)
   end
 
-  def is_port_closed?(port, cache=false)
+  # TODO is this the right name?
+  def is_port_active?(port, cache=false)
     ports = self.get_ports(cache)
-    ports.has_key(port)
+    if ports.has_key(port)
+      ports[port].eql?('ACTIVE') || ports[port].eql?('Listening')
+    end
+
+    false
   end
 
   def is_port_open?(port, cache=false)
     ports = self.get_ports(cache)
-    ! ports.has_key?(port)
+    if ports.has_key?(port)
+      false
+    end
+
+    true
   end
 
   def is_process_running?(name)
