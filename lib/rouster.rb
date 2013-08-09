@@ -13,7 +13,7 @@ class Rouster
   VERSION = 0.3
 
   #TODO
-  # set VirtualBox VM name to @name
+  # set VirtualBox VM name to @name -- or should we leave it to the Vagrantfile?
   # add caching to status()/is_available_via_ssh?() - for perf if you have stable environment/not edge testing
 
   # custom exceptions -- what else do we want them to include/do?
@@ -30,7 +30,7 @@ class Rouster
     @name        = opts[:name]
     @passthrough = opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey      = opts[:sshkey]
-    @sshtunnel   = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
+    @sshtunnel   = opts[:sshtunnel].nil? ? false : opts[:sshtunnel]
     @vagrantfile = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
     @verbosity   = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 5
 
@@ -43,7 +43,7 @@ class Rouster
     end
 
     @output   = Array.new
-    @deltas   = Hash.new # should probably rename this, but need container for deltas.rb/get_*
+    @deltas   = Hash.new
     @facts    = Hash.new()
 
     @exitcode = nil
@@ -55,7 +55,7 @@ class Rouster
 
     @log            = Log4r::Logger.new(sprintf('rouster:%s', @name))
     @log.outputters = Log4r::Outputter.stderr
-    @log.level      = @verbosity # DEBUG (1) < INFO (2) < WARN < ERROR < FATAL (5)
+    @log.level      = @verbosity # DEBUG (4) < INFO (3) < WARN (2) < ERROR (1) < FATAL (0)
 
     @log.debug('Vagrantfile and VM name validation..')
     unless File.file?(@vagrantfile)
@@ -82,8 +82,7 @@ class Rouster
     begin
       raise InternalError.new('ssh key not specified') if @sshkey.nil?
       raise InternalError.new('ssh key does not exist') unless File.file?(@sshkey)
-      # TODO implement this method
-      #@_vm.ssh.check_key_permissions(@sshkey)
+      self.check_key_permissions(@sshkey)
     rescue => e
       raise InternalError.new("specified key [#{@sshkey}] has bad permissions. Vagrant exception: [#{e.message}]")
     end
@@ -169,6 +168,7 @@ class Rouster
   # * <command> = the command to run (sudo will be prepended if specified in object instantiation)
   # * [expected_exitcode] = allows for non-0 exit codes to be returned without requiring exception handling
   def run(command, expected_exitcode=[0])
+
     output = nil
     expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
 
@@ -442,6 +442,17 @@ class Rouster
     end
   end
 
+  def check_key_permissions(key, fix=true)
+    allowed_modes = ['0400', '0600']
+
+    raw   = self._run(sprintf('ls -l %s', key))
+    perms = self.parse_ls_string(raw)
+
+    raise InternalError.new(sprintf('perms for [%s] are [%s], expecting [%s]', key, perms[:mode], allowed_modes)) unless allowed_modes.member?(perms[:mode])
+    raise InternalError.new(sprintf('owner for [%s] is [%s], expecting [%s]', key, perms[:owner], ENV['USER'])) unless perms[:owner].eql?(ENV['USER'])
+
+    nil
+  end
 
 end
 
