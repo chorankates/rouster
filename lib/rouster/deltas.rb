@@ -229,6 +229,7 @@ class Rouster
   def get_ports(cache=false)
     # really just ports we're listening on
     # TODO add unix domain sockets
+    # TODO add ipv6 support
 
     if cache and ! self.deltas[:ports].nil?
       self.deltas[:ports]
@@ -239,18 +240,21 @@ class Rouster
 
     if os.eql?(:redhat)
 
-      raw = self.run('netstat -l')
+      raw = self.run('netstat -ln')
 
       raw.each do |line|
 
-        next unless line.match(/(\w+)\s+\d+\s+\d+(.*)\:(\w*)\s/)
+        next unless line.match(/(\w+)\s+\d+\s+\d+\s+(\S*\:\:)\:(\w*)\s.*?(\w+)\s/)
 
         protocol = $1
         address  = $2
         port     = $3
+        state    = $4
 
-        res[protcol] = Hash.new if res[protocol].nil?
-        res[protocol][port] = address
+        res[protocol] = Hash.new if res[protocol].nil?
+        res[protocol][port] = Hash.new
+        res[protocol][port][:address] = address
+        res[protocol][port][:state]   = state
 
       end
 
@@ -258,7 +262,7 @@ class Rouster
       raise InternalError.new(sprintf('unable to get port information from VM operating system[%s]', os))
     end
 
-
+    res
   end
 
 end
