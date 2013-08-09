@@ -56,6 +56,7 @@ class Rouster
     end
 
     if cache
+      self.deltas[:file] = Hash.new if self.deltas[:file].nil?
       self.deltas[:files][file] = res
     end
 
@@ -140,11 +141,30 @@ class Rouster
     packages.has_key?(package)
   end
 
+  def is_port_closed?(port, cache=false)
+    ports = self.get_ports(cache)
+    ports.has_key(port)
+  end
+
+  def is_port_open?(port, cache=false)
+    ports = self.get_ports(cache)
+    ! ports.has_key?(port)
+  end
+
   def is_process_running?(name)
     # TODO support other flavors - this will work on RHEL and OSX
     begin
-      res = self.run(sprintf('ps ax | grep -c %s', name))
-    rescue
+
+      os = self.os_type()
+
+      case os
+        when :rhel, :darwin
+          res = self.run(sprintf('ps ax | grep -c %s', name))
+        else
+          raise InternalError.new(sprintf('currently unable to determine running process list on OS[%s]', os))
+      end
+
+    rescue Rouster::RemoteExecutionError
       return false
     end
 
@@ -227,7 +247,7 @@ class Rouster
   end
 
   # non-test, helper methods
-  private
+  #private
   def parse_ls_string(string)
     # ht avaghti
 
