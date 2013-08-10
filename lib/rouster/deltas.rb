@@ -244,17 +244,18 @@ class Rouster
 
       raw.each do |line|
 
-        next unless line.match(/(\w+)\s+\d+\s+\d+\s+(\S*\:\:)\:(\w*)\s.*?(\w+)\s/)
+        # this regex doesn't work for UDP output yet..
+        next unless line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w+)\s/)
 
         protocol = $1
         address  = $2
         port     = $3
-        state    = $4
+        state    = protocol.eql?('udp') ? 'you_might_not_get_it' : $4
 
         res[protocol] = Hash.new if res[protocol].nil?
-        res[protocol][port] = Hash.new
-        res[protocol][port][:address] = address
-        res[protocol][port][:state]   = state
+        res[protocol][port] = Hash.new if res[protocol][port].nil?
+        res[protocol][port][:address] = Hash.new if res[protocol][port][:address].nil?
+        res[protocol][port][:address][address] = state
 
       end
 
