@@ -164,7 +164,7 @@ class Rouster
     ports = self.get_ports(cache)
     port  = port.to_s
     if ports[proto].class.eql?(Hash) and ports[proto].has_key?(port)
-      false
+      return false
     end
 
     true
