@@ -17,25 +17,38 @@ class TestDeltasGetPorts < Test::Unit::TestCase
   def test_happy_path
     res = nil
 
+    assert_nil(@app.deltas[:ports])
+
     assert_nothing_raised do
       res = @app.get_ports()
     end
 
     assert_equal(Hash, res.class)
-    assert_not_nil(@app.deltas[:ports])
 
     res.each_key do |proto|
       assert_not_nil(res[proto])
 
-      proto.each_key do |port|
+      res[proto].each_key do |port|
         assert_not_nil(res[proto][port])
       end
 
     end
 
+    assert_nil(@app.deltas[:ports])
+
   end
 
-  # TODO add some non-caching tests
+  def test_happy_path_caching
+
+    assert_nil(@app.deltas[:ports])
+
+    assert_nothing_raised do
+      @app.get_ports(true)
+    end
+
+    assert_equal(Hash, @app.deltas[:ports].class)
+
+  end
 
   def teardown
     @app = nil
