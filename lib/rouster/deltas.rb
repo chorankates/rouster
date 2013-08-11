@@ -263,6 +263,10 @@ class Rouster
       raise InternalError.new(sprintf('unable to get port information from VM operating system[%s]', os))
     end
 
+    if cache
+      self.deltas[:ports] = res
+    end
+
     res
   end
 
