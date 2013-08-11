@@ -229,7 +229,7 @@ class Rouster
   def get_ports(cache=false)
     # really just ports we're listening on
     # TODO add unix domain sockets
-    # TODO add ipv6 support
+    # TODO improve ipv6 support
 
     if cache and ! self.deltas[:ports].nil?
       self.deltas[:ports]
@@ -244,7 +244,6 @@ class Rouster
 
       raw.each do |line|
 
-        # this regex doesn't work for UDP output yet..
         next unless line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w+)\s/) or line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w*)\s/)
 
         protocol = $1
