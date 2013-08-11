@@ -177,7 +177,7 @@ class Rouster
       os = self.os_type()
 
       case os
-        when :rhel, :darwin
+        when :redhat, :darwin, :ubuntu
           res = self.run(sprintf('ps ax | grep -c %s', name))
         else
           raise InternalError.new(sprintf('currently unable to determine running process list on OS[%s]', os))
@@ -187,7 +187,7 @@ class Rouster
       return false
     end
 
-    res.chomp.to_i > 1
+    res.chomp.to_i > 2 # because of the weird way our process is run through the ssh tunnel
   end
 
   def is_readable?(filename, level='u')
