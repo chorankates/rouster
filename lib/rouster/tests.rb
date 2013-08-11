@@ -142,18 +142,28 @@ class Rouster
   end
 
   # TODO is this the right name?
-  def is_port_active?(port, cache=false)
+  def is_port_active?(port, proto='tcp', cache=false)
     ports = self.get_ports(cache)
-    if ports.has_key(port)
-      ports[port].eql?('ACTIVE') || ports[port].eql?('Listening')
+    port  = port.to_s
+    if ports[proto].class.eql?(Hash) and ports[proto].has_key?(port)
+
+      if proto.eql?('tcp')
+        ['ACTIVE', 'LISTEN']. each do |allowed|
+          return true if ports[proto][port][:address].values.member?(allowed)
+        end
+      else
+        return true
+      end
+
     end
 
     false
   end
 
-  def is_port_open?(port, cache=false)
+  def is_port_open?(port, proto='tcp', cache=false)
     ports = self.get_ports(cache)
-    if ports.has_key?(port)
+    port  = port.to_s
+    if ports[proto].class.eql?(Hash) and ports[proto].has_key?(port)
       false
     end
 

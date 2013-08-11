@@ -50,6 +50,68 @@ class TestDeltasGetPorts < Test::Unit::TestCase
 
   end
 
+  # TODO this probably isn't the right placefor this test..
+  def test_functional_tests
+
+    # TODO this is still wrong, since the data structure may change further
+    stock = {
+        "udp"=>
+          {"123"=>
+            {:address=>
+              {"fe80::a00:27ff:fe30:a00b"=>"you_might_not_get_it",
+               "::1"=>"you_might_not_get_it",
+               "0.0.0.0"=>"you_might_not_get_it",
+               "fe80::a00:27ff:fe42:f532"=>"you_might_not_get_it",
+               "127.0.0.1"=>"you_might_not_get_it",
+               "::"=>"you_might_not_get_it",
+               "10.0.2.15"=>"you_might_not_get_it",
+               "10.0.1.104"=>"you_might_not_get_it",
+               "192.168.1.161"=>"you_might_not_get_it"
+              }
+            },
+             "68"=>
+                {:address=>
+                  {"0.0.0.0"=>"you_might_not_get_it"}
+                },
+             "111"=>
+               {:address=>
+                 {"0.0.0.0"=>"you_might_not_get_it", "::"=>"you_might_not_get_it"}
+               },
+             "840"=>
+               {:address=>
+                 {"0.0.0.0"=>"you_might_not_get_it", "::"=>"you_might_not_get_it"}
+               },
+             "161"=>
+               {:address=>
+                 {"0.0.0.0"=>"you_might_not_get_it"}
+               }
+            },
+        "tcp"=>
+          {"111"=>{:address=>{"0.0.0.0"=>"LISTEN", "::"=>"LISTEN"}},
+           "199"=>{:address=>{"127.0.0.1"=>"LISTEN"}},
+           "25"=>{:address=>{"127.0.0.1"=>"LISTEN"}},
+           "22"=>{:address=>{"0.0.0.0"=>"LISTEN", "::"=>"LISTEN"}}
+          }
+    }
+
+    @app.deltas[:ports] = stock
+
+    assert_equal(true, @app.is_port_open?(1234, 'tcp', true))
+    assert_equal(true, @app.is_port_active?(22, 'tcp', true))
+
+    assert_equal(true, @app.is_port_open?(303, 'udp', true))
+    assert_equal(true, @app.is_port_active?(123, 'udp', true))
+
+    # expected to return false
+    assert_equal(false, @app.is_port_open?(22, 'tcp', true))
+    assert_equal(false, @app.is_port_active?(1234, 'tcp', true))
+
+    # caching/argument default validation -- can't currently do this, don't know what ports will be open on others systems
+    #assert_equal(true, @app.is_port_active?(22))
+    #assert_equal(true, @app.is_port_open?(1234))
+
+  end
+
   def teardown
     @app = nil
   end
