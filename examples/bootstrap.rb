@@ -37,6 +37,41 @@ workers.each do |w|
   p sprintf('%s status: %s', w.name, w.status())
   p sprintf('%s available via ssh: %s', w.name, w.is_available_via_ssh?())
 
+  ## expected success
+  p sprintf('is_dir?(/tmp): %s', w.is_dir?('/tmp'))
+  p sprintf('is_exectuable?(/sbin/service: %s', w.is_executable?('/sbin/service'))
+  p sprintf('is_file?(/etc/hosts): %s', w.is_file?('/etc/hosts'))
+  p sprintf('is_group?(root): %s', w.is_group?('root'))
+  p sprintf('is_in_file?(/etc/hosts, puppet): %s', w.is_in_file?('/etc/hosts', 'puppet'))
+  p sprintf('is_in_path?(ping): %s', w.is_in_path?('ping'))
+  p sprintf('is_package?(libpcap): %s', w.is_package?('libpcap'))
+  p sprintf('is_port_open?(9999): %s', w.is_port_open?(9999))
+  p sprintf('is_port_active?(22): %s', w.is_port_active?(22))
+  p sprintf('is_process_running?(sshd): %s', w.is_process_running?('sshd'))
+  p sprintf('is_readable?(/etc/hosts): %s', w.is_readable?('/etc/hosts'))
+  p sprintf('is_service?(iptables): %s', w.is_service?('iptables'))
+  p sprintf('is_service_running?(iptables): %s', w.is_service_running?('iptables'))
+  p sprintf('is_user?(root): %s', w.is_user?('root'))
+  p sprintf('is_writeable?(/etc/hosts): %s', w.is_writeable?('/etc/hosts'))
+
+  ## expected failure
+  p sprintf('is_dir?(/dne): %s', w.is_dir?('/dne'))
+  p sprintf('is_executable?(fizzybang): %s', w.is_executable?('fizzybang'))
+  p sprintf('is_file?(/dne/fizzy): %s', w.is_file?('/dne/fizzy'))
+  p sprintf('is_group?(three-amigos): %s', w.is_group?('three-amigos'))
+  p sprintf('is_in_file?(/etc/hosts, this content is not there): %s', w.is_in_file?('/etc/hosts', 'this content is not there'))
+  p sprintf('is_in_file?(/dne/fizzy, this file is not there): %s', w.is_in_file?('/dne/fizzy', 'this file is not there'))
+  p sprintf('is_in_path?(fizzy): %s', w.is_in_path?('fizzy'))
+  p sprintf('is_package?(fizzybang): %s', w.is_package?('fizzybang'))
+  p sprintf('is_port_open?(123, udp): %s', w.is_port_open?(123, 'udp'))
+  p sprintf('is_port_open?(22): %s', w.is_port_open?(22))
+  p sprintf('is_process_running?(fizzy): %s', w.is_process_running?('fizzy'))
+  p sprintf('is_readable?(/dne/fizzy): %s', w.is_readable?('/dne/fizzy'))
+  p sprintf('is_service?(syslogd): %s', w.is_service?('syslogd'))
+  p sprintf('is_service_running?(smartd): %s', w.is_service_running?('smartd'))
+  p sprintf('is_user?(toor): %s', w.is_user?('toor'))
+  #p sprintf('is_writable?(/etc/hosts): %s', w.is_writeable?('/etc/hosts')) # running as sudo, so everything is writeable -- can we test this with a file in a path that DNE?
+
   # put a file on the box and then bring it back
   w.put(__FILE__, '/tmp/foobar')
   w.get('/tmp/foobar', 'foobar_from_piab_host.tmp')
@@ -73,40 +108,6 @@ workers.each do |w|
   p sprintf('%s status: %s', w.name, w.status())
   p sprintf('%s available via ssh: %s', w.name, w.is_available_via_ssh?())
 
-  ## expected success
-  p w.is_dir?('/tmp')
-  p w.is_executable?('/sbin/service')
-  p w.is_file?('/etc/hosts')
-  p w.is_group?('root')
-  p w.is_in_file?('/etc/hosts', 'puppet')
-  p w.is_in_path?('ping')
-  p w.is_package?('libpcap')
-  p w.is_port_open?(9999)
-  p w.is_port_active?(22)
-  p w.is_process_running?('sshd')
-  p w.is_readable?('/etc/hosts')
-  p w.is_service?('iptables')
-  p w.is_service_running?('iptables')
-  p w.is_user?('root')
-  p w.is_writeable?('/etc/hosts')
-
-  ## expected failure
-  p w.is_dir?('/dne')
-  p w.is_executable?('fizzybang')
-  p w.is_file?('/dne/fizzy')
-  p w.is_group?('three-amigos')
-  p w.is_in_file?('/etc/hosts', 'this content is not there')
-  p w.is_in_file?('/dne/fizzy', 'this file is not there')
-  p w.is_in_path?('fizzy')
-  p w.is_package?('fizzybang')
-  p w.is_port_open?(123, 'udp')
-  p w.is_port_open?(22)
-  p w.is_process_running?('fizzy')
-  p w.is_readable?('/dne/fizzy')
-  p w.is_service?('syslogd')
-  p w.is_service_running?('smartd')
-  p w.is_user?('toor')
-  #p w.is_writeable?('/etc/hosts') # running as sudo, so everything is writeable
 end
 
 exit
