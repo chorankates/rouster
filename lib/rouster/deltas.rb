@@ -242,7 +242,7 @@ class Rouster
 
       raw = self.run('netstat -ln')
 
-      raw.each do |line|
+      raw.split("\n").each do |line|
 
         next unless line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w+)\s/) or line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w*)\s/)
 
