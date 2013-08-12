@@ -25,6 +25,17 @@ class Rouster
 
   attr_reader :deltas, :exitcode, :facts, :log, :name, :output, :passthrough, :sshkey, :sudo, :vagrantfile, :verbosity, :_vm
 
+  ##
+  # initialize - object instantiation
+  #
+  # parameters
+  # * <name>        - the name of the VM as specified in the Vagrantfile
+  # * [passthrough] - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
+  # * [sshkey]      - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (~/.vagrant.d/)
+  # * [sshtunnel]   - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
+  # * [sudo]        - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
+  # * [vagrantfile] - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
+  # * [verbosity]   - DEBUG (4) < INFO (3) < WARN (2) < ERROR (1) < FATAL (0)
   def initialize(opts = nil)
     # process hash keys passed
     @name        = opts[:name]
@@ -32,7 +43,7 @@ class Rouster
     @sshkey      = opts[:sshkey]
     @sshtunnel   = opts[:sshtunnel].nil? ? false : opts[:sshtunnel]
     @vagrantfile = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
-    @verbosity   = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 5
+    @verbosity   = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 2
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]
@@ -55,7 +66,7 @@ class Rouster
 
     @log            = Log4r::Logger.new(sprintf('rouster:%s', @name))
     @log.outputters = Log4r::Outputter.stderr
-    @log.level      = @verbosity # DEBUG (4) < INFO (3) < WARN (2) < ERROR (1) < FATAL (0)
+    @log.level      = @verbosity
 
     @log.debug('Vagrantfile and VM name validation..')
     unless File.file?(@vagrantfile)
@@ -344,23 +355,32 @@ class Rouster
 
   end
 
-  # there has _got_ to be a more rubyish way to do this
+  ##
+  # is_passthrough? - convenience getter for @passthrough truthiness
   def is_passthrough?
     self.passthrough.eql?(true)
   end
 
+  ##
+  # uses_sudo? - convenience getter for @sudo truthiness
   def uses_sudo?
     # convenience method for the @sudo attribute
      self.sudo.eql?(true)
   end
 
+  ##
+  # rebuild - destroy and then up the machine in question
   def rebuild
-    # destroys/reups a Vagrant machine
     @log.debug('rebuild()')
     self.destroy
     self.up
   end
 
+  ##
+  # restart - sends 'shutdown -rf now' to VM, optionally waits for machine to come back to life
+  #
+  # parameters
+  # * [wait] - number of seconds to wait until is_available_via_ssh?() returns true before assuming failure
   def restart(wait=nil)
     @log.debug('restart()')
     # restarts a Vagrant machine, wait time is same as rebuild()
@@ -388,10 +408,15 @@ class Rouster
     @ssh, @ssh_info = nil, nil
   end
 
+  ##
+  # _run - (should be) private method that executes commands on the local host (not guest VM)
+  #
+  # returns STDOUT|STDERR, raises Rouster::LocalExecutionError on non 0 exit code
+  # sets @exitcode
+  #
+  # parameters
+  # * <command> - command to be run
   def _run(command)
-    # shells out and executes a command locally on the system, different than run(), which operates in the VM
-    # returns STDOUT|STDERR, raises Rouster::LocalExecutionError on non 0 exit code
-
     tmp_file = sprintf('/tmp/rouster.%s.%s', Time.now.to_i, $$)
     cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file) # this is a holdover from Salesforce::Vagrant, can we use '2&>1' here?
     res      = `#{cmd}` # what does this actually hold?
@@ -410,18 +435,40 @@ class Rouster
     output
   end
 
+  ##
+  # get_output - returns output from commands passed through _run() and run()
+  #
+  # if no parameter passed, returns output from the last command run
+  #
+  # parameters
+  # * [index] - positive or negative indexing of LIFO datastructure
   def get_output(index = 1)
     # return index'th array of output in LIFO order (recasts positive or negative as best as it can)
     index.is_a?(Fixnum) and index > 0 ? self.output[-index] : self.output[index]
   end
 
+  ##
+  # generate_unique_mac - returns a ~unique, valid MAC
+  # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
+  #
+  # uses prefix 'b88d12' (actually Apple's prefix)
+  # uniqueness is not guaranteed, is really more just 'random'
   def generate_unique_mac
-    # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
-    #(1..6).map{"%0.2X" % rand(256)}.join('').downcase # causes a fatal error with VboxManage if colons are left in
     sprintf('b88d12%s', (1..3).map{"%0.2X" % rand(256)}.join('').downcase)
   end
 
+  ##
+  # traverse_up - overly complex function to find a file (Vagrantfile, in our case) somewhere up the tree
+  #
+  # returns the first matching filename or nil if none found
+  #
+  # parameters
+  # * [startdir] - directory to start looking in, default is current directory
+  # * [filename] - filename you are looking for
+  # * [levels]   - number of directory levels to examine, default is 10
+  # TODO not sure this signature is exactly right..
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
+
     raise InternalError.new('must specify a filename') if filename.nil?
 
     @log.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels)) unless @log.nil?
@@ -442,14 +489,35 @@ class Rouster
     end
   end
 
-  def check_key_permissions(key, fix=true)
+  ##
+  # check_key_permissions - checks (and optionally fixes) permissions on the SSH key used to auth to the Vagrant VM
+  #
+  # parameters
+  #  * <key> - full path to SSH key
+  #  * [fix] - boolean, if true and required, will attempt to set permissions on key to 0400 - default is false
+  def check_key_permissions(key, fix=false)
     allowed_modes = ['0400', '0600']
 
     raw   = self._run(sprintf('ls -l %s', key))
     perms = self.parse_ls_string(raw)
 
-    raise InternalError.new(sprintf('perms for [%s] are [%s], expecting [%s]', key, perms[:mode], allowed_modes)) unless allowed_modes.member?(perms[:mode])
-    raise InternalError.new(sprintf('owner for [%s] is [%s], expecting [%s]', key, perms[:owner], ENV['USER'])) unless perms[:owner].eql?(ENV['USER'])
+    unless allowed_modes.member?(perms[:mode])
+      if fix.eql?(true)
+        self._run(sprintf('chmod 0400 %s', key))
+        return check_key_permissions(key, fix)
+      else
+        raise InternalError.new(sprintf('perms for [%s] are [%s], expecting [%s]', key, perms[:mode], allowed_modes))
+      end
+    end
+
+    unless perms[:owner].eql?(ENV['USER'])
+      if fix.eql?(true)
+        self._run(sprintf('chown %s %s', ENV['USER'], key))
+        return check_key_permissions(key, fix)
+      else
+        raise InternalError.new(sprintf('owner for [%s] is [%s], expecting [%s]', key, perms[:owner], ENV['USER']))
+      end
+    end
 
     nil
   end
