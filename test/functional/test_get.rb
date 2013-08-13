@@ -54,7 +54,8 @@ class TestGet < Test::Unit::TestCase
   def test_with_suspended_machine
     @app.suspend()
 
-    assert_raise Rouster::SSHConnectionError do
+    #assert_raise Rouster::SSHConnectionError do <-- why was this ever used?
+    assert_raise Rouster::FileTransferError do
       @app.get(@kg_remote_location, @kg_local_location)
     end
 
