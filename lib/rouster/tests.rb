@@ -148,7 +148,7 @@ class Rouster
     if ports[proto].class.eql?(Hash) and ports[proto].has_key?(port)
 
       if proto.eql?('tcp')
-        ['ACTIVE', 'LISTEN']. each do |allowed|
+        ['ACTIVE', 'ESTABLISHED', 'LISTEN']. each do |allowed|
           return true if ports[proto][port][:address].values.member?(allowed)
         end
       else
