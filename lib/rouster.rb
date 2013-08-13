@@ -41,9 +41,9 @@ class Rouster
     @name        = opts[:name]
     @passthrough = opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey      = opts[:sshkey]
-    @sshtunnel   = opts[:sshtunnel].nil? ? false : opts[:sshtunnel]
+    @sshtunnel   = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
     @vagrantfile = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
-    @verbosity   = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 2
+    @verbosity   = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 4
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]

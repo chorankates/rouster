@@ -1,6 +1,6 @@
 ## heavily modified/copy-paste-replaced from vagrant.gemspec
 
-require 'path_helper'
+require './path_helper'
 require 'rouster'
 
 Gem::Specification.new do |s|
