@@ -5,38 +5,46 @@ require 'rouster/deltas'
 
 class Rouster
 
+  ##
+  # validate_file - given a filename and a hash of expectations, returns true|false whether file matches expectations
+  #
+  # parameters
+  # * <name>         - full file name or relative (to ~vagrant)
+  # * <expectations> -
+  #
+  # example expectations:
+  # {
+  #   :contains => 'never',
+  # },
+  #
+  #  {
+  #   :contains  => '/dev/fioa*/iodata*xfs',
+  #   :constrain => 'is_virtual false' # syntax is '<fact> <expected>', file is only tested if <expected> matches <actual>
+  #   :exists    => 'file',
+  #   :mode      => '0644'
+  # },
+  #
+  # {
+  #   :constrain => ['! is_virtual true', 'is_virtual false'],
+  #   :mode      => '0644'
+  # }
+  #
+  # {
+  #   :ensure   => 'file',
+  #   :contains => ['dont_blame_nrpe=1', 'allowed_hosts=' ]
+  # }
+  #
+  # supported keys:
+  #   :exists|:ensure
+  #   :file
+  #   :directory
+  #   :contains (string or array)
+  #   :mode/:permissions
+  #   :owner
+  #   :group
+  #   :constrain
   def validate_file(name, expectations)
-    # '/sys/kernel/mm/redhat_transparent_hugepage/enabled' => {
-    #   :contains => 'never',
-    # },
-    #
-    # '/etc/fstab' => {
-    #   :contains  => '/dev/fioa*/iodata*xfs',
-    #   :constrain => 'is_virtual false' # syntax is '<fact> <expected>', file is only tested if <expected> matches <actual>
-    #   :exists    => 'file',
-    #   :mode      => '0644'
-    # },
-    #
-    # '/etc/hosts' => {
-    #   :constrain => ['! is_virtual true', 'is_virtual false'],
-    #   :mode      => '0644'
-    # }
-    #
-    # '/etc/nrpe.cfg' => {
-    #   :ensure   => 'file',
-    #   :contains => ['dont_blame_nrpe=1', 'allowed_hosts=' ]
-    # }
-    #
-    # supported keys:
-    #   :exists|:ensure
-    #   :file
-    #   :directory
-    #   :contains (string or array)
-    #   :mode/:permissions
-    #   :owner
-    #   :group
-    #   :constrain
-    properties = self.is_file?(name)
+    properties = self.file(name)
 
     expectations[:ensure] ||= 'present'
 
@@ -55,27 +63,64 @@ class Rouster
 
       case k
         when :ensure, :exists
-          local = (! properties.nil? and ! v.match(/absent|false/).nil?)
+          if properties.nil? and v.match(/absent|false/)
+            local = true
+          elsif properties.nil?
+            local = false
+          else
+            local = true
+          end
         when :file
-          local = (! properties.nil? and properties[:file?].true?)
+          if properties.nil?
+            local = false
+          elsif properties[:file?].true?
+            local = true
+          else
+            false
+          end
         when :directory
-          local = (! properties.nil? and properties[:directory?].true?)
+          if properties.nil?
+            local = false
+          elsif properties[:directory?].true?
+            local = true
+          else
+            local = false
+          end
         when :contains
+          v = v.class.eql?(Array) ? v : [v]
           v.each do |regex|
             local = true
             begin
-              self.run(sprintf("grep -c '%s' %s", name, regex))
+              self.run(sprintf("grep -c '%s' %s", regex, name))
             rescue
               local = false
             end
             next if local.false?
           end
         when :mode, :permissions
-          local = (! properties.nil? and ! v.match(/properties[:mode]/).nil?)
+          if properties.nil?
+            local = false
+          elsif v.match(/#{properties[:mode]}/)
+            local = true
+          else
+            local = false
+          end
         when :owner
-          local = (! properties.nil? and ! v.match(/properties[:owner]/).nil?)
+          if properties.nil?
+            local = false
+          elsif v.match(/#{properties[:owner]}/)
+            local = true
+          else
+            local = false
+          end
         when :group
-          local = (! properties.nil? and ! v.match(/properties[:group]/).nil?)
+          if properties.nil?
+            local = false
+          elsif v.match(/#{properties[:group]}/)
+            local = true
+          else
+            local = false
+          end
         when :type
           # noop
         else
