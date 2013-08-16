@@ -13,23 +13,23 @@ class Rouster
   # * <expectations> -
   #
   # example expectations:
-  # {
+  # '/sys/kernel/mm/redhat_transparent_hugepage/enabled', {
   #   :contains => 'never',
   # },
   #
-  #  {
+  # '/etc/fstab', {
   #   :contains  => '/dev/fioa*/iodata*xfs',
   #   :constrain => 'is_virtual false' # syntax is '<fact> <expected>', file is only tested if <expected> matches <actual>
   #   :exists    => 'file',
   #   :mode      => '0644'
   # },
   #
-  # {
+  # '/etc/hosts', {
   #   :constrain => ['! is_virtual true', 'is_virtual false'],
   #   :mode      => '0644'
   # }
   #
-  # {
+  # '/etc/nrpe.cfg', {
   #   :ensure   => 'file',
   #   :contains => ['dont_blame_nrpe=1', 'allowed_hosts=' ]
   # }
@@ -136,24 +136,24 @@ class Rouster
   end
 
   def validate_group(name, expectations)
-    # 'root' => {
+    # 'root', {
     #   # if ensure is not specified, 'present' is implied
     #   :gid => 0,
     #   :user => 'root'
     # }
-    # 'sys' => {
+    # 'sys', {
     #   :ensure => 'present',
     #   :user   => ['root', 'bin', 'daemon']
     # },
     #
-    # 'fizz' => {
+    # 'fizz', {
     #   :exists => false
     # },
     #
     # supported keys:
     #  :exists|:ensure
     #  :gid
-    #  :user (string or array)
+    #  :user|:users (string or array)
     #  :constrain
     groups = self.get_groups(true)
 
@@ -177,7 +177,7 @@ class Rouster
           local = (groups.has_key?(name) and ! v.match(/absent|false/).nil?)
         when :gid
           local = ! v.match(/groups[name][:gid]/).nil?
-        when :user
+        when :user, :users
           v.each do |user|
             local = groups[name][:users].has_key?(user)
             break unless local.true?
@@ -197,16 +197,16 @@ class Rouster
   end
 
   def validate_package(name, expectations)
-    #'perl-Net-SNMP' => {
+    #'perl-Net-SNMP', {
     #  :ensure => 'absent'
     #},
     #
-    #'pixman' => {
+    #'pixman', {
     #  :ensure => 'present',
     #  :version => '1.0',
     #},
     #
-    #'rrdtool' => {
+    #'rrdtool', {
     #  # if ensure is not specified, 'present' is implied
     #  :version => '> 2.1',
     #  :constrain => 'is_virtual false',
@@ -236,7 +236,7 @@ class Rouster
         when :ensure, :exists
           local = (packages.has_key?(name) and ! v.match(/absent|false/).nil? )
         when :version
-          local = ! v.match(/packages[name][:version]/).nil?
+          local = ! v.match(/#{packages[name][:version]}/).nil?
         when :type
           # noop
         else
@@ -254,11 +254,11 @@ class Rouster
   end
 
   def validate_service(name, expectations)
-    # 'ntp' => {
+    # 'ntp', {
     #   :ensure => 'present',
     #   :state  => 'started'
     # },
-    # 'ypbind' => {
+    # 'ypbind', {
     #   :state => 'stopped',
     # }
     #
@@ -284,9 +284,18 @@ class Rouster
     expectations.each do |k,v|
       case k
         when :ensure, :exists
+          if services.has_key?(name)
+            if v.match(/absent|false)/)
+              local = false
+            else
+              local = true
+            end
+          else
+            local = false
+          end
           local = (services.has_key?(name) and ! v.match(/absent|false/).nil? )
         when :state
-          local = ! v.match(/services[name]/).nil?
+          local = ! v.match(/#{services[name]}/).nil?
         when :type
           # noop
         else
@@ -347,11 +356,11 @@ class Rouster
             break unless local.true?
           end
         when :home
-          local = ! v.match(/users[:home]/).nil?
+          local = ! v.match(/#{users[:home]}/).nil?
         when :shell
-          local = ! v.match(/users[:shell]/).nil?
+          local = ! v.match(/#{users[:shell]}/).nil?
         when :uid
-          local = ! v.match(/users[:uid]/).nil?
+          local = ! v.match(/#{users[:uid]}/).nil?
         when :type
           # noop
         else
