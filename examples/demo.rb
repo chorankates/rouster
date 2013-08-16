@@ -3,32 +3,31 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 require 'rouster'
 require 'rouster/tests'
 
-@app = Rouster.new(:name => 'app', :sudo => true, :verbosity => 4)
+@app = Rouster.new(:name => 'app', :sudo => true, :verbosity => 3)
+@app.up()
 
 # get list of packages
 before_packages = @app.get_packages()
 
 # install new package
 @app.run('yum -y install httpd')
+print @app.get_output()
 
 # get list of packages
 after_packages = @app.get_packages(false)
 
 # look for files specific to new pacakge
-p sprintf('delta of before/after packages: %s', after_packages - before_packages)
+p sprintf('delta of before/after packages: %s', after_packages.keys() - before_packages.keys())
 p sprintf('/var/www exists: %s', @app.is_dir?('/var/www'))
 p sprintf('/etc/httpd/conf/httpd.conf: %s', @app.file('/etc/httpd/conf/httpd.conf'))
 
 # look for port state changes
-@app.run('service httpd start')
-httpd_on_ports = @app.get_ports()
-p sprintf('while httpd is running, port 80 is: %s', @app.is_port_active?(80))
-
-@app.run('service httpd stop')
 httpd_off_ports = @app.get_ports()
 
-p sprintf('delta of before/after ports: %s', httpd_off_ports - httpd_on_ports)
-p sprintf('when httpd is stopped, port 80 is: %s', @app.is_port_active?(80))
+@app.run('service httpd start')
+httpd_on_ports = @app.get_ports()
+p sprintf('while httpd is running, port 80 is: %s', @app.is_port_active?(80, 'tcp', true))
+p sprintf('delta of before/after ports: %s', httpd_on_ports['tcp'].keys() - httpd_off_ports['tcp'].keys())
 
 # look for groups/users created
 p sprintf('apache group created? %s', @app.is_group?('apache'))
@@ -45,6 +44,6 @@ p sprintf('is_process_running?(httpd) %s', is_process_running)
 @app.run('service httpd stop')
 is_service_running = @app.is_service_running?('httpd')
 p sprintf('is_service_running?(httpd) %s', is_service_running)
-
+p sprintf('when httpd is stopped, port 80 is: %s', @app.is_port_active?(80))
 
 # get a conf file, modify it, send it back, restart service
