@@ -6,5 +6,3 @@ require 'rouster/testing'
 require 'rouster/tests'
 
 p = Rouster.new(:name => 'app', :verbosity => 1)
-
-exit

@@ -39,5 +39,3 @@ end
 finish = Time.now
 
 print "\nwith a get, took #{finish - start}\n"
-
-exit
