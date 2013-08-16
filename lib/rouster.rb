@@ -86,7 +86,9 @@ class Rouster
       if @passthrough.eql?(true)
         raise InternalError.new('must specify sshkey when using a passthrough host')
       else
-        @sshkey = sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME'])
+        # ref the key from the vagrant home dir if it's been overridden
+        @sshkey = sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']) if ENV['VAGRANT_HOME']
+        @sshkey = sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) unless ENV['VAGRANT_HOME']
       end
     end
 
