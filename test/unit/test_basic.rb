@@ -33,8 +33,10 @@ class TestBasic < Test::Unit::TestCase
               :sudo        => false,
               :verbosity   => 2,
               #:vagrantfile => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
-              :sshkey      => sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME'])
+              :sshkey      =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME'])
       )
+
+
     end
 
     assert_equal('app', @app.name)

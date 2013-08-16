@@ -31,7 +31,7 @@ class Rouster
   # parameters
   # * <name>        - the name of the VM as specified in the Vagrantfile
   # * [passthrough] - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
-  # * [sshkey]      - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (~/.vagrant.d/)
+  # * [sshkey]      - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
   # * [sshtunnel]   - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
   # * [sudo]        - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
   # * [vagrantfile] - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
