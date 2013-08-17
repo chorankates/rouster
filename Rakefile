@@ -16,6 +16,10 @@ task :buildgem do
   sh 'gem build rouster.gemspec'
 end
 
+task :demo do
+  sh 'ruby examples/demo.rb'
+end
+
 Rake::TestTask.new do |t|
   t.name = 'test'
   t.libs << 'lib'
