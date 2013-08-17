@@ -219,7 +219,7 @@ class Rouster
     services.has_key?(service)
   end
 
-  def is_service_running?(service, cache=true)
+  def is_service_running?(service, cache=false)
     services = self.get_services(cache)
 
     if services.has_key?(service)
