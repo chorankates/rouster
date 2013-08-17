@@ -47,3 +47,16 @@ p sprintf('is_service_running?(httpd) %s', is_service_running)
 p sprintf('when httpd is stopped, port 80 is: %s', @app.is_port_active?(80))
 
 # get a conf file, modify it, send it back, restart service
+tmp_filename = sprintf('/tmp/httpd.conf.%s', Time.now.to_i)
+
+@app.get('/etc/httpd/conf/httpd.conf', tmp_filename)
+
+## this should be smoother..
+@app._run(sprintf("sed -i 's/Listen 80/Listen 1234/' %s", tmp_filename))
+
+@app.put(tmp_filename, '/etc/httpd/conf/httpd.conf')
+
+@app.run('service httpd start')
+is_service_running = @app.is_service_running?('httpd')
+p sprintf('is_service_running?(httpd): %s', is_service_running)
+p sprintf('after modification and restart, port 1234 is: %s', @app.is_port_active?('1234'))
