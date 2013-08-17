@@ -285,7 +285,7 @@ class Rouster
       case k
         when :ensure, :exists
           if services.has_key?(name)
-            if v.match(/absent|false)/)
+            if v.match(/absent|false/)
               local = false
             else
               local = true

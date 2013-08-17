@@ -178,8 +178,7 @@ class Rouster
 
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
-        # TODO - this needs quite a bit of work
-        #next if line.grep(/([\w\s-]+?)\sis\s(\w*?)/).empty?
+        # TODO - this needs quite a bit of work - is missing httpd and ntpd at least
         next if line.match(/^([^\s\:]*).*\s(\w*)\.?$/).nil?
         res[$1] = $2
 
