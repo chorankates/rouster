@@ -8,7 +8,7 @@ class Rouster
   # deltas.rb reimplementation
   def get_groups(cache=true)
     if cache and ! self.deltas[:groups].nil?
-      self.deltas[:groups]
+      return self.deltas[:groups]
     end
 
     res = Hash.new()
@@ -40,7 +40,7 @@ class Rouster
     # returns { package => '<version>', package2 => '<version>' }
 
     if cache and ! self.deltas[:packages].nil?
-      self.deltas[:packages]
+      return self.deltas[:packages]
     end
 
     res = Hash.new()
@@ -113,7 +113,7 @@ class Rouster
 
   def get_services(cache=true)
     if cache and ! self.deltas[:services].nil?
-      self.deltas[:services]
+      return self.deltas[:services]
     end
 
     res = Hash.new()
@@ -198,7 +198,7 @@ class Rouster
 
   def get_users(cache=true)
     if cache and ! self.deltas[:users].nil?
-      self.deltas[:users]
+      return self.deltas[:users]
     end
 
     res = Hash.new()
@@ -232,7 +232,7 @@ class Rouster
     # TODO improve ipv6 support
 
     if cache and ! self.deltas[:ports].nil?
-      self.deltas[:ports]
+      return self.deltas[:ports]
     end
 
     res = Hash.new()
