@@ -9,6 +9,12 @@ require 'rouster/tests'
 # get list of packages
 before_packages = @app.get_packages()
 
+# need this if not on vpn
+@app.run('wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm')
+@app.run('wget http://rpms.famillecollet.com/enterprise/remi-release-6.rpm')
+@app.run('rpm -Uvh remi-release-6*.rpm epel-release-6*.rpm')
+@app.run('yum makecache')
+
 # install new package
 @app.run('yum -y install httpd')
 print @app.get_output()
