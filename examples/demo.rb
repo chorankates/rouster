@@ -60,3 +60,5 @@ tmp_filename = sprintf('/tmp/httpd.conf.%s', Time.now.to_i)
 is_service_running = @app.is_service_running?('httpd')
 p sprintf('is_service_running?(httpd): %s', is_service_running)
 p sprintf('after modification and restart, port 1234 is: %s', @app.is_port_active?('1234'))
+
+@app._run(sprintf('rm %s', tmp_filename))
