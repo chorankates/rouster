@@ -111,6 +111,49 @@ class Rouster
     res
   end
 
+  def get_ports(cache=false)
+    # really just ports we're listening on
+    # TODO add unix domain sockets
+    # TODO improve ipv6 support
+
+    if cache and ! self.deltas[:ports].nil?
+      return self.deltas[:ports]
+    end
+
+    res = Hash.new()
+    os  = self.os_type()
+
+    if os.eql?(:redhat)
+
+      raw = self.run('netstat -ln')
+
+      raw.split("\n").each do |line|
+
+        next unless line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w+)\s/) or line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w*)\s/)
+
+        protocol = $1
+        address  = $2
+        port     = $3
+        state    = protocol.eql?('udp') ? 'you_might_not_get_it' : $4
+
+        res[protocol] = Hash.new if res[protocol].nil?
+        res[protocol][port] = Hash.new if res[protocol][port].nil?
+        res[protocol][port][:address] = Hash.new if res[protocol][port][:address].nil?
+        res[protocol][port][:address][address] = state
+
+      end
+
+    else
+      raise InternalError.new(sprintf('unable to get port information from VM operating system[%s]', os))
+    end
+
+    if cache
+      self.deltas[:ports] = res
+    end
+
+    res
+  end
+
   def get_services(cache=true)
     if cache and ! self.deltas[:services].nil?
       return self.deltas[:services]
@@ -219,49 +262,6 @@ class Rouster
 
     if cache
       self.deltas[:users] = res
-    end
-
-    res
-  end
-
-  def get_ports(cache=false)
-    # really just ports we're listening on
-    # TODO add unix domain sockets
-    # TODO improve ipv6 support
-
-    if cache and ! self.deltas[:ports].nil?
-      return self.deltas[:ports]
-    end
-
-    res = Hash.new()
-    os  = self.os_type()
-
-    if os.eql?(:redhat)
-
-      raw = self.run('netstat -ln')
-
-      raw.split("\n").each do |line|
-
-        next unless line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w+)\s/) or line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w*)\s/)
-
-        protocol = $1
-        address  = $2
-        port     = $3
-        state    = protocol.eql?('udp') ? 'you_might_not_get_it' : $4
-
-        res[protocol] = Hash.new if res[protocol].nil?
-        res[protocol][port] = Hash.new if res[protocol][port].nil?
-        res[protocol][port][:address] = Hash.new if res[protocol][port][:address].nil?
-        res[protocol][port][:address][address] = state
-
-      end
-
-    else
-      raise InternalError.new(sprintf('unable to get port information from VM operating system[%s]', os))
-    end
-
-    if cache
-      self.deltas[:ports] = res
     end
 
     res
