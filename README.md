@@ -1,13 +1,14 @@
 Rouster
 ======
-```
+
+```rb
 Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines')
 => true
 ```
 
 It was conceived as the missing piece needed to functionally test Puppet manifests: while RSpec is nice (and _much_ faster), compiling a catalog and applying it are 2 distinct operations
 
-```
+```rb
 app = Rouster.new(:name => 'app' )
 app.up()
 p app.run('/sbin/service puppet once -t', 2) # or p app.run_puppet(2), if you've required 'rouster/puppet'
@@ -28,9 +29,9 @@ but no real testing has been done to confirm this. Please file issues as appropr
 
 ### Easiest configuration
 
-```
-gem install vagrant
-gem install rouster
+```sh
+$ gem install vagrant
+$ gem install rouster
 ```
 
 This will pull in all of the various dependencies (Vagrant manages this itself):
@@ -99,7 +100,7 @@ These additional methods are added to the Rouster via class extension.
 
 ### basic instantiation and usage
 
-```
+```rb
 require 'rouster'
 
 # the value for the 'name' attribute should be a name shown when you execute `vagrant status`
@@ -118,7 +119,7 @@ app.destroy()
 
 ### functional puppet test
 
-```
+```rb
 require 'rouster'
 require 'rouster/puppet'
 require 'test/unit'
@@ -141,9 +142,9 @@ class TestPuppetRun < Test::Unit::TestCase
 
       #res = w.run('puppet agent -t --environment development', 2)
       assert_raises_nothing do
-			  res = w.run_puppet(2)
+        res = w.run_puppet(2)
       end
-			assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
+      assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
     end
   end
 
@@ -157,7 +158,8 @@ end
 
 
 ## Base Methods
-```
+
+```rb
 irb(main):003:0> (Rouster.new(:name => 'app').methods - Object.methods).sort
 => ["_env", "_run", "_vm", "_vm_config", "deltas", "destroy", "exitcode", "facts",
 "get", "get_output", "is_available_via_ssh?", "is_passthrough?", "log", "output",
