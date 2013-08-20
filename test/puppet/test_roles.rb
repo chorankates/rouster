@@ -9,7 +9,7 @@ require 'test/unit'
 class TestPuppetRoles < Test::Unit::TestCase
 
   def setup
-    @ppm = Rouster.new(:name => 'ppm')
+    @ppm = Rouster.new(:name => 'ppm', :vagrantfile => '../piab/Vagrantfile')
     @ppm.rebuild() # destroy / rebuild
 
     assert_nothing_raised do
@@ -49,7 +49,7 @@ class TestPuppetRoles < Test::Unit::TestCase
   end
 
   def test_app
-    app = Rouster.new(:name => 'app')
+    app = Rouster.new(:name => 'app', :vagrantfile => '../piab/Vagrantfile')
 
     app_expected_packages = {
       'rsync'    => { :ensure => 'present' }
@@ -112,7 +112,7 @@ class TestPuppetRoles < Test::Unit::TestCase
 
 
   def test_db
-    db = Rouster.new(:name => 'db')
+    db = Rouster.new(:name => 'db', :vagrantfile => '../piab/Vagrantfile')
 
     # TODO implement parse_catalog here
     catalog      = db.get_catalog()
