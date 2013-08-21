@@ -135,7 +135,6 @@ class TestPuppetRoles < Test::Unit::TestCase
 
   end
 
-
   def dont_test_app_automated
     catalog      = @app.get_catalog()
     expectations = @app.parse_catalog(catalog)

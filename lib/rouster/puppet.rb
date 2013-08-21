@@ -38,6 +38,7 @@ class Rouster
   end
 
   def get_catalog(hostname=nil)
+    # post https://<puppetmaster>/catalog/<node>?facts_format=pson&facts=<pson URL encoded> == ht to patrick@puppetlabs
     certname = hostname.nil? ? self.run('hostname --fqdn').chomp : hostname
 
     json = nil
