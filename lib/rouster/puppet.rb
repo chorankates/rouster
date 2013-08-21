@@ -25,7 +25,7 @@ class Rouster
     res  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
 
     begin
-      json = res.to_json
+      json = JSON.parse(res)
     rescue
       raise InternalError.new(sprintf('unable to parse[%s] as JSON', res))
     end
@@ -38,13 +38,13 @@ class Rouster
   end
 
   def get_catalog(hostname=nil)
-    certname = hostname.nil? ? self.run('hostname --fqdn') : hostname
+    certname = hostname.nil? ? self.run('hostname --fqdn').chomp : hostname
 
     json = nil
     res  = self.run(sprintf('puppet catalog find %s', certname))
 
     begin
-      json = res.to_json
+      json = JSON.parse(res)
     rescue
       raise InternalError.new(sprintf('unable to parse[%s] as JSON', res))
     end
