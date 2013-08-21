@@ -44,7 +44,7 @@ class Rouster
   #   :group
   #   :constrain
   def validate_file(name, expectations)
-    properties = self.file(name)
+    properties = (! expectations[:ensure].nil? and expectations[:ensure].eql?('file')) ?  self.file(name) : self.dir(name)
 
     expectations[:ensure] ||= 'present'
 
@@ -174,7 +174,15 @@ class Rouster
     expectations.each do |k,v|
       case k
         when :ensure, :exists
-          local = (groups.has_key?(name) and ! v.match(/absent|false/).nil?)
+          if groups.has_key?(name)
+            if v.to_s.match(/absent|false/).nil?
+              local = true
+            else
+              local = false
+            end
+          elsif
+            local = false
+          end
         when :gid
           local = ! v.match(/groups[name][:gid]/).nil?
         when :user, :users
@@ -234,7 +242,15 @@ class Rouster
     expectations.each do |k,v|
       case k
         when :ensure, :exists
-          local = (packages.has_key?(name) and ! v.match(/absent|false/).nil? )
+          if packages.has_key?(name)
+            if v.to_s.match(/absent|false/).nil?
+              local = true
+            else
+              local = false
+            end
+          else
+            local = false
+          end
         when :version
           local = ! v.match(/#{packages[name][:version]}/).nil?
         when :type
@@ -293,7 +309,6 @@ class Rouster
           else
             local = false
           end
-          local = (services.has_key?(name) and ! v.match(/absent|false/).nil? )
         when :state
           local = ! v.match(/#{services[name]}/).nil?
         when :type
@@ -349,8 +364,17 @@ class Rouster
     expectations.each do |k,v|
       case k
         when :ensure, :exists
-          local = (users.has_key?(name) and ! v.match(/absent|false/).nil? )
+          if users.has_key?(name)
+            if v.to_s.match(/absent|false/).nil?
+              local = true
+            else
+              local = false
+            end
+          else
+            local = false
+          end
         when :group
+          v = v.class.eql?(Array) ? v : [v]
           v.each do |group|
             local = is_user_in_group?(name, group)
             break unless local.true?

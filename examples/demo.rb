@@ -12,7 +12,7 @@ before_packages = @app.get_packages()
 # need this if not on vpn
 @app.run('wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm')
 @app.run('wget http://rpms.famillecollet.com/enterprise/remi-release-6.rpm')
-@app.run('rpm -Uvh remi-release-6*.rpm epel-release-6*.rpm')
+@app.run('rpm -Uvh remi-release-6*.rpm epel-release-6*.rpm', [0,2])
 @app.run('yum makecache')
 
 # install new package
@@ -32,7 +32,7 @@ httpd_off_ports = @app.get_ports()
 
 @app.run('service httpd start')
 httpd_on_ports = @app.get_ports()
-p sprintf('while httpd is running, port 80 is: %s', @app.is_port_active?(80, 'tcp', true))
+p sprintf('while httpd is running, is_port_active?(80): %s', @app.is_port_active?(80, 'tcp', true))
 p sprintf('delta of before/after ports: %s', httpd_on_ports['tcp'].keys() - httpd_off_ports['tcp'].keys())
 
 # look for groups/users created
@@ -50,7 +50,7 @@ p sprintf('is_process_running?(httpd) %s', is_process_running)
 @app.run('service httpd stop')
 is_service_running = @app.is_service_running?('httpd')
 p sprintf('is_service_running?(httpd) %s', is_service_running)
-p sprintf('when httpd is stopped, port 80 is: %s', @app.is_port_active?(80))
+p sprintf('when httpd is stopped, is_port_active(80): %s', @app.is_port_active?(80))
 
 # get a conf file, modify it, send it back, restart service
 tmp_filename = sprintf('/tmp/httpd.conf.%s', Time.now.to_i)
@@ -59,12 +59,13 @@ tmp_filename = sprintf('/tmp/httpd.conf.%s', Time.now.to_i)
 
 ## this should be smoother..
 @app._run(sprintf("sed -i 's/Listen 80/Listen 1234/' %s", tmp_filename))
-
-@app.put(tmp_filename, '/etc/httpd/conf/httpd.conf')
+@app.put(tmp_filename)
+@app.run("mv #{File.basename(tmp_filename)} /etc/httpd/conf/httpd.conf") # the ssh tunnel runs under the vagrant user
 
 @app.run('service httpd start')
 is_service_running = @app.is_service_running?('httpd')
 p sprintf('is_service_running?(httpd): %s', is_service_running)
-p sprintf('after modification and restart, port 1234 is: %s', @app.is_port_active?('1234'))
+p sprintf('after modification and restart, is_port_active?(1234): %s', @app.is_port_active?(1234))
+p sprintf('after modification and restart, is_port_active?(80): %s', @app.is_port_active?(80))
 
 @app._run(sprintf('rm %s', tmp_filename))
