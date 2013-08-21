@@ -137,7 +137,7 @@ class TestPuppetRoles < Test::Unit::TestCase
   end
 
 
-  def test_db
+  def dont_test_db
     db = Rouster.new(:name => 'db', :vagrantfile => '../piab/Vagrantfile')
 
     catalog      = db.get_catalog()

@@ -180,7 +180,7 @@ class Rouster
             else
               local = false
             end
-          elsif
+          else
             local = false
           end
         when :gid
