@@ -1,13 +1,14 @@
 Rouster
 ======
-```
+
+```rb
 Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines')
 => true
 ```
 
 Rouster was conceived as the missing piece needed to functionally test Puppet manifests: while RSpec is nice (and _much_ faster), compiling a catalog and applying it are 2 distinct operations.
 
-```
+```rb
 app = Rouster.new(:name => 'app' )
 app.up()
 
@@ -31,12 +32,11 @@ but no real testing has been done to confirm this. Please file issues as appropr
 
 ### Easiest installation
 
-```
+```sh
 git clone https://github.com/chorankates/rouster.git
 cd rouster
 rake buildgem
 gem install Rouster-<version>.gem
-
 ```
 
 
@@ -102,7 +102,7 @@ These additional methods are added to the Rouster object via class extension.
 
 ### basic instantiation and usage
 
-```
+```rb
 require 'rouster'
 
 # the value for the 'name' attribute should be a name shown when you execute `vagrant status`
@@ -121,7 +121,7 @@ app.destroy()
 
 ### functional puppet test
 
-```
+```rb
 require 'rouster'
 require 'rouster/puppet'
 require 'test/unit'
@@ -144,9 +144,9 @@ class TestPuppetRun < Test::Unit::TestCase
 
       #res = w.run('puppet agent -t --environment development', 2)
       assert_raises_nothing do
-			  res = w.run_puppet(2)
+        res = w.run_puppet(2)
       end
-			assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
+      assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
     end
   end
 
@@ -160,7 +160,8 @@ end
 
 
 ## Base Methods
-```
+
+```rb
 irb(main):003:0> (Rouster.new(:name => 'app').methods - Object.methods).sort
 => [:_run, :_vm, :check_key_permissions, :connect_ssh_tunnel, :deltas, :destroy, :dir, :exitcode, :facter, :facts, :file, :generate_unique_mac, :get, :get_catalog, :get_groups, :get_output, :get_packages, :get_ports, :get_puppet_errors, :get_puppet_notices, :get_services, :get_ssh_info, :get_users, :is_available_via_ssh?, :is_dir?, :is_executable?, :is_file?, :is_group?, :is_in_file?, :is_in_path?, :is_package?, :is_passthrough?, :is_port_active?, :is_port_open?, :is_process_running?, :is_readable?, :is_service?, :is_service_running?, :is_user?, :is_user_in_group?, :is_writeable?, :log, :os_type, :output, :parse_catalog, :parse_ls_string, :passthrough, :put, :rebuild, :remove_existing_certs, :restart, :run, :run_puppet, :sshkey, :status, :sudo, :suspend, :traverse_up, :up, :uses_sudo?, :vagrantfile, :verbosity]
 ```
