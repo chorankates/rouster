@@ -12,7 +12,7 @@ class TestPuppetRoles < Test::Unit::TestCase
     @ppm = Rouster.new(:name => 'ppm', :vagrantfile => '../piab/Vagrantfile')
     @ppm.rebuild() unless @ppm.status.eql?('running') # destroy / rebuild
 
-    @app = Rouster.new(:name => '@app', :vagrantfile => '../piab/Vagrantfile')
+    @app = Rouster.new(:name => 'app', :vagrantfile => '../piab/Vagrantfile')
 
     assert_nothing_raised do
 		  @ppm.run_puppet([0,2])
