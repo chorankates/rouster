@@ -114,7 +114,6 @@ class TestPuppetRoles < Test::Unit::TestCase
   def test_db
     db = Rouster.new(:name => 'db')
 
-    # TODO implement parse_catalog here
     catalog      = db.get_catalog()
     expectations = db.parse_catalog(catalog)
 
