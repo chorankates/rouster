@@ -1,0 +1,3 @@
+{
+    "role::ui::public_hostname": "%{::ec2_public_hostname}"
+}
