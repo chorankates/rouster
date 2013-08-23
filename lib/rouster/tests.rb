@@ -83,6 +83,7 @@ class Rouster
 
 
   def files(dir, recursive=false, cache=false)
+    # TODO implement an argument allowing filtering on name/extension
     raise InternalError.new(sprintf('invalid dir specified[%s]', dir)) unless self.is_dir?(dir)
 
     raw = self.run(sprintf('ls -l%s %s', recursive ? 'R' : '', dir))
