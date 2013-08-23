@@ -108,8 +108,18 @@ class Rouster
   end
 
   def is_executable?(filename, level='u')
+    res = nil
 
-    res = file(filename)
+    begin
+      res = file(filename)
+    rescue Rouster::InternalError
+      res = dir(filename)
+    end
+
+    # for cases that are directories, but don't throw exceptions
+    if res.nil? or res[:directory?]
+      res = dir(filename)
+    end
 
     if res
       array = res[:executable?]
@@ -230,8 +240,18 @@ class Rouster
   end
 
   def is_readable?(filename, level='u')
+    res = nil
 
-    res = file(filename)
+    begin
+      res = file(filename)
+    rescue Rouster::InternalError
+      res = dir(filename)
+    end
+
+    # for cases that are directories, but don't throw exceptions
+    if res.nil? or res[:directory?]
+      res = dir(filename)
+    end
 
     if res
       array = res[:readable?]
@@ -281,8 +301,18 @@ class Rouster
   end
 
   def is_writeable?(filename, level='u')
+    res = nil
 
-    res = file(filename)
+    begin
+      res = file(filename)
+    rescue Rouster::InternalError
+      res = dir(filename)
+    end
+
+    # for cases that are directories, but don't throw exceptions
+    if res.nil? or res[:directory?]
+      res = dir(filename)
+    end
 
     if res
       array = res[:writeable?]
