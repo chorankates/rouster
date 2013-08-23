@@ -9,17 +9,30 @@ require 'test/unit'
 class TestPuppetApply < Test::Unit::TestCase
 
   def setup
-    @ppm = Rouster.new(:name => 'ppm', :vagrantfile => '../piab/Vagrantfile')
-    @ppm.rebuild() unless @ppm.status.eql?('running') # destroy / rebuild
-
     @app = Rouster.new(:name => 'app', :vagrantfile => '../piab/Vagrantfile')
+
+    ## TODO teach put() how to use -R (directories)
+    required_files = [
+      'manifests/default.pp',
+      'manifests/hiera.yaml',
+      'manifests/hieradata/common.json',
+      'manifests/hieradata/vagrant.json',
+      'modules/role/manifests/ui.pp',
+    ]
+
+    @app.run('mkdir manifests')
+    @app.run('mkdir manifests/hieradata')
+    @app.run('mkdir -p modules/role/manifests')
+    required_files.each do |files|
+      @app.put(file)
+    end
 
     assert_nothing_raised do
       @ppm.run_puppet('masterless', {
         :expected_exitcode => [0,2],
         :hiera_config      => 'hiera.yaml',
-        :manifest_file     => '/etc/puppet/manifests/manifest.pp',
-        :module_dir        => '/etc/puppet/modules/'
+        :manifest_file     => 'manifests/manifest.pp',
+        :module_dir        => 'modules/'
       })
     end
 
