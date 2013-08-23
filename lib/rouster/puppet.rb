@@ -200,16 +200,43 @@ class Rouster
       }
 
       opts.merge!(default_opts)
-      self.run('/sbin/service puppet once -t', opts['expected_exitcode'])
+      self.run('/sbin/service puppet once -t', opts[:expected_exitcode])
 
     elsif mode.eql?('masterless')
       default_opts = {
         :expected_exitcode => 2,
+        :hiera_config      => nil,
         :manifest_file     => nil, # can be a string or array, will 'puppet apply' each
         :manifest_dir      => nil, # can be a string or array, will 'puppet apply' each module in the dir (recursively)
+        :module_dir        => nil
       }
 
       opts.merge!(default_opts)
+
+      ## validate required arguments
+      raise InternalError.new(sprintf('invalid hiera config specified[%s]', opts[:hiera_config])) unless self.is_file?(opts[:hiera_config])
+      raise InternalError.new(sprintf('invalid module dir specified[%s]', opts[:module_dir])) unless self.is_dir?(opts[:module_dir])
+
+      if opts[:manifest_file]
+        opts[:manifest_file] = opts[:manifest_file].class.eql?(Array) ? opts[:manifest_file] : [opts[:manifest_file]]
+        opts[:manifest_file].each do |file|
+          raise InternalError.new(sprintf('invalid manifest file specified[%s]', file)) unless self.is_file?(file)
+
+          self.run(sprintf('puppet apply --hiera_config=%s --modulepath=%s %s', opts[:hiera_config], opts[:module_dir], file), opts[:expected_exitcode])
+
+        end
+      end
+
+      if opts[:manifest_dir]
+        opts[:manifest_dir] = opts[:manifest_file].class.eql?(Array) ? opts[:manifest_dir] : [opts[:manifest_dir]]
+        opts[:manifest_dir].each do |dir|
+          raise InternalError.new(sprtinf('invalid manifest dir specified[%s]', dir)) unless self.is_dir?(dir)
+
+          ## can we just blindly apply manifest_dir/* ?
+          ## or do we need to implement self.files(<dir>)
+
+        end
+      end
 
 
 
