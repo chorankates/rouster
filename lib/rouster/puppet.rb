@@ -232,8 +232,15 @@ class Rouster
         opts[:manifest_dir].each do |dir|
           raise InternalError.new(sprtinf('invalid manifest dir specified[%s]', dir)) unless self.is_dir?(dir)
 
-          ## can we just blindly apply manifest_dir/* ?
-          ## or do we need to implement self.files(<dir>)
+          manifests = self.files(dir, true)
+
+          manifests.each do |m|
+            next unless m.match(/\.pp$/)
+
+            self.run(sprintf('puppet apply --hiera_config=%s --modulepath=%s %s/%s', opts[:hiera_config], opts[:module_dir], dir, m))
+
+          end
+
 
         end
       end
