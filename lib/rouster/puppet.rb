@@ -192,8 +192,32 @@ class Rouster
 
   end
 
-  def run_puppet(expected_exitcode=0)
-    self.run('/sbin/service puppet once -t', expected_exitcode)
+  def run_puppet(mode='master', opts=nil)
+
+    if mode.eql?('master')
+      default_opts = {
+        :expected_exitcode => 0
+      }
+
+      opts.merge!(default_opts)
+      self.run('/sbin/service puppet once -t', opts['expected_exitcode'])
+
+    elsif mode.eql?('masterless')
+      default_opts = {
+        :expected_exitcode => 2,
+        :manifest_file     => nil, # can be a string or array, will 'puppet apply' each
+        :manifest_dir      => nil, # can be a string or array, will 'puppet apply' each module in the dir (recursively)
+      }
+
+      opts.merge!(default_opts)
+
+
+
+    else
+      raise InternalError.new(sprintf('unknown mode [%s]', mode))
+    end
+
+
   end
 
 end
