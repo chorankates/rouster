@@ -33,6 +33,24 @@ class Rouster
     res
   end
 
+  def dirs(dir, recursive=false, cache=false)
+    raise InternalError.new(sprintf('invalid dir specified[%s]', dir)) unless self.is_dir?(dir)
+
+    raw = self.run(sprintf('ls -l%s %s', recursive ? 'R' : '', dir))
+    res = Array.new
+
+    raw.split("\n").each do |line|
+      next if line.match(/^total\s+\d+$/)
+      local = parse_ls_string(line)
+
+      if local[:directory?]
+        res.push(local[:name])
+      end
+    end
+
+    res
+  end
+
   def file(file, cache=false)
 
     self.deltas[:files] = Hash.new if self.deltas[:files].nil?
@@ -58,6 +76,26 @@ class Rouster
     if cache
       self.deltas[:file] = Hash.new if self.deltas[:file].nil?
       self.deltas[:files][file] = res
+    end
+
+    res
+  end
+
+
+  def files(dir, recursive=false, cache=false)
+    raise InternalError.new(sprintf('invalid dir specified[%s]', dir)) unless self.is_dir?(dir)
+
+    raw = self.run(sprintf('ls -l%s %s', recursive ? 'R' : '', dir))
+    res = Array.new
+
+    raw.split("\n").each do |line|
+      next if line.match(/^total\s+\d+$/)
+      local = parse_ls_string(line)
+
+      if local[:file?]
+        res.push(local[:name])
+      end
+
     end
 
     res
@@ -305,6 +343,7 @@ class Rouster
     end
 
     res[:mode]  = mode
+    res[:name]  = tokens[-1] # TODO better here: this does not support files/dirs with spaces
     res[:owner] = tokens[2]
     res[:group] = tokens[3]
     res[:size]  = tokens[4]
