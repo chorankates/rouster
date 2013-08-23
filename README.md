@@ -13,7 +13,7 @@ app = Rouster.new(:name => 'app' )
 app.up()
 
 p app.run('/sbin/service puppet once -t', 2)
-# or p app.run_puppet(2), if you've required 'rouster/puppet'
+# or p app.run_puppet('master', { :expected_exitcode => 2}), if you've required 'rouster/puppet'
 
 app.destroy()
 ```
@@ -144,7 +144,7 @@ class TestPuppetRun < Test::Unit::TestCase
 
       #res = w.run('puppet agent -t --environment development', 2)
       assert_raises_nothing do
-        res = w.run_puppet(2)
+        res = w.run_puppet('master', { :expected_exitcode => 2 })
       end
       assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
     end

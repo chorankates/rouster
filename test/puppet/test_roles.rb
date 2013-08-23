@@ -15,7 +15,7 @@ class TestPuppetRoles < Test::Unit::TestCase
     @app = Rouster.new(:name => 'app', :vagrantfile => '../piab/Vagrantfile')
 
     assert_nothing_raised do
-		  @ppm.run_puppet([0,2])
+		  @ppm.run_puppet('master', { :expected_exitcode => [0,2] })
     end
 
     assert_match(/Finished catalog run in/, @ppm.get_output())
@@ -107,7 +107,7 @@ class TestPuppetRoles < Test::Unit::TestCase
 
     assert_nothing_raised do
       @app.up()
-      @app.run_puppet([0, 2])
+      @app.run_puppet('master', { :expected_exitcode => [0, 2] })
     end
 
     assert_match(/Finished catalog run in/, @app.get_output())
@@ -141,7 +141,7 @@ class TestPuppetRoles < Test::Unit::TestCase
 
     assert_nothing_raised do
       @app.up()
-      @app.run_puppet(2)
+      @app.run_puppet('master', { :expected_exitcode => 2 })
     end
 
     assert_match(/Finished catalog run in/, @app.get_output())

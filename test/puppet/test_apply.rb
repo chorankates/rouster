@@ -6,7 +6,7 @@ require 'rouster/testing'
 
 require 'test/unit'
 
-class TestPuppetRoles < Test::Unit::TestCase
+class TestPuppetApply < Test::Unit::TestCase
 
   def setup
     @ppm = Rouster.new(:name => 'ppm', :vagrantfile => '../piab/Vagrantfile')

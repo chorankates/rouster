@@ -241,7 +241,6 @@ class Rouster
 
           end
 
-
         end
       end
 
