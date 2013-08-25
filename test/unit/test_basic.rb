@@ -31,7 +31,7 @@ class TestBasic < Test::Unit::TestCase
               :name        => 'app',
               :passthrough => true,
               :sudo        => false,
-              :verbosity   => 2,
+              :verbosity   => 4,
               #:vagrantfile => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
               :sshkey      =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME'])
       )
@@ -42,7 +42,7 @@ class TestBasic < Test::Unit::TestCase
     assert_equal('app', @app.name)
     assert_equal(true, @app.is_passthrough?())
     assert_equal(false, @app.uses_sudo?())
-    assert_equal(2, @app.verbosity) # is this going to be strinigified?
+    assert_equal(4, @app.verbosity) # is this going to be strinigified?
     assert_equal(true, File.file?(@app.vagrantfile))
     assert_equal(true, File.file?(@app.sshkey))
   end
