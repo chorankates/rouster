@@ -228,9 +228,9 @@ class Rouster
       end
 
       if opts[:manifest_dir]
-        opts[:manifest_dir] = opts[:manifest_file].class.eql?(Array) ? opts[:manifest_dir] : [opts[:manifest_dir]]
+        opts[:manifest_dir] = opts[:manifest_dir].class.eql?(Array) ? opts[:manifest_dir] : [opts[:manifest_dir]]
         opts[:manifest_dir].each do |dir|
-          raise InternalError.new(sprtinf('invalid manifest dir specified[%s]', dir)) unless self.is_dir?(dir)
+          raise InternalError.new(sprintf('invalid manifest dir specified[%s]', dir)) unless self.is_dir?(dir)
 
           manifests = self.files(dir, true)
 
