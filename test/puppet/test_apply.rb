@@ -9,28 +9,33 @@ require 'test/unit'
 class TestPuppetApply < Test::Unit::TestCase
 
   def setup
-    @app = Rouster.new(:name => 'app', :vagrantfile => '../piab/Vagrantfile')
+    @app = Rouster.new(:name => 'app')
+    @app.up()
 
     ## TODO teach put() how to use -R (directories)
-    required_files = [
-      'manifests/default.pp',
-      'manifests/hiera.yaml',
-      'manifests/hieradata/common.json',
-      'manifests/hieradata/vagrant.json',
-      'modules/role/manifests/ui.pp',
-    ]
+    required_files = {
+      'test/puppet/manifests/default.pp'             => 'manifests/default.pp',
+      'test/puppet/manifests/hiera.yaml'             => 'manifests/hiera.yaml',
+      'test/puppet/manifests/manifest.pp'            => 'manifests/manifest.pp',
+      'test/puppet/manifests/hieradata/common.json'  => 'manifests/hieradata/common.json',
+      'test/puppet/manifests/hieradata/vagrant.json' => 'manifests/hieradata/vagrant.json',
+      'test/puppet/modules/role/manifests/ui.pp'     => 'modules/role/manifests/ui.pp',
+    }
 
-    @app.run('mkdir manifests')
-    @app.run('mkdir manifests/hieradata')
+    ## TODO figure out a better pattern here -- scp tunnel is under 'vagrant' context, but dirs created with 'root'
+    @app.sudo = false
+    @app.run('mkdir -p manifests/hieradata')
     @app.run('mkdir -p modules/role/manifests')
-    required_files.each do |files|
-      @app.put(file)
+    @app.sudo = true
+
+    required_files.each_pair do |source,dest|
+      @app.put(source, dest)
     end
 
     assert_nothing_raised do
-      @ppm.run_puppet('masterless', {
+      @app.run_puppet('masterless', {
         :expected_exitcode => [0,2],
-        :hiera_config      => 'hiera.yaml',
+        :hiera_config      => 'manifests/hiera.yaml',
         :manifest_file     => 'manifests/manifest.pp',
         :module_dir        => 'modules/'
       })
@@ -127,9 +132,9 @@ class TestPuppetApply < Test::Unit::TestCase
       @app.up()
       @app.run_puppet('masterless', {
         :expected_exitcode => [0,2],
-        :hiera_config      => 'hiera.yaml',
-        :manifest_file     => '/etc/puppet/manifests/manifest.pp',
-        :module_dir        => '/etc/puppet/modules/'
+        :hiera_config      => 'manifests/hiera.yaml',
+        :manifest_dir      => 'manifests/',
+        :module_dir        => 'modules/'
       })
 
     end
