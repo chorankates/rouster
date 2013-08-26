@@ -9,8 +9,7 @@ require 'test/unit'
 class TestPuppetApply < Test::Unit::TestCase
 
   def setup
-    @app = Rouster.new(:name => 'app')
-    @app.up()
+    @app = Rouster.new(:name => 'app', :verbose => 1)
 
     ## TODO teach put() how to use -R (directories)
     required_files = {
@@ -41,7 +40,8 @@ class TestPuppetApply < Test::Unit::TestCase
       })
     end
 
-    assert_match(/Finished catalog run in/, @ppm.get_output())
+    assert_match(/this is a test/, @app.get_output())
+    assert_match(/Finished catalog run in/, @app.get_output())
 
     # define base here
     @expected_packages = {
@@ -77,27 +77,6 @@ class TestPuppetApply < Test::Unit::TestCase
         }
     }
 
-    # manually specified testing
-    @expected_files.each_pair do |f,e|
-      assert_equal(true, @ppm.validate_file(f,e))
-    end
-
-    @expected_groups.each_pair do |g,e|
-      assert_equal(true, @ppm.validate_group(g,e))
-    end
-
-    @expected_packages.each_pair do |p,e|
-      assert_equal(true, @ppm.validate_package(p, e))
-    end
-
-    @expected_services.each_pair do |s,e|
-      assert_equal(true, @ppm.validate_service(s,e))
-    end
-
-    @expected_users.each_pair do |u,e|
-      assert_equal(true, @ppm.validate_user(u,e))
-    end
-
   end
 
   def test_app
@@ -129,7 +108,6 @@ class TestPuppetApply < Test::Unit::TestCase
     }.merge(@expected_users)
 
     assert_nothing_raised do
-      @app.up()
       @app.run_puppet('masterless', {
         :expected_exitcode => [0,2],
         :hiera_config      => 'manifests/hiera.yaml',
