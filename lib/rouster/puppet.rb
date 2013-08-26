@@ -245,12 +245,11 @@ class Rouster
         opts[:manifest_dir].each do |dir|
           raise InternalError.new(sprintf('invalid manifest dir specified[%s]', dir)) unless self.is_dir?(dir)
 
-          manifests = self.files(dir, true)
+          manifests = self.files(dir, '*.pp', true)
 
           manifests.each do |m|
-            next unless m.match(/\.pp$/)
 
-            self.run(sprintf('puppet apply %s --modulepath=%s %s/%s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir], dir, m), opts[:expected_exitcode])
+            self.run(sprintf('puppet apply %s --modulepath=%s %s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir], m), opts[:expected_exitcode])
 
           end
 
