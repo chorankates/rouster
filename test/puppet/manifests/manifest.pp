@@ -3,13 +3,16 @@
 node default {
   include baseclass
 }
-
 node 'app.hsd1.ca.comcast.net' {
   include app_role
 }
 
 node 'db' {
   include db_role
+}
+
+notify { 'test':
+  message => 'this is a test',
 }
 
 class baseclass {
