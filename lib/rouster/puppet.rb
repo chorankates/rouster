@@ -192,26 +192,23 @@ class Rouster
 
   end
 
-  def run_puppet(mode='master', opts=nil)
+  def run_puppet(mode='master', passed_opts=nil)
 
     if mode.eql?('master')
-      default_opts = {
+      opts = {
         :expected_exitcode => 0
-      }
+      }.merge!(passed_opts)
 
-      opts.merge!(default_opts)
       self.run('/sbin/service puppet once -t', opts[:expected_exitcode])
 
     elsif mode.eql?('masterless')
-      default_opts = {
+      opts = {
         :expected_exitcode => 2,
-        :hiera_config      => nil,
+        :hiera_config      => nil, # TODO this will only work with puppet3.0 and up, otherwise causes a fatal CLI parsing error - how to handle 2.7?
         :manifest_file     => nil, # can be a string or array, will 'puppet apply' each
         :manifest_dir      => nil, # can be a string or array, will 'puppet apply' each module in the dir (recursively)
         :module_dir        => nil
-      }
-
-      opts.merge!(default_opts)
+      }.merge!(passed_opts)
 
       ## validate required arguments
       raise InternalError.new(sprintf('invalid hiera config specified[%s]', opts[:hiera_config])) unless self.is_file?(opts[:hiera_config])
@@ -237,14 +234,12 @@ class Rouster
           manifests.each do |m|
             next unless m.match(/\.pp$/)
 
-            self.run(sprintf('puppet apply --hiera_config=%s --modulepath=%s %s/%s', opts[:hiera_config], opts[:module_dir], dir, m))
+            self.run(sprintf('puppet apply --hiera_config=%s --modulepath=%s %s/%s', opts[:hiera_config], opts[:module_dir], dir, m), opts[:expected_exitcode])
 
           end
 
         end
       end
-
-
 
     else
       raise InternalError.new(sprintf('unknown mode [%s]', mode))
