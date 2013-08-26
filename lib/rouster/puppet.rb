@@ -67,6 +67,20 @@ class Rouster
     notices.empty? ? nil : notices
   end
 
+  def get_puppet_version
+    version   = nil
+    installed = self.is_in_path?('puppet')
+
+    if installed
+      raw = self.run('puppet --version')
+      version = raw.match(/([\d\.]*)\s/) ? $1 : nil
+    else
+      version = nil
+    end
+
+    version
+  end
+
   def parse_catalog(catalog)
     classes   = nil
     resources = nil
@@ -204,7 +218,7 @@ class Rouster
     elsif mode.eql?('masterless')
       opts = {
         :expected_exitcode => 2,
-        :hiera_config      => nil, # TODO this will only work with puppet3.0 and up, otherwise causes a fatal CLI parsing error - how to handle 2.7?
+        :hiera_config      => nil,
         :manifest_file     => nil, # can be a string or array, will 'puppet apply' each
         :manifest_dir      => nil, # can be a string or array, will 'puppet apply' each module in the dir (recursively)
         :module_dir        => nil
@@ -214,12 +228,14 @@ class Rouster
       raise InternalError.new(sprintf('invalid hiera config specified[%s]', opts[:hiera_config])) unless self.is_file?(opts[:hiera_config])
       raise InternalError.new(sprintf('invalid module dir specified[%s]', opts[:module_dir])) unless self.is_dir?(opts[:module_dir])
 
+      puppet_version = self.get_puppet_version() # hiera_config specification is only supported in >3.0
+
       if opts[:manifest_file]
         opts[:manifest_file] = opts[:manifest_file].class.eql?(Array) ? opts[:manifest_file] : [opts[:manifest_file]]
         opts[:manifest_file].each do |file|
           raise InternalError.new(sprintf('invalid manifest file specified[%s]', file)) unless self.is_file?(file)
 
-          self.run(sprintf('puppet apply --hiera_config=%s --modulepath=%s %s', opts[:hiera_config], opts[:module_dir], file), opts[:expected_exitcode])
+          self.run(sprintf('puppet apply %s --modulepath=%s %s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir], file), opts[:expected_exitcode])
 
         end
       end
@@ -234,7 +250,7 @@ class Rouster
           manifests.each do |m|
             next unless m.match(/\.pp$/)
 
-            self.run(sprintf('puppet apply --hiera_config=%s --modulepath=%s %s/%s', opts[:hiera_config], opts[:module_dir], dir, m), opts[:expected_exitcode])
+            self.run(sprintf('puppet apply %s --modulepath=%s %s/%s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir], dir, m), opts[:expected_exitcode])
 
           end
 
