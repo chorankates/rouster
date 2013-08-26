@@ -33,19 +33,16 @@ class Rouster
     res
   end
 
-  def dirs(dir, recursive=false, cache=false)
+  # TODO use a numerical, not boolean value for 'recursive'
+  def dirs(dir, wildcard='*', recursive=false)
     raise InternalError.new(sprintf('invalid dir specified[%s]', dir)) unless self.is_dir?(dir)
 
-    raw = self.run(sprintf('ls -l%s %s', recursive ? 'R' : '', dir))
+    raw = self.run(sprintf("find %s %s -type d -name '%s'", dir, recursive ? '' : '-maxdepth 1', wildcard))
     res = Array.new
 
     raw.split("\n").each do |line|
-      next if line.match(/^total\s+\d+$/)
-      local = parse_ls_string(line)
-
-      if local[:directory?]
-        res.push(local[:name])
-      end
+      next if line.eql?(dir)
+      res.push(line)
     end
 
     res
@@ -81,22 +78,15 @@ class Rouster
     res
   end
 
-
-  def files(dir, recursive=false, cache=false)
-    # TODO implement an argument allowing filtering on name/extension
+  # TODO use a numerical, not boolean value for 'recursive'
+  def files(dir, wildcard='*', recursive=false)
     raise InternalError.new(sprintf('invalid dir specified[%s]', dir)) unless self.is_dir?(dir)
 
-    raw = self.run(sprintf('ls -l%s %s', recursive ? 'R' : '', dir))
+    raw = self.run(sprintf("find %s %s -type f -name '%s'", dir, recursive ? '' : '-maxdepth 1', wildcard))
     res = Array.new
 
     raw.split("\n").each do |line|
-      next if line.match(/^total\s+\d+$/)
-      local = parse_ls_string(line)
-
-      if local[:file?]
-        res.push(local[:name])
-      end
-
+      res.push(line)
     end
 
     res
