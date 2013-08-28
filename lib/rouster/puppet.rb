@@ -56,14 +56,14 @@ class Rouster
     str    = input.nil? ? self.get_output() : input
     errors = str.scan(/35merr:.*/)
 
-    errors.empty? ? nil : errors
+    errors.empty? ? nil : errors[0].split("\n")
   end
 
   def get_puppet_notices(input = nil)
     str     = input.nil? ? self.get_output() : input
     notices = str.scan(/36mnotice:.*/)
 
-    notices.empty? ? nil : notices
+    notices.empty? ? nil : notices[0].split("\n")
   end
 
   def get_puppet_version

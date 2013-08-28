@@ -52,5 +52,8 @@ class TestFacter < Test::Unit::TestCase
 
   end
 
+  def teardown
+    # noop
+  end
 
 end

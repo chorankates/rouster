@@ -36,7 +36,7 @@ class Rouster
   # * [sshtunnel]   - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
   # * [sudo]        - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
   # * [vagrantfile] - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
-  # * [verbosity]   - DEBUG (4) < INFO (3) < WARN (2) < ERROR (1) < FATAL (0)
+  # * [verbosity]   - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     # process hash keys passed
     @name        = opts[:name]
