@@ -23,8 +23,8 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_accessor :sudo, :verbosity
-  attr_reader :deltas, :exitcode, :facts, :log, :name, :output, :passthrough, :sshkey, :vagrantfile
+  attr_accessor :facts, :sudo, :verbosity
+  attr_reader :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :vagrantfile
 
   ##
   # initialize - object instantiation
