@@ -3,17 +3,6 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 require 'json'
 require 'socket'
 
-# == rouster/puppet
-# an extension to Rouster containing Puppet related code:
-#  * facter()
-#  * get_catalog()
-#  * get_puppet_errors()
-#  * get_puppet_notices()
-#  * parse_catalog()
-#  * remove_existing_certs()
-#  * run_puppet()
-#
-
 class Rouster
 
   def facter(cache=true, custom_facts=true)
@@ -36,9 +25,10 @@ class Rouster
     res
   end
 
-  def get_catalog(hostname=nil)
+  def get_catalog(hostname=nil, facts=nil)
     # post https://<puppetmaster>/catalog/<node>?facts_format=pson&facts=<pson URL encoded> == ht to patrick@puppetlabs
     certname = hostname.nil? ? self.run('hostname --fqdn').chomp : hostname
+    facts    = facts.nil? ? self.facter() : facts # TODO check for presence of certain 'required' facts?
 
     json = nil
     res  = self.run(sprintf('puppet catalog find %s', certname))
