@@ -21,20 +21,19 @@ class Rouster
       self.facts
     end
 
-    json = nil
-    res  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
+    raw  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
+    res  = Hash.new()
 
-    begin
-      json = JSON.parse(res)
-    rescue
-      raise InternalError.new(sprintf('unable to parse[%s] as JSON', res))
+    raw.split("\n").each do |line|
+      next unless line.match(/(\S*?)\s\=\>\s(.*)/)
+      res[$1] = $2
     end
 
     if cache.true?
       self.facts = res
     end
 
-    json
+    res
   end
 
   def get_catalog(hostname=nil)

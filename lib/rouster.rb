@@ -56,7 +56,6 @@ class Rouster
 
     @output   = Array.new
     @deltas   = Hash.new
-    @facts    = Hash.new()
 
     @exitcode = nil
     @ssh_info = nil # will be hash containing connection information
