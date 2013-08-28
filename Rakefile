@@ -15,7 +15,7 @@ task :demo do
 end
 
 task :doc do
-  sh 'rdoc --inline-source --line-numbers lib/*'
+  sh 'rdoc --line-numbers lib/*'
 end
 
 task :examples do
