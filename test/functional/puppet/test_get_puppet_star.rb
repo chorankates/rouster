@@ -24,6 +24,7 @@ class TestGetPuppetStar < Test::Unit::TestCase
 
     assert_not_nil(@app.get_puppet_errors())
     assert_equal(2, @app.get_puppet_errors().size)
+    assert_equal(@app.get_puppet_errors(), @app.get_puppet_errors(output)) # could be split out to a different test
 
     assert_nil(@app.get_puppet_notices())
 
@@ -36,6 +37,7 @@ class TestGetPuppetStar < Test::Unit::TestCase
 
     assert_not_nil(@app.get_puppet_notices())
     assert_equal(2, @app.get_puppet_notices().size)
+    assert_equal(@app.get_puppet_notices(), @app.get_puppet_notices(output))
 
     assert_nil(@app.get_puppet_errors())
 
