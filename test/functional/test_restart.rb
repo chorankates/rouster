@@ -1,6 +1,7 @@
   require sprintf('%s/../../path_helper', File.dirname(File.expand_path(__FILE__)))
 
   require 'rouster'
+  require 'rouster/puppet'
   require 'test/unit'
 
   class TestRestart < Test::Unit::TestCase
@@ -17,7 +18,7 @@
 
       assert_equal(true, @app.is_available_via_ssh?)
       sleep 10
-      original_uptime = @app.run('uptime')
+      original_uptime = @app.facter()['uptime_seconds'].to_i
 
       assert_nothing_raised do
         @app.restart()
@@ -30,9 +31,11 @@
         sleep 10
       end
 
-      new_uptime = @app.run('uptime')
+      new_uptime = @app.facter()['uptime_seconds'].to_i
 
       assert_not_equal(original_uptime, new_uptime)
+      assert(original_uptime > new_uptime)
+
 
     end
 
