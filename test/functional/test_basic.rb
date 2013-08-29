@@ -3,6 +3,8 @@ require sprintf('%s/../../path_helper', File.dirname(File.expand_path(__FILE__))
 require 'rouster'
 require 'test/unit'
 
+# TODO rename this to 'test_instantiate' and flesh out tests for all instantiaion options
+
 class TestBasic < Test::Unit::TestCase
 
   def setup
