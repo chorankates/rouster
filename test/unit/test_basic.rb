@@ -28,12 +28,12 @@ class TestBasic < Test::Unit::TestCase
 
     assert_nothing_raised do
       @app = Rouster.new(
-              :name        => 'app',
-              :passthrough => true,
-              :sudo        => false,
-              :verbosity   => 4,
-              #:vagrantfile => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
-              :sshkey      =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME'])
+        :name        => 'app',
+        :passthrough => true,
+        :sudo        => false,
+        :verbosity   => 4,
+        #:vagrantfile => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
+        :sshkey      =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME'])
       )
 
 
