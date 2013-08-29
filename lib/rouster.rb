@@ -18,6 +18,7 @@ class Rouster
   # custom exceptions -- what else do we want them to include/do?
   class FileTransferError    < StandardError; end # thrown by get() and put()
   class InternalError        < StandardError; end # thrown by most (if not all) Rouster methods
+  class ExternalError        < StandardError; end # thrown when external dependencies do not respond as expected
   class LocalExecutionError  < StandardError; end # thrown by _run()
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()

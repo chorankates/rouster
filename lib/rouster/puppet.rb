@@ -3,6 +3,7 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 require 'json'
 require 'net/https'
 require 'socket'
+require 'uri'
 
 class Rouster
 
@@ -26,22 +27,23 @@ class Rouster
     res
   end
 
-  def get_catalog(hostname=nil, puppetmaster=nil, facts=nil)
+  def get_catalog(hostname=nil, puppetmaster=nil, facts=nil, puppetmaster_port=8140)
     # post https://<puppetmaster>/catalog/<node>?facts_format=pson&facts=<pson URL encoded> == ht to patrick@puppetlabs
     certname     = hostname.nil? ? self.run('hostname --fqdn').chomp : hostname
     puppetmaster = puppetmaster.nil? ? 'puppet' : puppetmaster
     facts        = facts.nil? ? self.facter() : facts # TODO check for presence of certain 'required' facts?
 
+    facts.to_pson # this does not work, but needs to
 
     json = nil
-    url  = sprintf('https://%s/catalog/%s?facts_format=pson&facts=%s', puppetmaster, certname, facts)
-
-    res  = self.run(sprintf('puppet catalog find %s', certname))
+    url  = sprintf('https://%s:%s/catalog/%s?facts_format=pson&facts=%s', puppetmaster, puppetmaster_port, certname, facts)
+    uri  = URI.parse(url)
 
     begin
-      json = JSON.parse(res)
-    rescue
-      raise InternalError.new(sprintf('unable to parse[%s] as JSON', res))
+      res  = Net::HTTP.get(uri)
+      json = res.to_json
+    rescue => e
+      raise ExternalError.new("calling[#{url}] led to exception[#{e}")
     end
 
     json
