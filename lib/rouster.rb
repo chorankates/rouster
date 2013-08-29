@@ -23,7 +23,7 @@ class Rouster
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_accessor :facts, :sudo, :verbosity
-  attr_reader :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :vagrantfile
+  attr_reader :cache, :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :vagrantfile
 
   ##
   # initialize - object instantiation
