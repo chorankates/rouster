@@ -1,6 +1,7 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 require 'json'
+require 'net/https'
 require 'socket'
 
 class Rouster
@@ -25,12 +26,16 @@ class Rouster
     res
   end
 
-  def get_catalog(hostname=nil, facts=nil)
+  def get_catalog(hostname=nil, puppetmaster=nil, facts=nil)
     # post https://<puppetmaster>/catalog/<node>?facts_format=pson&facts=<pson URL encoded> == ht to patrick@puppetlabs
-    certname = hostname.nil? ? self.run('hostname --fqdn').chomp : hostname
-    facts    = facts.nil? ? self.facter() : facts # TODO check for presence of certain 'required' facts?
+    certname     = hostname.nil? ? self.run('hostname --fqdn').chomp : hostname
+    puppetmaster = puppetmaster.nil? ? 'puppet' : puppetmaster
+    facts        = facts.nil? ? self.facter() : facts # TODO check for presence of certain 'required' facts?
+
 
     json = nil
+    url  = sprintf('https://%s/catalog/%s?facts_format=pson&facts=%s', puppetmaster, certname, facts)
+
     res  = self.run(sprintf('puppet catalog find %s', certname))
 
     begin
@@ -42,14 +47,14 @@ class Rouster
     json
   end
 
-  def get_puppet_errors(input = nil)
+  def get_puppet_errors(input=nil)
     str    = input.nil? ? self.get_output() : input
     errors = str.scan(/35merr:.*/)
 
     errors.empty? ? nil : errors
   end
 
-  def get_puppet_notices(input = nil)
+  def get_puppet_notices(input=nil)
     str     = input.nil? ? self.get_output() : input
     notices = str.scan(/36mnotice:.*/)
 
@@ -68,6 +73,12 @@ class Rouster
     end
 
     version
+  end
+
+  def hiera(key, config=nil)
+
+    raise NotImplementedError.new()
+
   end
 
   def parse_catalog(catalog)
