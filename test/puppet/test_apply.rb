@@ -117,7 +117,7 @@ class TestPuppetApply < Test::Unit::TestCase
 
     end
 
-    assert_match(/Finished catalog run in/, @app.get_output())
+    assert_match(/Finished catalog run in/, @app.get_output()) # this only examines the last manifest run
 
     # manually specified testing
     app_expected_files.each_pair do |f,e|
