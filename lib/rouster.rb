@@ -23,7 +23,7 @@ class Rouster
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_accessor :facts, :sudo, :verbosity
-  attr_reader :cache, :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :vagrantfile
+  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :vagrantfile
 
   ##
   # initialize - object instantiation
@@ -234,9 +234,9 @@ class Rouster
     res = nil
 
     if @cache_timeout
-      if @cache.has_key?(:available_via_ssh)
-        if (Time.now.to_i - @cache[:available_via_ssh][:time]) < @cache_timeout
-          return @cache[:available_via_ssh][:status]
+      if @cache.has_key?(:is_available_via_ssh?)
+        if (Time.now.to_i - @cache[:is_available_via_ssh?][:time]) < @cache_timeout
+          return @cache[:is_available_via_ssh?][:status]
         end
       end
     end
@@ -261,9 +261,9 @@ class Rouster
     res = true if res.nil?
 
     if @cache_timeout
-      @cache[:is_available_via_ssh] = Hash.new unless @cache[:is_available_via_ssh].class.eql?(Hash)
-      @cache[:is_available_via_ssh][:time] = Time.now.to_i
-      @cache[:is_available_via_ssh][:status] = res
+      @cache[:is_available_via_ssh?] = Hash.new unless @cache[:is_available_via_ssh?].class.eql?(Hash)
+      @cache[:is_available_via_ssh?][:time] = Time.now.to_i
+      @cache[:is_available_via_ssh?][:status] = res
     end
 
     res
