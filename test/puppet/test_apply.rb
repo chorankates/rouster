@@ -45,66 +45,66 @@ class TestPuppetApply < Test::Unit::TestCase
 
     # define base here
     @expected_packages = {
-        'puppet' => { :ensure => true },
-        'facter' => { :ensure => 'present' }
+      'puppet' => { :ensure => true },
+      'facter' => { :ensure => 'present' }
     }
 
     @expected_files = {
-        '/etc/passwd' => {
-            :contains => [ 'vagrant', 'root'],
-            :ensure   => 'file',
-            :group    => 'root',
-            :mode     => '0644',
-            :owner    => 'root'
-        },
+      '/etc/passwd' => {
+        :contains => [ 'vagrant', 'root'],
+        :ensure   => 'file',
+        :group    => 'root',
+        :mode     => '0644',
+        :owner    => 'root'
+      },
 
-        '/tmp' => {
-            :ensure => 'directory',
-            :group  => 'root',
-            :owner  => 'root',
-        }
+      '/tmp' => {
+        :ensure => 'directory',
+        :group  => 'root',
+        :owner  => 'root',
+      }
     }
 
     @expected_groups   = {
-        'root' => { :ensure => 'true' }
+      'root' => { :ensure => 'true' }
     }
 
     @expected_services = Hash.new()
     @expected_users    = {
-        'root' => {
-            :ensure => 'present',
-            :group  => 'root',
-        }
+      'root' => {
+        :ensure => 'present',
+        :group  => 'root',
+      }
     }
 
   end
 
   def test_app
     app_expected_packages = {
-        'rsync'    => { :ensure => 'present' }
+      'rsync'    => { :ensure => 'present' }
     }.merge(@expected_packages)
 
     app_expected_files = {
-        '/etc/hosts' => {
-            :contains => [ 'localhost', 'app' ],
-            :ensure   => 'present',
-            :group    => 'root',
-            :owner    => 'root',
-        },
+      '/etc/hosts' => {
+        :contains => [ 'localhost', 'app' ],
+        :ensure   => 'present',
+        :group    => 'root',
+        :owner    => 'root',
+      },
     }.merge(@expected_files)
 
     app_expected_groups   = {
-        'vagrant' => {
-            :ensure => 'present',
-        }
+      'vagrant' => {
+        :ensure => 'present',
+      }
     }.merge(@expected_groups)
 
     app_expected_services = {}.merge(@expected_services)
 
     app_expected_users    = {
-        'vagrant' => {
-            :ensure => 'present',
-        },
+      'vagrant' => {
+        :ensure => 'present',
+      },
     }.merge(@expected_users)
 
     assert_nothing_raised do

@@ -13,7 +13,6 @@ class Rouster
 
   #TODO
   # set VirtualBox VM name to @name -- or should we leave it to the Vagrantfile?
-  # add caching to status()/is_available_via_ssh?() - for perf if you have stable environment/not edge testing
 
   # custom exceptions -- what else do we want them to include/do?
   class FileTransferError    < StandardError; end # thrown by get() and put()
@@ -24,7 +23,7 @@ class Rouster
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_accessor :facts, :sudo, :verbosity
-  attr_reader :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :vagrantfile
+  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :vagrantfile
 
   ##
   # initialize - object instantiation
@@ -39,12 +38,13 @@ class Rouster
   # * [verbosity]   - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     # process hash keys passed
-    @name        = opts[:name]
-    @passthrough = opts[:passthrough].nil? ? false : opts[:passthrough]
-    @sshkey      = opts[:sshkey]
-    @sshtunnel   = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
-    @vagrantfile = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
-    @verbosity   = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 4
+    @cache_timeout = opts[:cache_timeout].nil? ? false : opts[:cache_timeout] # this affects status() and is_available_via_ssh?(), data stored in @cache
+    @name          = opts[:name]
+    @passthrough   = opts[:passthrough].nil? ? false : opts[:passthrough]
+    @sshkey        = opts[:sshkey]
+    @sshtunnel     = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
+    @vagrantfile   = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
+    @verbosity     = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 4
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]
@@ -55,6 +55,7 @@ class Rouster
     end
 
     @output   = Array.new
+    @cache    = Hash.new
     @deltas   = Hash.new
 
     @exitcode = nil
@@ -150,15 +151,32 @@ class Rouster
   # status - shells out and runs 'vagrant status <name>' from the Vagrantfile path
   # parses the status and provider out of output, but only status is returned
   def status
+    status = nil
+
+    if @cache_timeout
+      if @cache.has_key?(:status)
+        if (Time.now.to_i - @cache[:status][:time]) < @cache_timeout
+          return @cache[:status][:status]
+        end
+      end
+    end
+
     @log.info('status()')
     self._run(sprintf('cd %s; vagrant status %s', File.dirname(@vagrantfile), @name))
 
     # else case here is handled by non-0 exit code
     if self.get_output().match(/^#{@name}\s*(.*\s?\w+)\s(.+)$/)
       # $1 = name, $2 = provider
-      $1
+      status = $1
     end
 
+    if @cache_timeout
+      @cache[:status] = Hash.new unless @cache[:status].class.eql?(Hash)
+      @cache[:status][:time] = Time.now.to_i
+      @cache[:status][:status] = status
+    end
+
+    return status
   end
 
   ##
@@ -213,23 +231,42 @@ class Rouster
   # * attempting to establish SSH tunnel if it is not currently up/open
   # * running a functional test of the tunnel
   def is_available_via_ssh?
+    res = nil
+
+    if @cache_timeout
+      if @cache.has_key?(:is_available_via_ssh?)
+        if (Time.now.to_i - @cache[:is_available_via_ssh?][:time]) < @cache_timeout
+          return @cache[:is_available_via_ssh?][:status]
+        end
+      end
+    end
 
     if @ssh.nil? or @ssh.closed?
       begin
         self.connect_ssh_tunnel()
       rescue Rouster::InternalError, Net::SSH::Disconnect => e
-        return false
+        res = false
       end
 
     end
 
-    begin
-      self.run('echo functional test of SSH tunnel')
-    rescue
-      return false
+    if res.nil?
+      begin
+        self.run('echo functional test of SSH tunnel')
+      rescue
+        res = false
+      end
     end
 
-    true
+    res = true if res.nil?
+
+    if @cache_timeout
+      @cache[:is_available_via_ssh?] = Hash.new unless @cache[:is_available_via_ssh?].class.eql?(Hash)
+      @cache[:is_available_via_ssh?][:time] = Time.now.to_i
+      @cache[:is_available_via_ssh?][:status] = res
+    end
+
+    res
   end
 
   ##
