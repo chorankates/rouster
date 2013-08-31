@@ -4,8 +4,22 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 require 'rouster'
 require 'rouster/tests'
 
+# TODO use @cache_timeout to invalidate data cached here
+
 class Rouster
-  # deltas.rb reimplementation
+  ##
+  # get_groups
+  #
+  # cats /etc/group and parses output, returns hash:
+  # {
+  #   groupN => {
+  #     :gid => gid,
+  #     :users => [user1, userN]
+  #   }
+  # }
+  #
+  # parameters
+  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
   def get_groups(cache=true)
     if cache and ! self.deltas[:groups].nil?
       return self.deltas[:groups]
@@ -36,9 +50,28 @@ class Rouster
     res
   end
 
+  ##
+  # get_packages
+  #
+  # runs an OS appropriate command to gather list of packages, returns hash:
+  # {
+  #   packageN => {
+  #     package => version|? # if 'deep', attempts to parse version numbers
+  #   }
+  # }
+  #
+  # parameters
+  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
+  # * [deep] - boolean controlling whether to attempt to parse extended information (see supported OS), defaults to true
+  #
+  # supported OS
+  # * OSX - runs `pkgutil --pkgs` and `pkgutil --pkg-info=<package>` (if deep)
+  # * RedHat - runs `rpm -qa`
+  # * Solaris - runs `pkginfo` and `pkginfo -l <package>` (if deep)
+  # * Ubuntu - runs `dpkg --get-selections` and `dpkg -s <package>` (if deep)
+  #
+  # raises InternalError if unsupported operating system
   def get_packages(cache=true, deep=true)
-    # returns { package => '<version>', package2 => '<version>' }
-
     if cache and ! self.deltas[:packages].nil?
       return self.deltas[:packages]
     end
@@ -111,8 +144,26 @@ class Rouster
     res
   end
 
+  ##
+  # get_ports
+  #
+  # runs an OS appropriate command to gather port information, returns hash:
+  # {
+  #   protocolN => {
+  #     portN => {
+  #       :addressN => state
+  #     }
+  #   }
+  # }
+  #
+  # parameters
+  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
+  #
+  # supported OS
+  # * RedHat - runs `netstat -ln` -- TODO will this work on other operating systems too?
+  #
+  # raises InternalError if unsupported operating system
   def get_ports(cache=false)
-    # really just ports we're listening on
     # TODO add unix domain sockets
     # TODO improve ipv6 support
 
@@ -154,6 +205,24 @@ class Rouster
     res
   end
 
+  ##
+  # get_services
+  #
+  # runs an OS appropriate command to gather service information, returns hash:
+  # {
+  #   serviceN => mode # running|stopped|unsure
+  # }
+  #
+  # parameters
+  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
+  #
+  # supported OS
+  # * OSX - runs `launchctl list`
+  # * RedHat - runs `/sbin/service --status-all`
+  # * Solaris - runs `svcs`
+  # * Ubuntu - runs `service --status-all`
+  #
+  # raises InternalError if unsupported operating system
   def get_services(cache=true)
     if cache and ! self.deltas[:services].nil?
       return self.deltas[:services]
@@ -237,6 +306,21 @@ class Rouster
     res
   end
 
+  ##
+  # get_users
+  #
+  # cats /etc/passwd and parses output, returns hash:
+  # {
+  #   userN => {
+  #     :gid => gid,
+  #     :home  => path_of_homedir,
+  #     :home_exists => boolean_of_is_dir?(:home),
+  #     :shell => path_to_shell,
+  #     :uid => uid
+  #   }
+  # }
+  # parameters
+  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
   def get_users(cache=true)
     if cache and ! self.deltas[:users].nil?
       return self.deltas[:users]
