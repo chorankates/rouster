@@ -6,11 +6,13 @@ require 'rouster/deltas'
 class Rouster
 
   ##
-  # validate_file - given a filename and a hash of expectations, returns true|false whether file matches expectations
+  # validate_file
+  #
+  # given a filename and a hash of expectations, returns true|false whether file matches expectations
   #
   # parameters
-  # * <name>         - full file name or relative (to ~vagrant)
-  # * <expectations> -
+  # * <name> - full file name or relative (to ~vagrant)
+  # * <expectations> - hash of expectations, see examples
   #
   # example expectations:
   # '/sys/kernel/mm/redhat_transparent_hugepage/enabled', {
@@ -35,14 +37,14 @@ class Rouster
   # }
   #
   # supported keys:
-  #   :exists|:ensure
-  #   :file
-  #   :directory
-  #   :contains (string or array)
-  #   :mode/:permissions
-  #   :owner
-  #   :group
-  #   :constrain
+  #   * :exists|:ensure
+  #   * :file
+  #   * :directory
+  #   * :contains (string or array)
+  #   * :mode/:permissions
+  #   * :owner
+  #   * :group
+  #   * :constrain
   def validate_file(name, expectations)
     properties = (! expectations[:ensure].nil? and expectations[:ensure].eql?('file')) ?  self.file(name) : self.dir(name)
 
@@ -135,26 +137,36 @@ class Rouster
 
   end
 
+  ##
+  # validate_group
+  #
+  # given a group and a hash of expectations, returns true|false whether group matches expectations
+  #
+  # paramaters
+  # * <name> - group name
+  # * <expectations> - hash of expectations, see examples
+  #
+  # example expectations:
+  # 'root', {
+  #   # if ensure is not specified, 'present' is implied
+  #   :gid => 0,
+  #   :user => 'root'
+  # }
+  # 'sys', {
+  #   :ensure => 'present',
+  #   :user   => ['root', 'bin', 'daemon']
+  # },
+  #
+  # 'fizz', {
+  #   :exists => false
+  # },
+  #
+  # supported keys:
+  #  * :exists|:ensure
+  #  * :gid
+  #  * :user|:users (string or array)
+  #  * :constrain
   def validate_group(name, expectations)
-    # 'root', {
-    #   # if ensure is not specified, 'present' is implied
-    #   :gid => 0,
-    #   :user => 'root'
-    # }
-    # 'sys', {
-    #   :ensure => 'present',
-    #   :user   => ['root', 'bin', 'daemon']
-    # },
-    #
-    # 'fizz', {
-    #   :exists => false
-    # },
-    #
-    # supported keys:
-    #  :exists|:ensure
-    #  :gid
-    #  :user|:users (string or array)
-    #  :constrain
     groups = self.get_groups(true)
 
     expectations[:ensure] ||= 'present'
@@ -204,25 +216,35 @@ class Rouster
 
   end
 
+  ##
+  # validate_package
+  #
+  # given a package name and a hash of expectations, returns true|false whether package meets expectations
+  #
+  # parameters
+  # * <name> - package name
+  # * <expectations> - hash of expectations, see examples
+  #
+  # example expectations:
+  # 'perl-Net-SNMP', {
+  #   :ensure => 'absent'
+  # },
+  #
+  # 'pixman', {
+  #   :ensure => 'present',
+  #   :version => '1.0',
+  # },
+  #
+  # 'rrdtool', {
+  #   # if ensure is not specified, 'present' is implied
+  #   :version => '> 2.1',
+  #   :constrain => 'is_virtual false',
+  # },
+  # supported keys:
+  #  * :exists|ensure
+  #  * :version  (literal or basic comparison)
+  #  * :constrain
   def validate_package(name, expectations)
-    #'perl-Net-SNMP', {
-    #  :ensure => 'absent'
-    #},
-    #
-    #'pixman', {
-    #  :ensure => 'present',
-    #  :version => '1.0',
-    #},
-    #
-    #'rrdtool', {
-    #  # if ensure is not specified, 'present' is implied
-    #  :version => '> 2.1',
-    #  :constrain => 'is_virtual false',
-    #},
-    # supported keys:
-    #  :exists|ensure
-    #  :version  (literal or basic comparison)
-    #  :constrain
     packages = self.get_packages(true)
 
     ## set up some defaults
@@ -269,19 +291,30 @@ class Rouster
     results.find{|k,v| v.false? }.nil?
   end
 
+  ##
+  # validate_service
+  #
+  # given a service name and a hash of expectations, returns true|false whether package meets expectations
+  #
+  # parameters
+  # * <name> - service name
+  # * <expectations> - hash of expectations, see examples
+  #
+  # example expectations:
+  # 'ntp', {
+  #   :ensure => 'present',
+  #   :state  => 'started'
+  # },
+  #
+  # 'ypbind', {
+  #   :state => 'stopped',
+  # }
+  #
+  # supported keys:
+  #  * :exists|:ensure
+  #  * :state
+  #  * :constrain
   def validate_service(name, expectations)
-    # 'ntp', {
-    #   :ensure => 'present',
-    #   :state  => 'started'
-    # },
-    # 'ypbind', {
-    #   :state => 'stopped',
-    # }
-    #
-    # supported keys:
-    #  :exists|:ensure
-    #  :state
-    #  :constrain
     services = self.get_services(true)
 
     expectations[:ensure] ||= 'present'
@@ -325,27 +358,39 @@ class Rouster
 
   end
 
+  ##
+  # validate_user
+  #
+  # given a user name and a hash of expectations, returns true|false whether user meets expectations
+  #
+  # parameters
+  # * <name> - user name
+  # * <expectations> - hash of expectations, see examples
+  #
+  # example expectations:
+  # 'root' => {
+  #   :uid => 0
+  # },
+  #
+  # 'ftp' => {
+  #   :exists => true,
+  #   :home   => '/var/ftp',
+  #   :shell  => 'nologin'
+  # },
+  #
+  # 'developer' => {
+  #   :exists    => 'false',
+  #   :constrain => 'environment != production'
+  # }
+  #
+  # supported keys:
+  #  * :exists|ensure
+  #  * :home
+  #  * :group
+  #  * :shell
+  #  * :uid
+  #  * :constrain
   def validate_user(name, expectations)
-    # 'root' => {
-    #   :uid => 0
-    # },
-    # 'ftp' => {
-    #   :exists => true,
-    #   :home   => '/var/ftp',
-    #   :shell  => 'nologin'
-    # },
-    # 'developer' => {
-    #   :exists    => 'false',
-    #   :constrain => 'environment != production'
-    # }
-    #
-    # supported keys:
-    #  :exists|ensure
-    #  :home
-    #  :group
-    #  :shell
-    #  :uid
-    #  :constrain
     users = self.get_users(true)
 
     expectations[:ensure] ||= 'present'
@@ -402,6 +447,16 @@ class Rouster
   ## internal methods
   private
 
+  ##
+  # meets_constraint?
+  #
+  # powers the :constrain value in expectations passed to validate_*
+  # gets facts from node, and if fact expectation regex matches actual fact, returns true
+  #
+  # parameters
+  # * <fact>
+  # * <expectation>
+  # * [cache]
   def meets_constraint?(fact, expectation, cache=true)
 
     unless self.respond_to?('facter')
