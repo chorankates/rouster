@@ -4,6 +4,26 @@ require 'rouster/deltas'
 
 class Rouster
 
+  ##
+  # dir
+  #
+  # runs `ls -ld <dir>` and parses output, returns nil (if dir DNE or permission issue) or hash:
+  # {
+  #   :directory? => boolean,
+  #   :file? => boolean,
+  #   :executable? => boolean, # based on user 'vagrant' context
+  #   :writeable? => boolean, # based on user 'vagrant' context
+  #   :readable? => boolean, # based on user 'vagrant' context
+  #   :mode => mode, # 0-prefixed octal mode
+  #   :name => name, # short name
+  #   :owner => owner,
+  #   :group => group,
+  #   :size => size, # in bytes
+  # }
+  #
+  # parameters
+  # * <dir> - path of directory to act on, full path or relative to ~vagrant/
+  # * [cache] - boolean controlling whether to cache retrieved data, defaults to false
   def dir(dir, cache=false)
 
     self.deltas[:files] = Hash.new if self.deltas[:files].nil?
@@ -20,7 +40,7 @@ class Rouster
     if raw.match(/No such file or directory/)
       res = nil
     elsif raw.match(/Permission denied/)
-      @log.info(sprintf('is_dir?(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
+      @log.info(sprintf('dir(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
       res = nil
     else
       res = parse_ls_string(raw)
@@ -33,8 +53,18 @@ class Rouster
     res
   end
 
-  # TODO use a numerical, not boolean value for 'recursive'
+  ##
+  # dirs
+  #
+  # runs `find <dir> <recursive muckery> -type d -name '<wildcard>'`, and returns array of directories (fully qualified paths)
+  #
+  # parameters
+  # * <dir> - path to directory to act on, full path or relative to ~vagrant/
+  # * [wildcard] - glob of directories to match, defaults to '*'
+  # * [recursive] - boolean controlling whether or not to look in directories recursively, defaults to false
   def dirs(dir, wildcard='*', recursive=false)
+    # TODO use a numerical, not boolean value for 'recursive' -- and rename to 'depth' ?
+    # TODO should we be running -iname ?
     raise InternalError.new(sprintf('invalid dir specified[%s]', dir)) unless self.is_dir?(dir)
 
     raw = self.run(sprintf("find %s %s -type d -name '%s'", dir, recursive ? '' : '-maxdepth 1', wildcard))
@@ -48,6 +78,26 @@ class Rouster
     res
   end
 
+  ##
+  # file
+  #
+  # runs `ls -l <file>` and parses output, returns nil (if file DNE or permission issue) or hash:
+  # {
+  #   :directory? => boolean,
+  #   :file? => boolean,
+  #   :executable? => boolean, # based on user 'vagrant' context
+  #   :writeable? => boolean, # based on user 'vagrant' context
+  #   :readable? => boolean, # based on user 'vagrant' context
+  #   :mode => mode, # 0-prefixed octal mode
+  #   :name => name, # short name
+  #   :owner => owner,
+  #   :group => group,
+  #   :size => size, # in bytes
+  # }
+  #
+  # parameters
+  # * <file> - path of file to act on, full path or relative to ~vagrant/
+  # * [cache] - boolean controlling whether to cache retrieved data, defaults to false
   def file(file, cache=false)
 
     self.deltas[:files] = Hash.new if self.deltas[:files].nil?
@@ -78,8 +128,16 @@ class Rouster
     res
   end
 
-  # TODO use a numerical, not boolean value for 'recursive'
+  ##
+  # files
+  #
+  # runs `find <dir> <recursive muckery> -type f -name '<wildcard>'`, and reutns array of files (fullly qualified paths)
+  # parameters
+  # * <dir> - directory to look in, full path or relative to ~vagrant/
+  # * [wildcard] - glob of files to match, defaults to '*'
+  # * [recursive] - boolean controlling whether or not to look in directories recursively, defaults to false
   def files(dir, wildcard='*', recursive=false)
+    # TODO use a numerical, not boolean value for 'recursive'
     raise InternalError.new(sprintf('invalid dir specified[%s]', dir)) unless self.is_dir?(dir)
 
     raw = self.run(sprintf("find %s %s -type f -name '%s'", dir, recursive ? '' : '-maxdepth 1', wildcard))
@@ -92,11 +150,26 @@ class Rouster
     res
   end
 
+  ##
+  # is_dir?
+  #
+  # uses dir() to return boolean indicating whether parameter passed is a directory
+  #
+  # parameters
+  # * <dir> - path of directory to validate
   def is_dir?(dir)
     res = self.dir(dir)
     res.class.eql?(Hash) ? res[:directory?] : false
   end
 
+  ##
+  # is_executable?
+  #
+  # uses file() to return boolean indicating whether parameter passed is an executable file
+  #
+  # parameters
+  # * <filename> - path of filename to validate
+  # * [level] - string indicating 'u'ser, 'g'roup or 'o'ther context, defaults to 'u'
   def is_executable?(filename, level='u')
     res = nil
 
@@ -131,23 +204,46 @@ class Rouster
 
   end
 
+  ##
+  # is_file?
+  #
+  # uses file() to return boolean indicating whether parameter passed is a file
+  #
+  # parameters
+  # * <file> - path of filename to validate
   def is_file?(file)
     res = self.file(file)
     res.class.eql?(Hash) ? res[:file?] : false
   end
 
+  ##
+  # is_group?
+  #
+  # uses get_groups() to return boolean indicating whether parameter passed is a group
+  #
+  # parameters
+  # * <group> - name of group to validate
   def is_group?(group)
     groups = self.get_groups()
     groups.has_key?(group)
   end
 
+  ##
+  # is_in_file?
+  #
+  # calls `grep -c '<regex>' <file>` and returns boolean for whether one or more matches are found in file
+  #
+  # parameters
+  # * <file> - path of filename to examine
+  # * <regex> - regular expression/string to be passed to grep
+  # * [scp] - downloads file to host machine before grepping (functionality not implemented, was planned when a new SSH connection was required for each run() command, not sure it is necessary any longer)
   def is_in_file?(file, regex, scp=false)
 
     res = nil
 
     if scp
       # download the file to a temporary directory
-      # not implementing as part of MVP
+      @log.warn('is_in_file? scp option not implemented yet')
     end
 
     begin
@@ -165,6 +261,13 @@ class Rouster
 
   end
 
+  ##
+  # is_in_path?
+  #
+  # runs `which <filename>`, returns boolean of whether the filename is exectuable and in $PATH
+  #
+  # parameters
+  # * <filename> - name of executable to validate
   def is_in_path?(filename)
     begin
       self.run(sprintf('which %s', filename))
@@ -175,13 +278,31 @@ class Rouster
     true
   end
 
+  ##
+  # is_package?
+  #
+  # uses get_packages() to return boolean indicating whether passed parameter is an installed package
+  #
+  # parameters
+  # * <package> - name of package to validate
+  # * [cache] - boolean controlling whether to cache results from get_packages(), defaults to true (for performance)
   def is_package?(package, cache=true)
+    # TODO should we implement something like is_package_version?()
     packages = self.get_packages(cache)
     packages.has_key?(package)
   end
 
-  # TODO is this the right name?
+  ##
+  # is_port_active?
+  #
+  # uses get_ports() to return boolean indicating whether passed port is in use
+  #
+  # parameters
+  # * <port> - port number to validate
+  # * [proto] - specification of protocol to examine, defaults to tcp
+  # * [cache] - boolean controlling whether to cache get_ports() data, defaults to false
   def is_port_active?(port, proto='tcp', cache=false)
+    # TODO is this the right name?
     ports = self.get_ports(cache)
     port  = port.to_s
     if ports[proto].class.eql?(Hash) and ports[proto].has_key?(port)
@@ -199,6 +320,15 @@ class Rouster
     false
   end
 
+  ##
+  # is_port_open?
+  #
+  # uses get_ports() to return boolean indicating whether passed port is open
+  #
+  # parameters
+  # * <port> - port number to validate
+  # * [proto] - specification of protocol to examine, defaults to tcp
+  # * [cache] - boolean controlling whether to cache get_ports() data, defaults to false
   def is_port_open?(port, proto='tcp', cache=false)
     ports = self.get_ports(cache)
     port  = port.to_s
@@ -209,14 +339,27 @@ class Rouster
     true
   end
 
+  ##
+  # is_process_running?
+  #
+  # runs `ps ax | grep -c <process>` looking for more than 2 results
+  #
+  # parameters
+  # * <name> - name of process to look for
+  #
+  # supported OS
+  # * OSX
+  # * RedHat
+  # * Ubuntu
   def is_process_running?(name)
     # TODO support other flavors - this will work on RHEL and OSX
+    # TODO do better validation than just grepping for a matching filename
     begin
 
       os = self.os_type()
 
       case os
-        when :redhat, :darwin, :ubuntu
+        when :redhat, :osx, :ubuntu
           res = self.run(sprintf('ps ax | grep -c %s', name))
         else
           raise InternalError.new(sprintf('currently unable to determine running process list on OS[%s]', os))
@@ -229,6 +372,14 @@ class Rouster
     res.chomp.to_i > 2 # because of the weird way our process is run through the ssh tunnel
   end
 
+  ##
+  # is_readable?
+  #
+  # uses file() to return boolean indicating whether parameter passed is an readable file
+  #
+  # parameters
+  # * <filename> - path of filename to validate
+  # * [level] - string indicating 'u'ser, 'g'roup or 'o'ther context, defaults to 'u'
   def is_readable?(filename, level='u')
     res = nil
 
@@ -263,11 +414,28 @@ class Rouster
 
   end
 
+  ##
+  # is_service?
+  #
+  # uses get_services() to return boolean indicating whether passed parameter is an installed service
+  #
+  # parameters
+  # * <service> - name of service to validate
+  # * [cache] - boolean controlling whether to cache results from get_services(), defaults to true
   def is_service?(service, cache=true)
     services = self.get_services(cache)
     services.has_key?(service)
   end
 
+
+  ##
+  # is_service_running?
+  #
+  # uses get_services() to return boolean indicating whether passed parameter is a running service
+  #
+  # parameters
+  # * <service> - name of service to validate
+  # * [cache] - boolean controlling whether to cache results from get_services(), defaults to false
   def is_service_running?(service, cache=false)
     services = self.get_services(cache)
 
@@ -278,18 +446,44 @@ class Rouster
     end
   end
 
+  ##
+  # is_user?
+  #
+  # uses get_users() to return boolean indicating whether passed parameter is a user
+  #
+  # parameters
+  # * <user> - username to validate
+  # * [cache] - boolean controlling whether to cache results from get_users(), defaults to true
   def is_user?(user, cache=true)
     users = self.get_users(cache)
     users.has_key?(user)
   end
 
+  ##
+  # is_user_in_group?
+  #
+  # uses get_users() and get_groups() to return boolean indicating whether passed user is in passed group
+  #
+  # parameters
+  # * <user> - username to validate
+  # * <group> - group expected to contain user
+  # * [cache] - boolean controlling whether to cache results from get_users() and get_groups(), defaults to true
   def is_user_in_group?(user, group, cache=true)
+    # TODO can we scope this down to just use get_groups?
     users  = self.get_users(cache)
     groups = self.get_groups(cache)
 
     users.has_key?(user) and groups.has_key?(group) and groups[group][:users].member?(user)
   end
 
+  ##
+  # is_writeable?
+  #
+  # uses file() to return boolean indicating whether parameter passed is an executable file
+  #
+  # parameters
+  # * <filename> - path of filename to validate
+  # * [level] - string indicating 'u'ser, 'g'roup or 'o'ther context, defaults to 'u'
   def is_writeable?(filename, level='u')
     res = nil
 
