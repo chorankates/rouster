@@ -132,7 +132,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results.pretty_print_inspect())
+    @log.info(results)
     results.find{|k,v| v.false? }.nil?
 
   end
