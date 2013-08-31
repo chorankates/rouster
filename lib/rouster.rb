@@ -9,10 +9,7 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 require 'rouster/tests'
 
 class Rouster
-  VERSION = 0.3
-
-  #TODO
-  # set VirtualBox VM name to @name -- or should we leave it to the Vagrantfile?
+  VERSION = 0.4
 
   # custom exceptions -- what else do we want them to include/do?
   class FileTransferError    < StandardError; end # thrown by get() and put()
@@ -29,16 +26,17 @@ class Rouster
   # initialize - object instantiation
   #
   # parameters
-  # * <name>        - the name of the VM as specified in the Vagrantfile
-  # * [passthrough] - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
-  # * [sshkey]      - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
-  # * [sshtunnel]   - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
-  # * [sudo]        - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
-  # * [vagrantfile] - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
-  # * [verbosity]   - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
+  # * <name>          - the name of the VM as specified in the Vagrantfile
+  # * [cache_timeout] - integer specifying how long Rouster should cache status() and is_available_via_ssh?() results, default is false
+  # * [passthrough]   - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
+  # * [sshkey]        - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
+  # * [sshtunnel]     - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
+  # * [sudo]          - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
+  # * [vagrantfile]   - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
+  # * [verbosity]     - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     # process hash keys passed
-    @cache_timeout = opts[:cache_timeout].nil? ? false : opts[:cache_timeout] # this affects status() and is_available_via_ssh?(), data stored in @cache
+    @cache_timeout = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
     @name          = opts[:name]
     @passthrough   = opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey        = opts[:sshkey]
@@ -156,6 +154,7 @@ class Rouster
     if @cache_timeout
       if @cache.has_key?(:status)
         if (Time.now.to_i - @cache[:status][:time]) < @cache_timeout
+          @log.debug(sprintf('using cached status[%s] from [%s]', @cache[:status][:status], @cache[:status][:time]))
           return @cache[:status][:status]
         end
       end
@@ -174,6 +173,7 @@ class Rouster
       @cache[:status] = Hash.new unless @cache[:status].class.eql?(Hash)
       @cache[:status][:time] = Time.now.to_i
       @cache[:status][:status] = status
+      @log.debug(sprintf('caching status[%s] at [%s]', @cache[:status][:status], @cache[:status][:time]))
     end
 
     return status
@@ -200,6 +200,10 @@ class Rouster
   # * [expected_exitcode] = allows for non-0 exit codes to be returned without requiring exception handling
   def run(command, expected_exitcode=[0])
 
+    if @ssh.nil?
+      self.connect_ssh_tunnel
+    end
+
     output = nil
     expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
 
@@ -215,6 +219,7 @@ class Rouster
     end
 
     self.output.push(output)
+    @log.debug(sprintf('output: [%s]', output.pretty_inspect))
 
     unless expected_exitcode.member?(@exitcode)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
@@ -236,6 +241,7 @@ class Rouster
     if @cache_timeout
       if @cache.has_key?(:is_available_via_ssh?)
         if (Time.now.to_i - @cache[:is_available_via_ssh?][:time]) < @cache_timeout
+          @log.debug(sprintf('using cached is_available_via_ssh?[%s] from [%s]', @cache[:is_available_via_ssh?][:status], @cache[:is_available_via_ssh?][:time]))
           return @cache[:is_available_via_ssh?][:status]
         end
       end
@@ -264,6 +270,7 @@ class Rouster
       @cache[:is_available_via_ssh?] = Hash.new unless @cache[:is_available_via_ssh?].class.eql?(Hash)
       @cache[:is_available_via_ssh?][:time] = Time.now.to_i
       @cache[:is_available_via_ssh?][:status] = res
+      @log.debug(sprintf('caching is_available_via_ssh?[%s] at [%s]', @cache[:is_available_via_ssh?][:status], @cache[:is_available_via_ssh?][:time]))
     end
 
     res
@@ -470,6 +477,8 @@ class Rouster
     end
 
     self.output.push(output)
+    @log.debug(sprintf('output: [%s]', output.pretty_inspect))
+
     @exitcode = $?.to_i()
     output
   end
