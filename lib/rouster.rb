@@ -219,7 +219,7 @@ class Rouster
     end
 
     self.output.push(output)
-    @log.debug(sprintf('output: [%s]', output.pretty_inspect))
+    @log.debug(sprintf('output: [%s]', output))
 
     unless expected_exitcode.member?(@exitcode)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
@@ -477,7 +477,7 @@ class Rouster
     end
 
     self.output.push(output)
-    @log.debug(sprintf('output: [%s]', output.pretty_inspect))
+    @log.debug(sprintf('output: [%s]', output))
 
     @exitcode = $?.to_i()
     output

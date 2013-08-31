@@ -263,7 +263,7 @@ class Rouster
     end
 
     # TODO figure out a good way to allow access to the entire hash, not just boolean -- for now just print at an info level
-    @log.info(results.pretty_print_inspect())
+    @log.info(results)
 
     # TODO should we implement a fail fast method? at least an option
     results.find{|k,v| v.false? }.nil?
