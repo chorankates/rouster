@@ -193,7 +193,7 @@ class Rouster
     # really only useful if called from a puppet master
     hosts = Array.new()
 
-    res = self.run('puppet cert --list --all')
+    res = self.run('puppet cert list --all')
 
     res.each_line do |line|
       next if line.match(/#{puppetmaster}/)
