@@ -26,14 +26,14 @@ class Rouster
   # initialize - object instantiation
   #
   # parameters
-  # * <name>          - the name of the VM as specified in the Vagrantfile
+  # * <name> - the name of the VM as specified in the Vagrantfile
   # * [cache_timeout] - integer specifying how long Rouster should cache status() and is_available_via_ssh?() results, default is false
-  # * [passthrough]   - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
-  # * [sshkey]        - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
-  # * [sshtunnel]     - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
-  # * [sudo]          - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
-  # * [vagrantfile]   - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
-  # * [verbosity]     - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
+  # * [passthrough] - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
+  # * [sshkey] - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
+  # * [sshtunnel] - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
+  # * [sudo] - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
+  # * [vagrantfile] - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
+  # * [verbosity] - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     # process hash keys passed
     @cache_timeout = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
@@ -52,9 +52,10 @@ class Rouster
       @sudo = true
     end
 
-    @output   = Array.new
-    @cache    = Hash.new
-    @deltas   = Hash.new
+    @ostype = nil
+    @output = Array.new
+    @cache  = Hash.new
+    @deltas = Hash.new
 
     @exitcode = nil
     @ssh_info = nil # will be hash containing connection information
@@ -113,7 +114,9 @@ class Rouster
 
 
   ##
-  # inspect - overloaded method to return useful information about Rouster objects
+  # inspect
+  #
+  # overloaded method to return useful information about Rouster objects
   def inspect
     "name [#{@name}]:
       is_available_via_ssh?[#{self.is_available_via_ssh?}],
@@ -128,25 +131,29 @@ class Rouster
   ## Vagrant methods
 
   ##
-  # up - shells out and runs 'vagrant up' from the Vagrantfile path
+  # up
+  # runs `vagrant up` from the Vagrantfile path
   # if :sshtunnel is passed to the object during instantiation, the tunnel is created here as well
   def up
     @log.info('up()')
     self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
 
-    @ssh_info = nil # in case the ssh-info has changed
+    @ssh_info = nil # in case the ssh-info has changed, a la destroy/rebuild
     self.connect_ssh_tunnel() if @sshtunnel
   end
 
   ##
-  # destroy - shells out and runs 'vagrant destroy <name>' from the Vagrantfile path
+  # destroy
+  # runs `vagrant destroy <name>` from the Vagrantfile path
   def destroy
     @log.info('destroy()')
     self._run(sprintf('cd %s; vagrant destroy -f %s', File.dirname(@vagrantfile), @name))
   end
 
   ##
-  # status - shells out and runs 'vagrant status <name>' from the Vagrantfile path
+  # status
+  #
+  # runs `vagrant status <name>` from the Vagrantfile path
   # parses the status and provider out of output, but only status is returned
   def status
     status = nil
@@ -180,7 +187,9 @@ class Rouster
   end
 
   ##
-  # suspend - shells out and runs 'vagrant suspend <name>' from the Vagrantfile path
+  # suspend
+  #
+  # runs `vagrant suspend <name>` from the Vagrantfile path
   def suspend
     @log.info('suspend()')
     self._run(sprintf('cd %s; vagrant suspend %s', File.dirname(@vagrantfile), @name))
@@ -190,14 +199,16 @@ class Rouster
   #private -- commented out so that unit tests can pass, should probably use the 'make all private methods public' method discussed in issue #28
 
   ##
-  # run - runs a command inside the Vagrant VM
+  # run
+  #
+  # runs a command inside the Vagrant VM
   #
   # returns output (STDOUT and STDERR) from command run, sets @exitcode
   # currently determines exitcode by tacking a 'echo $?' onto the command being run, which is then parsed out before returning
   #
-  # parameters:
-  # * <command> = the command to run (sudo will be prepended if specified in object instantiation)
-  # * [expected_exitcode] = allows for non-0 exit codes to be returned without requiring exception handling
+  # parameters
+  # * <command> - the command to run (sudo will be prepended if specified in object instantiation)
+  # * [expected_exitcode] - allows for non-0 exit codes to be returned without requiring exception handling
   def run(command, expected_exitcode=[0])
 
     if @ssh.nil?
@@ -277,9 +288,11 @@ class Rouster
   end
 
   ##
-  # get_ssh_info - shells out and runs 'vagrant ssh-config <name>' from the Vagrantfile path
+  # get_ssh_info
   #
-  # returns a hash containing required data for opening an SSH connection to a VM
+  # runs `vagrant ssh-config <name>` from the Vagrantfile path
+  #
+  # returns a hash containing required data for opening an SSH connection to a VM, to be consumed by connect_ssh_tunnel()
   def get_ssh_info
 
     h = Hash.new()
@@ -310,9 +323,11 @@ class Rouster
   end
 
   ##
-  # connect_ssh_tunnel - instantiates a Net::SSH persistent connection to the Vagrant VM
+  # connect_ssh_tunnel
   #
-  # raises its own exception if the machine isn't running, otherwise returns Net::SSH connection object
+  # instantiates a Net::SSH persistent connection to the Vagrant VM
+  #
+  # raises its own InternalError if the machine isn't running, otherwise returns Net::SSH connection object
   def connect_ssh_tunnel
     @log.debug('opening SSH tunnel..')
 
@@ -327,40 +342,41 @@ class Rouster
   end
 
   ##
-  # os_type - attempts to determine VM operating system based on `uname -a` output, supports OSX, Sun|Solaris, Ubuntu and Redhat
+  # os_type
   #
-  # parameters
-  #  * start_if_not_running - defaults to true, if machine is not running, starts it up
-  #
-  # if machine is not running and start_if_not_running is disabled, will throw a Rouster::InternalError exception after trying to run() a command
-  def os_type(start_if_not_running=true)
+  # attempts to determine VM operating system based on `uname -a` output, supports OSX, Sun|Solaris, Ubuntu and Redhat
+  def os_type
 
-    if start_if_not_running and self.status.eql?('running').false?
-      @log.debug('starting machine to determine OS type')
-      self.up()
+    if @ostype
+      return @ostype
     end
 
+    res   = nil
     uname = self.run('uname -a')
 
     case uname
       when /Darwin/i
-        :osx
+        res = :osx
       when /Sun|Solaris/i
-        :solaris
+        res =:solaris
       when /Ubuntu/i
-        :ubuntu
+        res = :ubuntu
       else
         if self.is_file?('/etc/redhat-release')
-          :redhat
+          res = :redhat
         else
-          nil
+          res = nil
         end
     end
 
+    @ostype = res
+    res
   end
 
   ##
-  # get - downloads a file from VM to host
+  # get
+  #
+  # downloads a file from VM to host
   #
   # parameters
   # * <remote_file> - full or relative path (based on ~vagrant) of file to download
@@ -368,6 +384,8 @@ class Rouster
   #
   # if no local_file is specified, will be downloaded to $PWD with the same shortname as it had in the VM
   def get(remote_file, local_file=nil)
+    # TODO what happens when we pass a wildcard as remote_file?
+
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
     @log.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
 
@@ -382,7 +400,9 @@ class Rouster
   end
 
   ##
-  # put - uploads a file from host to VM
+  # put
+  #
+  # uploads a file from host to VM
   #
   # parameters
   # * <local_file> - full or relative path (based on $PWD) of file to upload
@@ -402,20 +422,25 @@ class Rouster
   end
 
   ##
-  # is_passthrough? - convenience getter for @passthrough truthiness
+  # is_passthrough?
+  #
+  # convenience getter for @passthrough truthiness
   def is_passthrough?
     self.passthrough.eql?(true)
   end
 
   ##
-  # uses_sudo? - convenience getter for @sudo truthiness
+  # uses_sudo?
+  #
+  # convenience getter for @sudo truthiness
   def uses_sudo?
-    # convenience method for the @sudo attribute
      self.sudo.eql?(true)
   end
 
   ##
-  # rebuild - destroy and then up the machine in question
+  # rebuild
+  #
+  # destroy and then up the machine in question
   def rebuild
     @log.debug('rebuild()')
     self.destroy
@@ -423,22 +448,30 @@ class Rouster
   end
 
   ##
-  # restart - sends 'shutdown -rf now' to VM, optionally waits for machine to come back to life
+  # restart
+  #
+  # runs `shutdown -rf now` in the VM, optionally waits for machine to come back to life
   #
   # parameters
   # * [wait] - number of seconds to wait until is_available_via_ssh?() returns true before assuming failure
   def restart(wait=nil)
     @log.debug('restart()')
-    # restarts a Vagrant machine, wait time is same as rebuild()
-    # how do we do this in a generic way? shutdown -rf works for Unix, but not Solaris
 
     if self.is_passthrough? and self.passthrough.eql?(local)
       @log.warn(sprintf('intercepted [restart] sent to a local passthrough, no op'))
       return nil
     end
 
-    # MVP
-    self.run('/sbin/shutdown -rf now')
+    case @ostype
+      when :osx
+        self.run('shutdown -r now')
+      when :rhel, :ubuntu
+        self.run('/sbin/shutdown -rf now')
+      when :solaris
+        self.run('shutdown -y -i5 -g0')
+      else
+        raise InternalError.new(sprintf('unsupported OS[%s]', @ostype))
+    end
 
     if wait
       inc = wait.to_i / 10
@@ -455,7 +488,9 @@ class Rouster
   end
 
   ##
-  # _run - (should be) private method that executes commands on the local host (not guest VM)
+  # _run
+  #
+  # (should be) private method that executes commands on the local host (not guest VM)
   #
   # returns STDOUT|STDERR, raises Rouster::LocalExecutionError on non 0 exit code
   # sets @exitcode
@@ -484,19 +519,22 @@ class Rouster
   end
 
   ##
-  # get_output - returns output from commands passed through _run() and run()
+  # get_output
+  #
+  # returns output from commands passed through _run() and run()
   #
   # if no parameter passed, returns output from the last command run
   #
   # parameters
   # * [index] - positive or negative indexing of LIFO datastructure
   def get_output(index = 1)
-    # return index'th array of output in LIFO order (recasts positive or negative as best as it can)
     index.is_a?(Fixnum) and index > 0 ? self.output[-index] : self.output[index]
   end
 
   ##
-  # generate_unique_mac - returns a ~unique, valid MAC
+  # generate_unique_mac
+  #
+  # returns a ~unique, valid MAC
   # ht http://www.commandlinefu.com/commands/view/7242/generate-random-valid-mac-addresses
   #
   # uses prefix 'b88d12' (actually Apple's prefix)
@@ -506,7 +544,9 @@ class Rouster
   end
 
   ##
-  # traverse_up - overly complex function to find a file (Vagrantfile, in our case) somewhere up the tree
+  # traverse_up
+  #
+  # overly complex function to find a file (Vagrantfile, in our case) somewhere up the tree
   #
   # returns the first matching filename or nil if none found
   #
@@ -514,9 +554,8 @@ class Rouster
   # * [startdir] - directory to start looking in, default is current directory
   # * [filename] - filename you are looking for
   # * [levels]   - number of directory levels to examine, default is 10
-  # TODO not sure this signature is exactly right..
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
-
+    # TODO not sure this signature is exactly right..
     raise InternalError.new('must specify a filename') if filename.nil?
 
     @log.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels)) unless @log.nil?
@@ -538,7 +577,9 @@ class Rouster
   end
 
   ##
-  # check_key_permissions - checks (and optionally fixes) permissions on the SSH key used to auth to the Vagrant VM
+  # check_key_permissions
+  #
+  # checks (and optionally fixes) permissions on the SSH key used to auth to the Vagrant VM
   #
   # parameters
   #  * <key> - full path to SSH key
