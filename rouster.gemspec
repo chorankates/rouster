@@ -19,8 +19,9 @@ Gem::Specification.new do |s|
   s.add_dependency 'log4r',   '~> 1.1.9'
   s.add_dependency 'net-scp'
   s.add_dependency 'net-ssh'
+  s.add_dependency 'rake'
+  s.add_dependency 'rake/testtask'
 
-  s.add_development_dependency 'rake'
   s.add_development_dependency 'test/unit'
 
   s.files = `git ls-files`.split("\n")
