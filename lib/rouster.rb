@@ -9,6 +9,8 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 require 'rouster/tests'
 
 class Rouster
+
+  # sporadically updated version number
   VERSION = 0.4
 
   # custom exceptions -- what else do we want them to include/do?
@@ -462,10 +464,10 @@ class Rouster
       return nil
     end
 
-    case @ostype
+    case os_type
       when :osx
         self.run('shutdown -r now')
-      when :rhel, :ubuntu
+      when :redhat, :ubuntu
         self.run('/sbin/shutdown -rf now')
       when :solaris
         self.run('shutdown -y -i5 -g0')
