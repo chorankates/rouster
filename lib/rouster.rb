@@ -37,7 +37,6 @@ class Rouster
   # * [vagrantfile] - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
   # * [verbosity] - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
-    # process hash keys passed
     @cache_timeout = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
     @name          = opts[:name]
     @passthrough   = opts[:passthrough].nil? ? false : opts[:passthrough]
@@ -76,6 +75,7 @@ class Rouster
     end
 
     raise InternalError.new() if @name.nil?
+    return if opts[:unittest].eql?(true) # quick return if we're a unit test
 
     begin
       self.status()

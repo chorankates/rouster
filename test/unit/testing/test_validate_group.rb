@@ -25,7 +25,7 @@ class TestValidateGroup < Test::Unit::TestCase
       }
     }
 
-    @app = Rouster.new(:name => 'app')
+    @app = Rouster.new(:name => 'app', :unittest => true)
     @app.deltas[:groups] = fake_groups
     @app.facts = fake_facts
   end

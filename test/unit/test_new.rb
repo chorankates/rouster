@@ -5,7 +5,7 @@ require 'test/unit'
 
 # TODO add a bad perms test -- though it should be fixed automagically
 
-class TestBasic < Test::Unit::TestCase
+class TestNew < Test::Unit::TestCase
 
   def setup
     @app = nil
@@ -16,7 +16,7 @@ class TestBasic < Test::Unit::TestCase
   def test_1_good_basic_instantiation
 
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app')
+      @app = Rouster.new(:name => 'app', :unittest => true)
     end
 
     assert_equal('app', @app.name)
@@ -33,7 +33,9 @@ class TestBasic < Test::Unit::TestCase
         :sudo        => false,
         :verbosity   => 4,
         #:vagrantfile => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
-        :sshkey      =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME'])
+        :sshkey      =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']),
+
+        :unittest => true
       )
 
 
@@ -54,7 +56,7 @@ class TestBasic < Test::Unit::TestCase
     end
 
     assert_raise Rouster::InternalError do
-      @app = Rouster.new(:not_a_name => 'test')
+      @app = Rouster.new(:not_a_name => 'test', :unittest => true)
     end
 
   end
