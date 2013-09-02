@@ -16,9 +16,11 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = '>= 1.3.6'
   s.rubyforge_project         = 'Rouster'
 
+  s.add_dependency 'json'
   s.add_dependency 'log4r',   '~> 1.1.9'
   s.add_dependency 'net-scp'
   s.add_dependency 'net-ssh'
+  s.add_dependency 'net/https'
   s.add_dependency 'rake'
   s.add_dependency 'rake/testtask'
 

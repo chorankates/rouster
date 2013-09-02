@@ -1,6 +1,7 @@
 # stripped down example piab Vagrantfile for rouster
 
-box_name = 'rhel6_u2_v2'
+box_url  = 'http://puppet-vagrant-boxes.puppetlabs.com/centos-64-x64-vbox4210.box'
+box_name = 'centos6'
 boxes    = [:ppm, :app]
 
 Vagrant::Config.run do |config|
@@ -8,7 +9,7 @@ Vagrant::Config.run do |config|
     config.vm.define box do |worker|
 
       worker.vm.box            = box_name
-      worker.vm.box_url        = '%s.box' % box_name
+      worker.vm.box_url        = box_url
       worker.vm.host_name      = box.to_s
       worker.vm.network        :hostonly, sprintf('10.0.1.%s', rand(254))
       worker.ssh.forward_agent = true
