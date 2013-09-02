@@ -412,18 +412,28 @@ class Rouster
   #  * :group
   #  * :shell
   #  * :uid
+  #  * :gid
   #  * :constrain
   def validate_user(name, expectations)
     users = self.get_users(true)
 
-    expectations[:ensure] ||= 'present'
+    if expectations[:ensure].nil? and expectations[:exists].nil?
+      expectations[:ensure] = 'present'
+    end
 
+    # TODO make this a lambda
     if expectations.has_key?(:constrain)
-      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
-      unless meets_constraint?(fact, expectation)
-        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
-        true
+      expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
+
+      expectations[:constrain].each do |constraint|
+        fact, expectation = constraint.split("\s")
+        unless meets_constraint?(fact, expectation)
+          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          return true
+        end
       end
+
+      expectations.delete(:constrain)
     end
 
     results = Hash.new()
@@ -439,7 +449,7 @@ class Rouster
               local = false
             end
           else
-            local = false
+            local = v.to_s.match(/absent|false/).nil? ? false : true
           end
         when :group
           v = v.class.eql?(Array) ? v : [v]
@@ -447,12 +457,16 @@ class Rouster
             local = is_user_in_group?(name, group)
             break unless local.true?
           end
+        when :gid
+          local = v.to_i.eql?(users[name][:gid].to_i)
         when :home
-          local = ! v.match(/#{users[:home]}/).nil?
+          local = ! v.match(/#{users[name][:home]}/).nil?
+        when :home_exists
+          local = ! v.to_s.match(/#{users[name][:home_exists].to_s}/).nil?
         when :shell
-          local = ! v.match(/#{users[:shell]}/).nil?
+          local = ! v.match(/#{users[name][:shell]}/).nil?
         when :uid
-          local = ! v.match(/#{users[:uid]}/).nil?
+          local = v.to_i.eql?(users[name][:uid].to_i)
         when :type
           # noop
         else
