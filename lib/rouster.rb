@@ -615,12 +615,19 @@ class Rouster
 
 end
 
-# convenience truthiness methods
 class Object
+  ##
+  # false?
+  #
+  # convenience method to tell if an object equals false
   def false?
     self.eql?(false)
   end
 
+  ##
+  # true?
+  #
+  # convenience method to tell if an object equals true (think .nil? but more useful)
   def true?
     self.eql?(true)
   end
