@@ -5,7 +5,7 @@ require 'rouster/puppet'
 require 'rouster/testing'
 require 'test/unit'
 
-class TestCaching < Test::Unit::TestCase
+class TestMeetsConstraint < Test::Unit::TestCase
 
   def setup
     # expose private methods
