@@ -60,7 +60,8 @@ class TestValidateGroup < Test::Unit::TestCase
 
   def test_negative_constrained
 
-    assert(@app.validate_group('root', { :gid => 10, :constrain => 'is_virtual false'} ))
+    assert(@app.validate_group('root', { :gid => 10, :constrain => 'is_virtual false' } ))
+    assert(@app.validate_group('root', { :gid => 99, :constrain => 'is_virtual false' } ))
 
   end
 
