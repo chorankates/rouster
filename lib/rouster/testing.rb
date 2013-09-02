@@ -482,33 +482,7 @@ class Rouster
       ## generic comparator functionality
       comp, expectation = expectation.split("\s")
 
-      # TODO rewrite this as an eval so we don't have to support everything..
-      case comp
-        when '!='
-          # ugh
-          if comp.to_s.match(/\d/) or facts[fact].to_s.match(/\d/)
-            res = ! expectation.to_i.eql?(facts[fact].to_i)
-          else
-            res = ! expectation.eql?(facts[fact])
-          end
-        when '<'
-          res = facts[fact].to_i < expectation.to_i
-        when '<='
-          res = facts[fact].to_i <= expectation.to_i
-        when '>'
-          res = facts[fact].to_i > expectation.to_i
-        when '>='
-          res = facts[fact].to_i >= expectation.to_i
-        when '=='
-          # ugh ugh
-          if comp.to_s.match(/\d/) or facts[fact].to_s.match(/\d/)
-            res = expectation.to_i.eql?(facts[fact].to_i)
-          else
-            res = expectation.eql?(facts[fact])
-          end
-        else
-          raise NotImplementedError.new(sprintf('unknown comparator[%s]', comp))
-      end
+      res = generic_comparator(facts[fact], comp, expectation)
 
     else
       res = ! expectation.match(/#{facts[fact]}/).nil?
@@ -516,6 +490,41 @@ class Rouster
     end
 
     res
+  end
+
+  def generic_comparator(comparand1, comparator, comparand2)
+
+    # TODO rewrite this as an eval so we don't have to support everything..
+    case comparator
+      when '!='
+        # ugh
+        if comparand1.to_s.match(/\d/) or comparand2.to_s.match(/\d/)
+          res = ! comparand1.to_i.eql?(comparand2.to_i)
+        else
+          res = ! comparand1.eql?(comparand2)
+        end
+      when '<'
+        res = comparand1.to_i < comparand2.to_i
+      when '<='
+        res = comparand1.to_i <= comparand2.to_i
+      when '>'
+        res = comparand1.to_i > comparand2.to_i
+      when '>='
+        res = comparand1.to_i >= comparand2.to_i
+      when '=='
+        # ugh ugh
+        if comparand1.to_s.match(/\d/) or comparand2.to_s.match(/\d/)
+          res = comparand1.to_i.eql?(comparand2.to_i)
+        else
+          res = comparand1.eql?(comparand2)
+        end
+      else
+        raise NotImplementedError.new(sprintf('unknown comparator[%s]', comparator))
+    end
+
+
+
+
   end
 
 end
