@@ -36,6 +36,18 @@ class TestMeetsConstraint < Test::Unit::TestCase
 
   end
 
+  def test_specified_comparator
+
+    assert(@app.meets_constraint?('is_virtual', '!= false'))
+    assert(@app.meets_constraint?('uptime_days', '> 10'))
+    assert(@app.meets_constraint?('uptime_days', '>= 42'))
+    assert(@app.meets_constraint?('uptime_days', '< 100'))
+    assert(@app.meets_constraint?('uptime_days', '<= 100'))
+    assert(@app.meets_constraint?('uptime_days', '== 42'))
+    assert(@app.meets_constraint?('uptime_days', '!= false'))
+
+  end
+
   def teardown
     # noop
   end

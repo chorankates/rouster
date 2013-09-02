@@ -52,7 +52,7 @@ class Rouster
 
     if expectations.has_key?(:constrain)
       fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
-      unless self.meets_constraint?(fact, expectation)
+      unless meets_constraint?(fact, expectation)
         @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
         true
       end
@@ -179,7 +179,7 @@ class Rouster
 
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
-        unless self.meets_constraint?(fact, expectation)
+        unless meets_constraint?(fact, expectation)
           @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
@@ -261,7 +261,7 @@ class Rouster
 
     if expectations.has_key?(:constrain)
       fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
-      unless self.meets_constraint?(fact, expectation)
+      unless meets_constraint?(fact, expectation)
         @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
         true
       end
@@ -330,7 +330,7 @@ class Rouster
 
     if expectations.has_key?(:constrain)
       fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
-      unless self.meets_constraint?(fact, expectation)
+      unless meets_constraint?(fact, expectation)
         @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
         true
       end
@@ -406,7 +406,7 @@ class Rouster
 
     if expectations.has_key?(:constrain)
       fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
-      unless self.meets_constraint?(fact, expectation)
+      unless meets_constraint?(fact, expectation)
         @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
         true
       end
@@ -474,10 +474,48 @@ class Rouster
       return false
     end
 
+    expectation = expectation.to_s
     facts = self.facter(cache)
-    res = expectation.to_s.match(/#{facts[fact]}/)
 
-    res.nil? ? false : true
+    res = nil
+    if expectation.split("\s").size > 1
+      ## generic comparator functionality
+      comp, expectation = expectation.split("\s")
+
+      # TODO rewrite this as an eval so we don't have to support everything..
+      case comp
+        when '!='
+          # ugh
+          if comp.to_s.match(/\d/) or facts[fact].to_s.match(/\d/)
+            res = ! expectation.to_i.eql?(facts[fact].to_i)
+          else
+            res = ! expectation.eql?(facts[fact])
+          end
+        when '<'
+          res = facts[fact].to_i < expectation.to_i
+        when '<='
+          res = facts[fact].to_i <= expectation.to_i
+        when '>'
+          res = facts[fact].to_i > expectation.to_i
+        when '>='
+          res = facts[fact].to_i >= expectation.to_i
+        when '=='
+          # ugh ugh
+          if comp.to_s.match(/\d/) or facts[fact].to_s.match(/\d/)
+            res = expectation.to_i.eql?(facts[fact].to_i)
+          else
+            res = expectation.eql?(facts[fact])
+          end
+        else
+          raise NotImplementedError.new(sprintf('unknown comparator[%s]', comp))
+      end
+
+    else
+      res = ! expectation.match(/#{facts[fact]}/).nil?
+      @log.debug(sprintf('meets_constraint?(%s, %s): %s', fact, expectation, res.nil?))
+    end
+
+    res
   end
 
 end
