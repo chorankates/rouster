@@ -26,9 +26,8 @@ class Rouster
   # * [cache] - boolean controlling whether to cache retrieved data, defaults to false
   def dir(dir, cache=false)
 
-    self.deltas[:files] = Hash.new if self.deltas[:files].nil?
-    if cache and ! self.deltas[:files][dir].nil?
-      self.deltas[:files][dir]
+    if cache and self.deltas[:files].class.eql?(Hash) and ! self.deltas[:files][dir].nil?
+      return self.deltas[:files][dir]
     end
 
     begin
@@ -47,6 +46,7 @@ class Rouster
     end
 
     if cache
+      self.deltas[:files] = Hash.new if self.deltas[:files].nil?
       self.deltas[:files][dir] = res
     end
 
@@ -100,9 +100,8 @@ class Rouster
   # * [cache] - boolean controlling whether to cache retrieved data, defaults to false
   def file(file, cache=false)
 
-    self.deltas[:files] = Hash.new if self.deltas[:files].nil?
-    if cache and ! self.deltas[:files][file].nil?
-      self.deltas[:files][file]
+    if cache and self.deltas[:files].class.eql?(Hash) and ! self.deltas[:files][file].nil?
+      return self.deltas[:files][file]
     end
 
     begin
@@ -121,7 +120,7 @@ class Rouster
     end
 
     if cache
-      self.deltas[:file] = Hash.new if self.deltas[:file].nil?
+      self.deltas[:files] = Hash.new if self.deltas[:files].nil?
       self.deltas[:files][file] = res
     end
 
@@ -549,7 +548,7 @@ class Rouster
           when '-'
             # noop
           else
-            raise InternalError.new(sprintf('unexpected character[%s]', chr))
+            raise InternalError.new(sprintf('unexpected character[%s] in string[%s]', chr, string))
         end
 
       end

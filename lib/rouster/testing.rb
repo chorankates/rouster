@@ -37,27 +37,36 @@ class Rouster
   # }
   #
   # supported keys:
-  #   * :exists|:ensure
+  #   * :exists|:ensure -- defaults to file if not specified
   #   * :file
   #   * :directory
   #   * :contains (string or array)
   #   * :mode/:permissions
+  #   * :size
   #   * :owner
   #   * :group
   #   * :constrain
-  def validate_file(name, expectations)
-    properties = (! expectations[:ensure].nil? and expectations[:ensure].eql?('file')) ?  self.file(name) : self.dir(name)
+  def validate_file(name, expectations, cache=false)
 
-    expectations[:ensure] ||= 'present'
-
-    if expectations.has_key?(:constrain)
-      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
-      unless meets_constraint?(fact, expectation)
-        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
-        true
-      end
+    if expectations[:ensure].nil? and expectations[:exists].nil?
+      expectations[:ensure] = 'file'
     end
 
+    if expectations.has_key?(:constrain)
+      expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
+
+      expectations[:constrain].each do |constraint|
+        fact, expectation = constraint.split("\s")
+        unless meets_constraint?(fact, expectation)
+          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          return true
+        end
+      end
+
+      expectations.delete(:constrain)
+    end
+
+    properties = (! expectations[:ensure].eql?('file')) ?  self.file(name, cache) : self.dir(name, cache)
     results = Hash.new()
     local = nil
 
@@ -65,26 +74,43 @@ class Rouster
 
       case k
         when :ensure, :exists
-          if properties.nil? and v.match(/absent|false/)
+          if properties.nil? and v.to_s.match(/absent|false/)
             local = true
           elsif properties.nil?
             local = false
           else
-            local = true
+            case v
+              when 'dir', 'directory'
+                local = properties[:directory?]
+              else
+                local = properties[:file?]
+            end
           end
         when :file
           if properties.nil?
-            local = false
+            if v.to_s.match(/absent|false/)
+              local = true
+            else
+              local = false
+            end
           elsif properties[:file?].true?
-            local = true
+            local = ! v.to_s.match(/absent|false/)
           else
             false
           end
-        when :directory
+        when :dir, :directory
           if properties.nil?
-            local = false
-          elsif properties[:directory?].true?
-            local = true
+            if v.to_s.match(/absent|false/)
+              local = true
+            else
+              local = false
+            end
+          elsif properties.has_key?(:directory?)
+            if properties[:directory?]
+              local = v.to_s.match(/absent|false/).nil?
+            else
+              local = true
+            end
           else
             local = false
           end
@@ -102,15 +128,21 @@ class Rouster
         when :mode, :permissions
           if properties.nil?
             local = false
-          elsif v.match(/#{properties[:mode]}/)
+          elsif v.to_s.match(/#{properties[:mode].to_s}/)
             local = true
           else
             local = false
           end
+        when :size
+          if properties.nil?
+            local = false
+          else
+            local = v.to_i.eql?(properties[:size].to_i)
+          end
         when :owner
           if properties.nil?
             local = false
-          elsif v.match(/#{properties[:owner]}/)
+          elsif v.to_s.match(/#{properties[:owner].to_s}/)
             local = true
           else
             local = false
