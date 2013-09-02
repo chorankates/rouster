@@ -169,15 +169,23 @@ class Rouster
   def validate_group(name, expectations)
     groups = self.get_groups(true)
 
-    expectations[:ensure] ||= 'present'
+    if expectations[:ensure].nil? and expectations[:exists].nil?
+      expectations[:ensure] = 'present'
+    end
 
     # TODO make this a lambda
     if expectations.has_key?(:constrain)
-      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
-      unless self.meets_constraint?(fact, expectation)
-        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
-        true
+      expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
+
+      expectations[:constrain].each do |constraint|
+        fact, expectation = constraint.split("\s")
+        unless self.meets_constraint?(fact, expectation)
+          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          return true
+        end
       end
+
+      expectations.delete(:constrain)
     end
 
     results = Hash.new()
@@ -193,14 +201,15 @@ class Rouster
               local = false
             end
           else
-            local = false
+            local = v.to_s.match(/absent|false/).nil? ? false : true
           end
         when :gid
-          local = ! v.match(/groups[name][:gid]/).nil?
+          local = v.to_s.eql?(groups[name][:gid].to_s)
         when :user, :users
+          v = v.class.eql?(Array) ? v : [v]
           v.each do |user|
-            local = groups[name][:users].has_key?(user)
-            break unless local.true?
+            local = groups[name][:users].member?(user)
+            break unless local.true? # need to make the return value smarter if we want to store data on which user failed
           end
         when :type
           # noop
@@ -454,7 +463,7 @@ class Rouster
   # gets facts from node, and if fact expectation regex matches actual fact, returns true
   #
   # parameters
-  # * <fact>
+  # * <fact> - fact
   # * <expectation>
   # * [cache]
   def meets_constraint?(fact, expectation, cache=true)
