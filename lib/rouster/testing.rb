@@ -256,15 +256,23 @@ class Rouster
   def validate_package(name, expectations)
     packages = self.get_packages(true)
 
-    ## set up some defaults
-    expectations[:ensure] ||= 'present'
+    if expectations[:ensure].nil? and expectations[:exists].nil?
+      expectations[:ensure] = 'present'
+    end
 
+    # TODO make this a lambda
     if expectations.has_key?(:constrain)
-      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
-      unless meets_constraint?(fact, expectation)
-        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
-        true
+      expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
+
+      expectations[:constrain].each do |constraint|
+        fact, expectation = constraint.split("\s")
+        unless meets_constraint?(fact, expectation)
+          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          return true
+        end
       end
+
+      expectations.delete(:constrain)
     end
 
     results = Hash.new()
@@ -280,15 +288,15 @@ class Rouster
               local = false
             end
           else
-            local = false
+            local = v.to_s.match(/absent|false/).nil? ? false : true
           end
         when :version
           if v.split("\s").size > 1
             ## generic comparator functionality
-            comp, expectation = expectation.split("\s")
-            local = generic_comparator(v, comp, expectation)
+            comp, expectation = v.split("\s")
+            local = generic_comparator(packages[name], comp, expectation)
           else
-            local = ! v.match(/#{packages[name][:version]}/).nil?
+            local = ! v.to_s.match(/#{packages[name]}/).nil?
           end
         when :type
           # noop
@@ -530,7 +538,7 @@ class Rouster
 
 
 
-
+    res
   end
 
 end
