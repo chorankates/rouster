@@ -283,7 +283,13 @@ class Rouster
             local = false
           end
         when :version
-          local = ! v.match(/#{packages[name][:version]}/).nil?
+          if v.split("\s").size > 1
+            ## generic comparator functionality
+            comp, expectation = expectation.split("\s")
+            local = generic_comparator(v, comp, expectation)
+          else
+            local = ! v.match(/#{packages[name][:version]}/).nil?
+          end
         when :type
           # noop
         else
