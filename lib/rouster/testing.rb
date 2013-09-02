@@ -173,7 +173,6 @@ class Rouster
       expectations[:ensure] = 'present'
     end
 
-    # TODO make this a lambda
     if expectations.has_key?(:constrain)
       expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
 
@@ -260,7 +259,6 @@ class Rouster
       expectations[:ensure] = 'present'
     end
 
-    # TODO make this a lambda
     if expectations.has_key?(:constrain)
       expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
 
@@ -335,19 +333,27 @@ class Rouster
   #
   # supported keys:
   #  * :exists|:ensure
-  #  * :state
+  #  * :state,:status
   #  * :constrain
   def validate_service(name, expectations)
     services = self.get_services(true)
 
-    expectations[:ensure] ||= 'present'
+    if expectations[:ensure].nil? and expectations[:exists].nil?
+      expectations[:ensure] = 'present'
+    end
 
     if expectations.has_key?(:constrain)
-      fact, expectation = expectations[:constrain].split("\s") # TODO add some error checking here
-      unless meets_constraint?(fact, expectation)
-        @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
-        true
+      expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
+
+      expectations[:constrain].each do |constraint|
+        fact, expectation = constraint.split("\s")
+        unless meets_constraint?(fact, expectation)
+          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          return true
+        end
       end
+
+      expectations.delete(:constrain)
     end
 
     results = Hash.new()
@@ -357,15 +363,15 @@ class Rouster
       case k
         when :ensure, :exists
           if services.has_key?(name)
-            if v.match(/absent|false/)
+            if v.to_s.match(/absent|false/)
               local = false
             else
               local = true
             end
           else
-            local = false
+            local = v.to_s.match(/absent|false/).nil? ? false : true
           end
-        when :state
+        when :state, :status
           local = ! v.match(/#{services[name]}/).nil?
         when :type
           # noop
@@ -421,7 +427,6 @@ class Rouster
       expectations[:ensure] = 'present'
     end
 
-    # TODO make this a lambda
     if expectations.has_key?(:constrain)
       expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
 
