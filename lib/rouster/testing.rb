@@ -462,14 +462,11 @@ class Rouster
     unless self.respond_to?('facter')
       # if we haven't loaded puppet.rb, we won't have access to facts
       @log.warn('using constraints without loading [rouster/puppet] will not work, forcing no-op')
-      false
+      return false
     end
 
-    if cache.false?
-      self.facts = self.facter(false)
-    end
-
-    res = expectation.match(self.facts[fact])
+    facts = self.facter(cache)
+    res = expectation.to_s.match(/#{facts[fact]}/)
 
     res.nil? ? false : true
   end

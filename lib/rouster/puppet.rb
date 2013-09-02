@@ -19,7 +19,7 @@ class Rouster
   # * [custom_facts] - whether to include custom facts in return (uses -p argument)
   def facter(cache=true, custom_facts=true)
     if cache.true? and ! self.facts.nil?
-      self.facts
+      return self.facts
     end
 
     raw  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
