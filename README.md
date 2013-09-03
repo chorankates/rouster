@@ -42,6 +42,7 @@ gem install Rouster-<version>.gem
 ### pre-built gem installation (stable)
 
 [RubyGems](http://rubygems.org/gems/rouster)
+[![Gem Version](https://badge.fury.io/rb/rouster.png)](http://badge.fury.io/rb/rouster)
 
 ```sh
 gem install rouster
