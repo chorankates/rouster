@@ -22,7 +22,7 @@ class Rouster
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_accessor :facts, :sudo, :verbosity
-  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :vagrantfile
+  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :unittest, :vagrantfile
 
   ##
   # initialize - object instantiation
@@ -42,6 +42,7 @@ class Rouster
     @passthrough   = opts[:passthrough].nil? ? false : opts[:passthrough]
     @sshkey        = opts[:sshkey]
     @sshtunnel     = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
+    @unittest      = opts[:unittest].nil? ? false : opts[:unittest]
     @vagrantfile   = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
     @verbosity     = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 4
 
@@ -75,6 +76,7 @@ class Rouster
     end
 
     raise InternalError.new() if @name.nil?
+
     return if opts[:unittest].eql?(true) # quick return if we're a unit test
 
     begin

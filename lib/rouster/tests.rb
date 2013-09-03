@@ -30,6 +30,11 @@ class Rouster
       return self.deltas[:files][dir]
     end
 
+    if self.unittest and cache
+      # preventing a functional test fallthrough
+      return nil
+    end
+
     begin
       raw = self.run(sprintf('ls -ld %s', dir))
     rescue Rouster::RemoteExecutionError
@@ -102,6 +107,11 @@ class Rouster
 
     if cache and self.deltas[:files].class.eql?(Hash) and ! self.deltas[:files][file].nil?
       return self.deltas[:files][file]
+    end
+
+    if self.unittest and cache
+      # preventing a functional test fallthrough
+      return nil
     end
 
     begin

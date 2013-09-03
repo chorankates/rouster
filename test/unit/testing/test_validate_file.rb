@@ -62,9 +62,8 @@ class TestValidateFile < Test::Unit::TestCase
     assert(@app.validate_file('/etc/hosts', { :owner => 'root' }, true))
     assert(@app.validate_file('/etc/hosts', { :group => 'root' }, true))
 
-    # TODO figure out how to run these in a truly unit-y way, since the data is not present in faked hash, we will fall through to functional testing
-    #assert(@app.validate_file('/etc/fizzbang', { :ensure => 'absent' }, true))
-    #assert(@app.validate_file('/etc/fizzbang', { :ensure => false }, true ))
+    assert(@app.validate_file('/etc/fizzbang', { :ensure => 'absent' }, true))
+    assert(@app.validate_file('/etc/fizzbang', { :ensure => false }, true ))
 
     assert(@app.validate_file('/etc', { :ensure => 'directory' }, true))
     assert(@app.validate_file('/etc', { :ensure => 'dir' }, true))
@@ -72,11 +71,10 @@ class TestValidateFile < Test::Unit::TestCase
     assert(@app.validate_file('/etc', { :ensure => 'dir', :directory => 'true' }, true))
     assert(@app.validate_file('/etc', { :ensure => 'dir', :file => 'false', :directory => 'true' }, true))
 
-    # TODO figure out how to run these in a truly unity-y way, since the data is not present in faked hash, we will fall through to functional testing
-    #assert(@app.validate_file('/fizzy', { :ensure => 'absent' }, true))
-    #assert(@app.validate_file('/fizzy', { :ensure => false }, true))
-    #assert(@app.validate_file('/fizzy', { :exists => 'false' }, true))
-    #assert(@app.validate_file('/fizzy', { :exists => false }, true))
+    assert(@app.validate_file('/fizzy', { :ensure => 'absent' }, true))
+    assert(@app.validate_file('/fizzy', { :ensure => false }, true))
+    assert(@app.validate_file('/fizzy', { :exists => 'false' }, true))
+    assert(@app.validate_file('/fizzy', { :exists => false }, true))
 
     # TODO need to do :contains testing in a non-unit context
 
@@ -101,9 +99,9 @@ class TestValidateFile < Test::Unit::TestCase
     assert_equal(false, @app.validate_file('/etc/hosts', { :size => '100'}, true))
 
     # TODO figure out how to run these in a truly unit-y way, since the data is not present in faked hash, we will fall through to functional testing
-    #assert_equal(false, @app.validate_file('/foo', {}, true))
-    #assert_equal(false, @app.validate_file('/fizzy', { :ensure => 'directory' }, true))
-    #assert_equal(false, @app.validate_file('/bang', { :ensure => 'file' }, true))
+    assert_equal(false, @app.validate_file('/foo', {}, true))
+    assert_equal(false, @app.validate_file('/fizzy', { :ensure => 'directory' }, true))
+    assert_equal(false, @app.validate_file('/bang', { :ensure => 'file' }, true))
 
   end
 
