@@ -66,7 +66,7 @@ class Rouster
       expectations.delete(:constrain)
     end
 
-    properties = (! expectations[:ensure].eql?('file')) ?  self.file(name, cache) : self.dir(name, cache)
+    properties = (expectations[:ensure].eql?('file')) ?  self.file(name, cache) : self.dir(name, cache)
     results = Hash.new()
     local = nil
 

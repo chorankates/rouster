@@ -36,9 +36,7 @@
       assert_not_equal(original_uptime, new_uptime)
       assert(original_uptime > new_uptime)
 
-
     end
-
 
     def teardown
       # noop
