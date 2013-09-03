@@ -22,15 +22,15 @@ The first implementation of Rouster was in Perl, called [Salesforce::Vagrant](ht
 
 ## Requirements
 
+* [Ruby](http://rubylang.org), version 2.0+ (best attempt made to support 1.8.7 and 1.9.3 as well)
 * [Vagrant](http://vagrantup.com), version 1.0.5+
-* a usable Vagrantfile
 
 Note: Vagrant itself requires VirtualBox or VMWare Fusion (1.0.3+)
 
 Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX (minus rouster/deltas.rb functionality, at least currently),
 but no real testing has been done to confirm this. Please file issues as appropriate.
 
-### Easiest installation
+### From-source installation (latest)
 
 ```sh
 git clone https://github.com/chorankates/rouster.git
@@ -39,6 +39,17 @@ rake buildgem
 gem install Rouster-<version>.gem
 ```
 
+### pre-built gem installation (stable)
+
+[RubyGems](http://rubygems.org/gems/rouster)
+
+```sh
+gem install rouster
+Successfully installed rouster-0.<version>
+1 gem installed
+Installing ri documentation for rouster-0.<version>...
+Installing RDoc documentation for rouster-0.<version>...
+```
 
 ## Using Rouster
 
