@@ -36,7 +36,7 @@ but no real testing has been done to confirm this. Please file issues as appropr
 git clone https://github.com/chorankates/rouster.git
 cd rouster
 rake buildgem
-gem install Rouster-<version>.gem
+gem install rouster-<version>.gem
 ```
 
 ### pre-built gem installation (stable)
@@ -46,10 +46,6 @@ gem install Rouster-<version>.gem
 
 ```sh
 gem install rouster
-Successfully installed rouster-<version>
-1 gem installed
-Installing ri documentation for rouster-<version>...
-Installing RDoc documentation for rouster-<version>...
 ```
 
 ## Using Rouster

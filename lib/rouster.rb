@@ -85,6 +85,8 @@ class Rouster
       raise InternalError.new()
     end
 
+    ## TODO ensure 'vagrant' is in path
+
     @log.debug('SSH key discovery and viability tests..')
     if @sshkey.nil?
       if @passthrough.eql?(true)
