@@ -46,10 +46,10 @@ gem install Rouster-<version>.gem
 
 ```sh
 gem install rouster
-Successfully installed rouster-0.<version>
+Successfully installed rouster-<version>
 1 gem installed
-Installing ri documentation for rouster-0.<version>...
-Installing RDoc documentation for rouster-0.<version>...
+Installing ri documentation for rouster-<version>...
+Installing RDoc documentation for rouster-<version>...
 ```
 
 ## Using Rouster
