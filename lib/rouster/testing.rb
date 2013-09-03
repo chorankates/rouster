@@ -48,7 +48,7 @@ class Rouster
   #   * :constrain
   def validate_file(name, expectations, cache=false)
 
-    if expectations[:ensure].nil? and expectations[:exists].nil?
+    if expectations[:ensure].nil? and expectations[:exists].nil? and expectations[:directory].nil? and expectations[:file?].nil?
       expectations[:ensure] = 'file'
     end
 
@@ -109,7 +109,7 @@ class Rouster
             if properties[:directory?]
               local = v.to_s.match(/absent|false/).nil?
             else
-              local = true
+              local = ! v.to_s.match(/absent|false/).nil?
             end
           else
             local = false
