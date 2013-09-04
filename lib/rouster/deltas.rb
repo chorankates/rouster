@@ -7,6 +7,75 @@ require 'rouster/tests'
 # TODO use @cache_timeout to invalidate data cached here
 
 class Rouster
+
+  ##
+  # get_crontab
+  #
+  # runs `crontab -l <user>` and parses output, returns hash:
+  # {
+  #   user => {
+  #     logicalOrderInt => {
+  #       :minute => minute,
+  #       :hour   => hour,
+  #       :dom    => dom, # day of month
+  #       :mon    => mon, # month
+  #       :dow    => dow, # day of week
+  #       :user   => user,
+  #       :command => command,
+  #     }
+  #   }
+  # }
+  #
+  # the hash will contain integers (not strings) for numerical values -- all but '*'
+  #
+  # parameters
+  # * <user> - name of user who owns crontab for examination -- or '*' to determine list of users and iterate over them to find all cron jobs
+  # * [cache] - boolean controlling whether or not retrieved/parsed data is cached, defaults to true
+  def get_crontab(user, cache=true)
+
+    # need to take user=* into account
+    if cache and ! self.deltas[:crontab][user]
+      return self.deltas[:crontab][user]
+    end
+
+    i = 0
+    users = nil
+
+    if user.eql?('*')
+      users = self.get_users().keys
+    else
+      users = [user]
+    end
+
+    users.each do |u|
+      raw = self.run(sprintf('crontab -u %s -l', u))
+
+      raw.split("\n").each do |line|
+        elements = line.split("\s")
+
+        res[user] = Hash.new unless res[user].class.eql?(Hash)
+        res[user][i] = Hash.new unless res[user][i].class.eql?(Hash)
+
+        res[user][i][:minute]  = elements[0]
+        res[user][i][:hour]    = elements[1]
+        res[user][i][:dom]     = elements[2]
+        res[user][i][:mon]     = elements[3]
+        res[user][i][:dow]     = elements[4]
+        res[user][i][:user]    = elements[5]
+        res[user][i][:command] = elements[6..elements.size]
+      end
+
+      i += 1
+    end
+
+    # TODO take user=* into account
+    if cache
+      self.deltas[:crontab][user] = res
+    end
+
+    res
+  end
+
   ##
   # get_groups
   #
