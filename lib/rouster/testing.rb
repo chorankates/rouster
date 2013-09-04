@@ -557,6 +557,17 @@ class Rouster
     res
   end
 
+  ##
+  # generic_comparator
+  #
+  # powers the 3 argument form of constraint (i.e. 'is_virtual != true', '<package_version> > 3.0', etc)
+  #
+  # should really be an eval{} of some sort (or would be in the perl world)
+  #
+  # parameters
+  # * <comparand1> - left side of the comparison
+  # * <comparator> - comparison to make
+  # * <comparand2> - right side of the comparison
   def generic_comparator(comparand1, comparator, comparand2)
 
     # TODO rewrite this as an eval so we don't have to support everything..
