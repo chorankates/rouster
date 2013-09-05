@@ -31,14 +31,20 @@ class Rouster
   # parameters
   # * <user> - name of user who owns crontab for examination -- or '*' to determine list of users and iterate over them to find all cron jobs
   # * [cache] - boolean controlling whether or not retrieved/parsed data is cached, defaults to true
-  def get_crontab(user, cache=true)
+  def get_crontab(user='root', cache=true)
 
-    # need to take user=* into account
-    if cache and ! self.deltas[:crontab][user]
-      return self.deltas[:crontab][user]
+    if cache and self.deltas[:crontab].class.eql?(Hash)
+      if self.deltas[:crontab].has_key?(user)
+        return self.deltas[:crontab][user]
+      else
+        # noop fallthrough to gather data to cache
+      end
+    elsif cache and self.deltas[:crontab].class.eql?(Hash) and user.eql?('*')
+      return self.deltas[:crontab]
     end
 
     i = 0
+    res = Hash.new
     users = nil
 
     if user.eql?('*')
@@ -48,32 +54,44 @@ class Rouster
     end
 
     users.each do |u|
-      raw = self.run(sprintf('crontab -u %s -l', u))
+      begin
+        raw = self.run(sprintf('crontab -u %s -l', u))
+      rescue RemoteExecutionError => e
+        # crontab throws a non-0 exit code if there is no crontab for the specified user
+        res[u] ||= Hash.new
+        next
+      end
 
       raw.split("\n").each do |line|
         elements = line.split("\s")
 
-        res[user] = Hash.new unless res[user].class.eql?(Hash)
-        res[user][i] = Hash.new unless res[user][i].class.eql?(Hash)
+        res[u] ||= Hash.new
+        res[u][i] ||= Hash.new
 
-        res[user][i][:minute]  = elements[0]
-        res[user][i][:hour]    = elements[1]
-        res[user][i][:dom]     = elements[2]
-        res[user][i][:mon]     = elements[3]
-        res[user][i][:dow]     = elements[4]
-        res[user][i][:user]    = elements[5]
-        res[user][i][:command] = elements[6..elements.size]
+        res[u][i][:minute]  = elements[0]
+        res[u][i][:hour]    = elements[1]
+        res[u][i][:dom]     = elements[2]
+        res[u][i][:mon]     = elements[3]
+        res[u][i][:dow]     = elements[4]
+        res[u][i][:user]    = elements[5]
+        res[u][i][:command] = elements[6..elements.size].join(" ")
       end
 
       i += 1
     end
 
-    # TODO take user=* into account
     if cache
-      self.deltas[:crontab][user] = res
+      if ! user.eql?('*')
+        self.deltas[:crontab] ||= Hash.new
+        self.deltas[:crontab][user] ||= Hash.new
+        self.deltas[:crontab][user] = res
+      else
+        self.deltas[:crontab] ||= Hash.new
+        self.deltas[:crontab] = res
+      end
     end
 
-    res
+    return user.eql?('*') ? res : res[user]
   end
 
   ##
