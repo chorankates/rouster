@@ -344,6 +344,75 @@ class Rouster
     results.find{|k,v| v.false? }.nil?
   end
 
+  # given a port nnumber and a hash of expectations, returns true|false whether port meets expectations
+  #
+  # parameters
+  # * <number> - port number
+  # * <expectations> - hash of expectations, see examples
+  #
+  # example expectations:
+  # '22', {
+  #   :ensure => 'active',
+  #   :protocol => 'tcp',
+  #   :address => '0.0.0.0'
+  # },
+  #
+  # '1234', {
+  #   :ensure => 'open',
+  #   :address => '*',
+  #   :constrain => 'is_virtual false'
+  # }
+  #
+  # supported keys:
+  #  * :exists|ensure|state
+  #  * :address
+  #  * :protocol
+  #  * :constrain
+  def validate_port(number, expectations)
+    ports = self.get_ports(true)
+
+    if expectations[:ensure].nil? and expectations[:exists].nil?
+      expectations[:ensure] = 'present'
+    end
+
+    if expectations.has_key?(:constrain)
+      expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
+
+      expectations[:constrain].each do |constraint|
+        fact, expectation = constraint.split("\s")
+        unless meets_constraint?(fact, expectation)
+          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          return true
+        end
+      end
+
+      expectations.delete(:constrain)
+    end
+
+    results = Hash.new()
+    local = nil
+
+    expectations.each do |k,v|
+      case k
+        when :ensure, :exists, :state
+          local = false
+        when :protocol, :proto
+          local = false
+        when :address
+          local = false
+        else
+          raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
+      end
+
+      results[k] = local
+    end
+
+    @log.info(results)
+
+    # TODO should we implement a fail fast method? at least an option
+    results.find{|k,v| v.false? }.nil?
+  end
+
   ##
   # validate_service
   #
