@@ -16,10 +16,9 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
     ## setup some cronjobs so we have something to look at - and yes, this is hacktastic
     ['root', 'puppet'].each do | user|
       tmp = sprintf('/tmp/rouster.tmp.crontab.%s.%s.%s', user, Time.now.to_i, $$)
-      @app.run("echo 0 0 * * * echo #{user} > #{tmp}")
-      #@app.run("crontab -u #{user} -f #{file}") # rhel
-      @app.run("crontab -u #{user} #{file}") # centos
-
+      @app.run("echo '0 0 * * * echo #{user}' > #{tmp}")
+      #@app.run("crontab -u #{user} -f #{tmp}") # rhel
+      @app.run("crontab -u #{user} #{tmp}") # centos
     end
 
   end
@@ -98,30 +97,3 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
   end
 
 end
-
-
-
-
-##
-# get_crontab
-#
-# runs `crontab -l <user>` and parses output, returns hash:
-# {
-#   user => {
-#     logicalOrderInt => {
-#       :minute => minute,
-#       :hour   => hour,
-#       :dom    => dom, # day of month
-#       :mon    => mon, # month
-#       :dow    => dow, # day of week
-#       :user   => user,
-#       :command => command,
-#     }
-#   }
-# }
-#
-# the hash will contain integers (not strings) for numerical values -- all but '*'
-#
-# parameters
-# * <user> - name of user who owns crontab for examination -- or '*' to determine list of users and iterate over them to find all cron jobs
-# * [cache] - boolean controlling whether or not retrieved/parsed data is cached, defaults to true
