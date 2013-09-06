@@ -4,6 +4,8 @@ require 'rouster'
 require 'rouster/deltas'
 require 'test/unit'
 
+# TODO need to figure out how to add package strings on our own for better testing (i.e. sfdc-razorpolicy-rhel-6.2-batch-1.0-17.noarch)
+
 class TestDeltasGetPackages < Test::Unit::TestCase
 
   def setup
