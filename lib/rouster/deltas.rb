@@ -20,7 +20,6 @@ class Rouster
   #       :dom    => dom, # day of month
   #       :mon    => mon, # month
   #       :dow    => dow, # day of week
-  #       :user   => user,
   #       :command => command,
   #     }
   #   }
@@ -73,8 +72,7 @@ class Rouster
         res[u][i][:dom]     = elements[2]
         res[u][i][:mon]     = elements[3]
         res[u][i][:dow]     = elements[4]
-        res[u][i][:user]    = elements[5]
-        res[u][i][:command] = elements[6..elements.size].join(" ")
+        res[u][i][:command] = elements[5..elements.size].join(" ")
       end
 
       i += 1
@@ -84,7 +82,7 @@ class Rouster
       if ! user.eql?('*')
         self.deltas[:crontab] ||= Hash.new
         self.deltas[:crontab][user] ||= Hash.new
-        self.deltas[:crontab][user] = res
+        self.deltas[:crontab][user] = res[user]
       else
         self.deltas[:crontab] ||= Hash.new
         self.deltas[:crontab] = res

@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
   s.homepage      = 'http://github.com/chorankates/rouster'
   s.summary       = 'Rouster is an abstraction layer for Vagrant'
   s.description   = 'Rouster allows you to programmatically control and interact with your existing Vagrant virtual machines'
+  s.license       = 'BSD 3-Clause'
 
   s.required_rubygems_version = '>= 1.3.6'
   s.rubyforge_project         = 'Rouster'
