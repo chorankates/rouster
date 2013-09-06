@@ -15,24 +15,24 @@ class TestValidatePort < Test::Unit::TestCase
     fake_facts = { 'is_virtual' => 'true', 'timezone' => 'PDT', 'uptime_days' => 42 }
 
     fake_ports = {
-      "tcp" => {
-        "22" => {
+      'tcp' => {
+        '22' => {
           :address => {
-            "0.0.0.0" => "LISTEN",
-            "::"=>"LISTEN"
+            '0.0.0.0' => 'LISTEN',
+            '::' => 'LISTEN'
           }
         },
-        "25" => {
+        '25' => {
           :address => {
-            "127.0.0.1" => "LISTEN",
-            "::1" => "LISTEN"
+            '127.0.0.1' => 'LISTEN',
+            '::1' => 'LISTEN'
           }
         },
       },
-      "udp" => {
-        "161" => {
+      'udp' => {
+        '161' => {
           :address => {
-            "0.0.0.0" => "you_might_not_get_it"
+            '0.0.0.0' => 'you_might_not_get_it'
           }
         },
       }
@@ -45,39 +45,49 @@ class TestValidatePort < Test::Unit::TestCase
 
   def test_positive_basic
 
-    #assert(@app.validate_package('abrt', { :ensure => true, :version => '2.0.8-15.el6.centos.x86_64' } ))
-    #assert(@app.validate_package('abrt', { :ensure => 'present' } ))
-    #assert(@app.validate_package('abrt', { :exists => true } ))
-    #assert(@app.validate_package('abrt', { :version => '> 1.0'} ))
+    assert(@app.validate_port(22, { :state => 'active', :protocol => 'tcp', :address => '0.0.0.0' } ))
+    assert(@app.validate_port(22, { :ensure => true } ))
+    assert(@app.validate_port(22, { :proto => 'tcp' } ))
+    assert(@app.validate_port(22, { :address => '0.0.0.0' } ))
 
-    #assert(@app.validate_package('usermode', { :version => '1.102-3' } ))
-    #assert(@app.validate_package('usermode', { :version => '> 0.5' } )) # specifying 1 here fails because 1.102-3.to_i is 1
-    #assert(@app.validate_package('usermode', { :version => '!= false' } ))
-    #assert(@app.validate_package('usermode', { :version => '< 5.0' } ))
+    assert(@app.validate_port('22', { :ensure => true } ))
 
-    #assert(@app.validate_package('hds', { :exists => false } ))
-    #assert(@app.validate_package('hds', { :ensure => 'absent'}))
+    assert(@app.validate_port(161, { :state => 'absent' } ))
+    assert(@app.validate_port(161, { :protocol => 'udp', :address => '0.0.0.0' } ))
+    assert(@app.validate_port(161, { :proto => 'udp', :state => 'this_will_always_return_true' } ))
+
+    assert(@app.validate_port(1234, { :exists => false } ))
+    assert(@app.validate_port(1234, { :exists => 'false' } ))
+    assert(@app.validate_port(1234, { :ensure => false } ))
+    assert(@app.validate_port(1234, { :ensure => 'absent' } ))
+    assert(@app.validate_port(1234, { :state => 'open' } ))
 
   end
 
   def test_positive_constrained
 
-    #assert(@app.validate_package('abrt', { :ensure => true, :constrain => 'is_virtual true' } ))
+    assert(@app.validate_port(22, { :state => 'connected', :constrain => 'is_virtual true' } ))
 
   end
 
   def test_negative_basic
 
-    #assert_equal(false, @app.validate_package('abrt', { :version => 'foo.bar'} ))
-    #assert_equal(false, @app.validate_package('abrt', { :ensure => 'absent' } ))
-    #assert_equal(false, @app.validate_package('abrt', { :exists => false } ))
+    assert_equal(false, @app.validate_port(22, { :ensure => true, :address => '127.0.0.1' } ))
+
+    assert_equal(false, @app.validate_port(22, { :ensure => true, :proto => 'udp' } ))
+    assert_equal(false, @app.validate_port(22, { :ensure => true, :protocol => 'udp' } ))
+
+    assert_equal(false, @app.validate_port(22, { :ensure => 'absent' } ))
+    assert_equal(false, @app.validate_port(22, { :ensure => false } ))
+    assert_equal(false, @app.validate_port(22, { :exists => 'absent' } ))
+    assert_equal(false, @app.validate_port(22, { :exists => false } ))
 
   end
 
   def test_negative_constrained
 
-    #assert(@app.validate_package('abrt', { :ensure => false, :constrain => 'is_virtual false' }))
-    #assert(@app.validate_package('abrt', { :ensure => true,  :constrain => 'is_virtual false' }))
+    assert(@app.validate_port(22, { :ensure => false, :constrain => 'is_virtual false' } ))
+    assert(@app.validate_port(22, { :ensure => true, :constrain => 'is_virtual false' } ))
 
   end
 
