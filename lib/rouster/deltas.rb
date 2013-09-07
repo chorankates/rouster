@@ -215,18 +215,7 @@ class Rouster
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
-
-        if line.split("-").size == 7
-          # ugh, handling for poorly named RPM packagenames
-          elements = line.split("-")
-          pkg = elements[0..5].join("-")
-          ver = elements[6..7].join("-")
-          res[pkg] = ver
-          @log.info(sprintf('failing over to hacky RPM name parsing for [%s], got: package[%s], version[%s]', line, pkg, ver))
-        else
-          res[$1] = $2
-        end
-
+        res[$1] = $2
       end
 
     else
