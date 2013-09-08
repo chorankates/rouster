@@ -369,10 +369,15 @@ class Rouster
   #  * :protocol
   #  * :constrain
   def validate_port(number, expectations)
-    ports = self.get_ports(true)
+    number = number.to_s
+    ports  = self.get_ports(true)
 
     if expectations[:ensure].nil? and expectations[:exists].nil?
       expectations[:ensure] = 'present'
+    end
+
+    if expectations[:protocol].nil?
+      expectations[:protocol] = 'tcp'
     end
 
     if expectations.has_key?(:constrain)
@@ -395,11 +400,19 @@ class Rouster
     expectations.each do |k,v|
       case k
         when :ensure, :exists, :state
-          local = false
+          if v.to_s.match(/absent|false/)
+            local = ! ports[expectations[:protocol]][number].nil?
+          else
+            local = ports[expectations[:protocol]][number].nil?
+          end
         when :protocol, :proto
-          local = false
+          local = ports[v].has_key?(number)
         when :address
-          local = false
+          addresses = ports[expectations[:protocol]][number][:address]
+          addresses.each_key do |address|
+            local = address.eql?(v.to_s)
+          end
+          next if local.false?
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
