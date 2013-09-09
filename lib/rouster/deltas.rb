@@ -214,7 +214,9 @@ class Rouster
     elsif os.eql?(:redhat)
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
-        next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
+        #next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
+        next if line.match(/(.*)-(\d+\.\d+.*)/).nil?
+
         res[$1] = $2
       end
 
