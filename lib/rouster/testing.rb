@@ -344,6 +344,99 @@ class Rouster
     results.find{|k,v| v.false? }.nil?
   end
 
+  # given a port nnumber and a hash of expectations, returns true|false whether port meets expectations
+  #
+  # parameters
+  # * <number> - port number
+  # * <expectations> - hash of expectations, see examples
+  #
+  # example expectations:
+  # '22', {
+  #   :ensure => 'active',
+  #   :protocol => 'tcp',
+  #   :address => '0.0.0.0'
+  # },
+  #
+  # '1234', {
+  #   :ensure => 'open',
+  #   :address => '*',
+  #   :constrain => 'is_virtual false'
+  # }
+  #
+  # supported keys:
+  #  * :exists|ensure|state
+  #  * :address
+  #  * :protocol|proto
+  #  * :constrain
+  def validate_port(number, expectations)
+    number = number.to_s
+    ports  = self.get_ports(true)
+
+    if expectations[:ensure].nil? and expectations[:exists].nil? and expectations[:state].nil?
+      expectations[:ensure] = 'present'
+    end
+
+    if expectations[:protocol].nil? and expectations[:proto].nil?
+      expectations[:protocol] = 'tcp'
+    elsif ! expectations[:proto].nil?
+      expectations[:protocol] = expectations[:proto]
+    end
+
+    if expectations.has_key?(:constrain)
+      expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
+
+      expectations[:constrain].each do |constraint|
+        fact, expectation = constraint.split("\s")
+        unless meets_constraint?(fact, expectation)
+          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          return true
+        end
+      end
+
+      expectations.delete(:constrain)
+    end
+
+    results = Hash.new()
+    local = nil
+
+    expectations.each do |k,v|
+      case k
+        when :ensure, :exists, :state
+          if v.to_s.match(/absent|false|open/)
+            local = ports[expectations[:protocol]][number].nil?
+          else
+            local = ! ports[expectations[:protocol]][number].nil?
+          end
+        when :protocol, :proto
+          # TODO rewrite this in a less hacky way
+          if expectations[:ensure].to_s.match(/absent|false|open/) or expectations[:exists].to_s.match(/absent|false|open/) or expectations[:state].to_s.match(/absent|false|open/)
+            local = true
+          else
+            local = ports[v].has_key?(number)
+          end
+
+        when :address
+          lr = Array.new
+          addresses = ports[expectations[:protocol]][number][:address]
+          addresses.each_key do |address|
+            lr.push(address.eql?(v.to_s))
+          end
+
+          local = ! lr.find{|e| e.true? }.nil? # this feels jankity
+
+        else
+          raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
+      end
+
+      results[k] = local
+    end
+
+    @log.info(results)
+
+    # TODO should we implement a fail fast method? at least an option
+    results.find{|k,v| v.false? }.nil?
+  end
+
   ##
   # validate_service
   #
