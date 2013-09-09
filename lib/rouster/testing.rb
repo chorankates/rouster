@@ -366,18 +366,20 @@ class Rouster
   # supported keys:
   #  * :exists|ensure|state
   #  * :address
-  #  * :protocol
+  #  * :protocol|proto
   #  * :constrain
   def validate_port(number, expectations)
     number = number.to_s
     ports  = self.get_ports(true)
 
-    if expectations[:ensure].nil? and expectations[:exists].nil?
+    if expectations[:ensure].nil? and expectations[:exists].nil? and expectations[:state].nil?
       expectations[:ensure] = 'present'
     end
 
-    if expectations[:protocol].nil?
+    if expectations[:protocol].nil? and expectations[:proto].nil?
       expectations[:protocol] = 'tcp'
+    elsif ! expectations[:proto].nil?
+      expectations[:protocol] = expectations[:proto]
     end
 
     if expectations.has_key?(:constrain)
@@ -400,19 +402,28 @@ class Rouster
     expectations.each do |k,v|
       case k
         when :ensure, :exists, :state
-          if v.to_s.match(/absent|false/)
-            local = ! ports[expectations[:protocol]][number].nil?
-          else
+          if v.to_s.match(/absent|false|open/)
             local = ports[expectations[:protocol]][number].nil?
+          else
+            local = ! ports[expectations[:protocol]][number].nil?
           end
         when :protocol, :proto
-          local = ports[v].has_key?(number)
+          # TODO rewrite this in a less hacky way
+          if expectations[:ensure].to_s.match(/absent|false|open/) or expectations[:exists].to_s.match(/absent|false|open/) or expectations[:state].to_s.match(/absent|false|open/)
+            local = true
+          else
+            local = ports[v].has_key?(number)
+          end
+
         when :address
+          lr = Array.new
           addresses = ports[expectations[:protocol]][number][:address]
           addresses.each_key do |address|
-            local = address.eql?(v.to_s)
+            lr.push(address.eql?(v.to_s))
           end
-          next if local.false?
+
+          local = ! lr.find{|e| e.true? }.nil? # this feels jankity
+
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
