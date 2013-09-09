@@ -214,10 +214,19 @@ class Rouster
     elsif os.eql?(:redhat)
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
-        #next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
-        next if line.match(/(.*)-(\d+\.\d+.*)/).nil?
+        next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
+        #next if line.match(/(.*)-(\d+\.\d+.*)/).nil? # another alternate, but still not perfect
 
-        res[$1] = $2
+        if deep
+          local_res = self.run(sprintf('rpm -qi %s', line))
+          name    = $1 if local_res.match(/Name\s+:\s(\S*)/)
+          version = $1 if local_res.match(/Version\s+:\s(\S*)/)
+
+          res[name] = version
+        else
+          res[$1] = $2
+        end
+
       end
 
     else
