@@ -588,15 +588,35 @@ class Rouster
             break unless local.true?
           end
         when :gid
-          local = v.to_i.eql?(users[name][:gid].to_i)
+          if users[name].has_key?(:gid)
+            local = v.to_i.eql?(users[name][:gid].to_i)
+          else
+            local = false
+          end
         when :home
-          local = ! v.match(/#{users[name][:home]}/).nil?
+          if users[name].has_key?(:home)
+            local = ! v.match(/#{users[name][:home]}/).nil?
+          else
+            local = false
+          end
         when :home_exists
-          local = ! v.to_s.match(/#{users[name][:home_exists].to_s}/).nil?
+          if users[name].has_key?(:home_exists)
+            local = ! v.to_s.match(/#{users[name][:home_exists].to_s}/).nil?
+          else
+            local = false
+          end
         when :shell
-          local = ! v.match(/#{users[name][:shell]}/).nil?
+          if users[name].has_key?(:shell)
+            local = ! v.match(/#{users[name][:shell]}/).nil?
+          else
+            local = false
+          end
         when :uid
-          local = v.to_i.eql?(users[name][:uid].to_i)
+          if users[name].has_key?(:uid)
+            local = v.to_i.eql?(users[name][:uid].to_i)
+          else
+            local = false
+          end
         when :type
           # noop
         else
