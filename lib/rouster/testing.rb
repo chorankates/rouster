@@ -156,7 +156,7 @@ class Rouster
             local = false
           end
         when :type
-          # noop
+          # noop allowing parse_catalog() output to be passed directly
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
@@ -235,7 +235,11 @@ class Rouster
             local = v.to_s.match(/absent|false/).nil? ? false : true
           end
         when :gid
-          local = v.to_s.eql?(groups[name][:gid].to_s)
+          if groups[name].has_key?(:gid)
+            local = v.to_s.eql?(groups[name][:gid].to_s)
+          else
+            local = false
+          end
         when :user, :users
           v = v.class.eql?(Array) ? v : [v]
           v.each do |user|
@@ -243,7 +247,7 @@ class Rouster
             break unless local.true? # need to make the return value smarter if we want to store data on which user failed
           end
         when :type
-          # noop
+          # noop allowing parse_catalog() output to be passed directly
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
@@ -329,7 +333,7 @@ class Rouster
             local = ! v.to_s.match(/#{packages[name]}/).nil?
           end
         when :type
-          # noop
+          # noop allowing parse_catalog() output to be passed directly
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
@@ -499,7 +503,7 @@ class Rouster
         when :state, :status
           local = ! v.match(/#{services[name]}/).nil?
         when :type
-          # noop
+          # noop allowing parse_catalog() output to be passed directly
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
@@ -569,6 +573,7 @@ class Rouster
     results = Hash.new()
     local = nil
 
+    require 'debugger'; debugger
     expectations.each do |k,v|
       case k
         when :ensure, :exists
@@ -618,7 +623,7 @@ class Rouster
             local = false
           end
         when :type
-          # noop
+          # noop allowing parse_catalog() output to be passed directly
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
