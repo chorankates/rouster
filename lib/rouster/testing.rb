@@ -243,7 +243,11 @@ class Rouster
         when :user, :users
           v = v.class.eql?(Array) ? v : [v]
           v.each do |user|
-            local = groups[name][:users].member?(user)
+            if groups[name].has_key?(:users)
+              local = groups[name][:users].member?(user)
+            else
+              local = false
+            end
             break unless local.true? # need to make the return value smarter if we want to store data on which user failed
           end
         when :type
@@ -325,12 +329,16 @@ class Rouster
             local = v.to_s.match(/absent|false/).nil? ? false : true
           end
         when :version
-          if v.split("\s").size > 1
-            ## generic comparator functionality
-            comp, expectation = v.split("\s")
-            local = generic_comparator(packages[name], comp, expectation)
+          if packages.has_key?(name)
+            if v.split("\s").size > 1
+              ## generic comparator functionality
+              comp, expectation = v.split("\s")
+              local = generic_comparator(packages[name], comp, expectation)
+            else
+              local = ! v.to_s.match(/#{packages[name]}/).nil?
+            end
           else
-            local = ! v.to_s.match(/#{packages[name]}/).nil?
+            local = false
           end
         when :type
           # noop allowing parse_catalog() output to be passed directly
@@ -501,7 +509,11 @@ class Rouster
             local = v.to_s.match(/absent|false/).nil? ? false : true
           end
         when :state, :status
-          local = ! v.match(/#{services[name]}/).nil?
+          if services.has_key?(name)
+            local = ! v.match(/#{services[name]}/).nil?
+          else
+            local = false
+          end
         when :type
           # noop allowing parse_catalog() output to be passed directly
         else
@@ -573,7 +585,6 @@ class Rouster
     results = Hash.new()
     local = nil
 
-    require 'debugger'; debugger
     expectations.each do |k,v|
       case k
         when :ensure, :exists
