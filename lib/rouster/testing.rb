@@ -235,7 +235,7 @@ class Rouster
             local = v.to_s.match(/absent|false/).nil? ? false : true
           end
         when :gid
-          if groups[name].has_key?(:gid)
+          if groups[name].is_a?(Hash) and groups[name].has_key?(:gid)
             local = v.to_s.eql?(groups[name][:gid].to_s)
           else
             local = false
@@ -243,7 +243,7 @@ class Rouster
         when :user, :users
           v = v.class.eql?(Array) ? v : [v]
           v.each do |user|
-            if groups[name].has_key?(:users)
+            if groups[name].is_a?(Hash) and groups[name].has_key?(:users)
               local = groups[name][:users].member?(user)
             else
               local = false
@@ -604,31 +604,31 @@ class Rouster
             break unless local.true?
           end
         when :gid
-          if users[name].has_key?(:gid)
+          if users[name].is_a?(Hash) and users[name].has_key?(:gid)
             local = v.to_i.eql?(users[name][:gid].to_i)
           else
             local = false
           end
         when :home
-          if users[name].has_key?(:home)
+          if users[name].is_a?(Hash) and users[name].has_key?(:home)
             local = ! v.match(/#{users[name][:home]}/).nil?
           else
             local = false
           end
         when :home_exists
-          if users[name].has_key?(:home_exists)
+          if users[name].is_a?(Hash) and users[name].has_key?(:home_exists)
             local = ! v.to_s.match(/#{users[name][:home_exists].to_s}/).nil?
           else
             local = false
           end
         when :shell
-          if users[name].has_key?(:shell)
+          if users[name].is_a?(Hash) and users[name].has_key?(:shell)
             local = ! v.match(/#{users[name][:shell]}/).nil?
           else
             local = false
           end
         when :uid
-          if users[name].has_key?(:uid)
+          if users[name].is_a?(Hash) and users[name].has_key?(:uid)
             local = v.to_i.eql?(users[name][:uid].to_i)
           else
             local = false
