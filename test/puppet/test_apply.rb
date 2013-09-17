@@ -73,7 +73,7 @@ class TestPuppetApply < Test::Unit::TestCase
     @expected_users    = {
       'root' => {
         :ensure => 'present',
-        :group  => 'root',
+        #:group  => 'root',
       }
     }
 
@@ -121,23 +121,23 @@ class TestPuppetApply < Test::Unit::TestCase
 
     # manually specified testing
     app_expected_files.each_pair do |f,e|
-      assert_equal(true, @app.validate_file(f,e))
+      assert_equal(true, @app.validate_file(f,e), "file[#{f}] expectation[#{e}]")
     end
 
     app_expected_groups.each_pair do |g,e|
-      assert_equal(true, @app.validate_group(g,e))
+      assert_equal(true, @app.validate_group(g,e), "group[#{g}] expectation[#{e}]")
     end
 
     app_expected_packages.each_pair do |p,e|
-      assert_equal(true, @app.validate_package(p, e))
+      assert_equal(true, @app.validate_package(p, e), "package[#{p}] expectation[#{e}]")
     end
 
     app_expected_services.each_pair do |s,e|
-      assert_equal(true, @app.validate_service(s,e))
+      assert_equal(true, @app.validate_service(s,e), "service[#{s}] expectation[#{e}]")
     end
 
     app_expected_users.each_pair do |u,e|
-      assert_equal(true, @app.validate_user(u,e))
+      assert_equal(true, @app.validate_user(u,e), "user[#{u}] expectation[#{e}]")
     end
 
   end
