@@ -33,7 +33,6 @@ class TestDeltasGetPackages < Test::Unit::TestCase
 
       # this is not the best validation, but is not the worst either
       assert_match(/^\d+\./, res[k]) # start with a number
-      assert_match(/\.(x86|i686|x86_64|noarch)$/, res[k]) # end with an arch type
     end
 
   end
