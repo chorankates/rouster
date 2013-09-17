@@ -9,7 +9,7 @@ require 'test/unit'
 class TestPuppetRoles < Test::Unit::TestCase
 
   def setup
-    @ppm = Rouster.new(:name => 'ppm', :vagrantfile => '../piab/Vagrantfile')
+    @ppm = Rouster.new(:name => 'ppm', :vagrantfile => sprintf('%s/../../../piab/Vagrantfile', File.dirname(File.expand_path(__FILE__))))
     @ppm.rebuild() unless @ppm.status.eql?('running') # destroy / rebuild
 
     @app = Rouster.new(:name => 'app', :vagrantfile => '../piab/Vagrantfile')
