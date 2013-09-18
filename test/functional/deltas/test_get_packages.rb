@@ -32,7 +32,7 @@ class TestDeltasGetPackages < Test::Unit::TestCase
       assert_not_nil(res[k])
 
       # this is not the best validation, but is not the worst either
-      assert_match(/^\d+\./, res[k]) # start with a number
+      assert_match(/^\d+/, res[k]) # start with a number
     end
 
   end
