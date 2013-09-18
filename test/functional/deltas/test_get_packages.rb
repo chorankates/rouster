@@ -30,8 +30,6 @@ class TestDeltasGetPackages < Test::Unit::TestCase
 
     res.each_key do |k|
       assert_not_nil(res[k])
-
-      # this is not the best validation, but is not the worst either
       assert_match(/^\d+/, res[k]) # start with a number
     end
 
@@ -48,6 +46,22 @@ class TestDeltasGetPackages < Test::Unit::TestCase
 
     assert_equal(Hash, res.class)
     assert_equal(false, @app.deltas.has_key?(:packages))
+  end
+
+  def test_without_deep_inspection
+    res = nil
+
+    assert_nothing_raised do
+      res = @app.get_packages(true, false)
+    end
+
+    res.each_key do |k|
+      assert_not_nil(res[k])
+
+      # this is not the best validation, but is not the worst either
+      assert_match(/\d*\..*/, res[k]) # testing the regular expression used in deltas.rb itself
+    end
+
   end
 
   def teardown
