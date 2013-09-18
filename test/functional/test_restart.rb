@@ -2,6 +2,7 @@
 
   require 'rouster'
   require 'rouster/puppet'
+  require 'rouster/testing'
   require 'test/unit'
 
   class TestRestart < Test::Unit::TestCase
@@ -10,7 +11,6 @@
       assert_nothing_raised do
         @app = Rouster.new(:name => 'app', :verbosity => 4)
       end
-
     end
 
     def test_happy_path
@@ -31,7 +31,7 @@
         sleep 10
       end
 
-      new_uptime = @app.facter()['uptime_seconds'].to_i
+      new_uptime = @app.facter(false)['uptime_seconds'].to_i
 
       assert_not_equal(original_uptime, new_uptime)
       assert(original_uptime > new_uptime)

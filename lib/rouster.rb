@@ -60,7 +60,8 @@ class Rouster
     @deltas = Hash.new
 
     @exitcode = nil
-    @ssh_info = nil # will be hash containing connection information
+    @ssh      = nil # hash containing the SSH connection object
+    @ssh_info = nil # hash containing connection information
 
     # set up logging
     require 'log4r/config'
@@ -479,18 +480,20 @@ class Rouster
         raise InternalError.new(sprintf('unsupported OS[%s]', @ostype))
     end
 
+    @ssh, @ssh_info = nil # severing the SSH tunnel, getting ready in case this box is brought back up on a different port
+
     if wait
       inc = wait.to_i / 10
       0..wait.each do |e|
         @log.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
-        true if self.is_available_via_ssh?()
+        return true if self.is_available_via_ssh?()
         sleep inc
       end
 
-      false
+      return false
     end
 
-    @ssh, @ssh_info = nil, nil
+    return true
   end
 
   ##
