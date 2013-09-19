@@ -9,10 +9,23 @@ require 'test/unit'
 class TestPuppetRoles < Test::Unit::TestCase
 
   def setup
-    @ppm = Rouster.new(:name => 'ppm', :vagrantfile => sprintf('%s/../../../piab/Vagrantfile', File.dirname(File.expand_path(__FILE__))))
-    @ppm.rebuild() unless @ppm.status.eql?('running') # destroy / rebuild
 
-    @app = Rouster.new(:name => 'app', :vagrantfile => '../piab/Vagrantfile')
+    piab_vagrantfile = sprintf('%s/../../../piab/Vagrantfile', File.dirname(File.expand_path(__FILE__)))
+
+    unless File.file?(piab_vagrantfile)
+      skip(sprintf('missing SFDC specific Vagrantfile[%s], skipping', piab_vagrantfile))
+    end
+
+    assert_nothing_raised do
+      @ppm = Rouster.new(:name => 'ppm', :vagrantfile => piab_vagrantfile)
+      @ppm.up()
+      @ppm.remove_existing_certs('ppm')
+      #@ppm.rebuild() unless @ppm.status.eql?('running') # destroy / rebuild
+    end
+
+    assert_nothing_raised do
+      @app = Rouster.new(:name => 'app', :vagrantfile => piab_vagrantfile)
+    end
 
     assert_nothing_raised do
 		  @ppm.run_puppet('master', { :expected_exitcode => [0,2] })
