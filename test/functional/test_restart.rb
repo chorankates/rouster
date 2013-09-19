@@ -2,7 +2,6 @@
 
   require 'rouster'
   require 'rouster/puppet'
-  require 'rouster/testing'
   require 'test/unit'
 
   class TestRestart < Test::Unit::TestCase
