@@ -13,6 +13,7 @@ class Rouster
   # parameters
   # * <name> - full file name or relative (to ~vagrant)
   # * <expectations> - hash of expectations, see examples
+  # * <fail_fast> - return false immediately on any failure (default is false)
   #
   # example expectations:
   # '/sys/kernel/mm/redhat_transparent_hugepage/enabled', {
@@ -46,7 +47,7 @@ class Rouster
   #   * :owner
   #   * :group
   #   * :constrain
-  def validate_file(name, expectations, cache=false)
+  def validate_file(name, expectations, fail_fast=false, cache=false)
 
     if expectations[:ensure].nil? and expectations[:exists].nil? and expectations[:directory].nil? and expectations[:file?].nil?
       expectations[:ensure] = 'file'
@@ -161,6 +162,7 @@ class Rouster
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
 
+      return false if local.eql?(false) and fail_fast.eql?(true)
       results[k] = local
     end
 
@@ -177,6 +179,7 @@ class Rouster
   # paramaters
   # * <name> - group name
   # * <expectations> - hash of expectations, see examples
+  # * <fail_fast> - return false immediately on any failure (default is false)
   #
   # example expectations:
   # 'root', {
@@ -198,7 +201,7 @@ class Rouster
   #  * :gid
   #  * :user|:users (string or array)
   #  * :constrain
-  def validate_group(name, expectations)
+  def validate_group(name, expectations, fail_fast=false)
     groups = self.get_groups(true)
 
     if expectations[:ensure].nil? and expectations[:exists].nil?
@@ -256,12 +259,12 @@ class Rouster
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
 
+      return false if local.eql?(false) and fail_fast.eql?(true)
       results[k] = local
     end
 
     @log.info(results)
     results.find{|k,v| v.false? }.nil?
-
   end
 
   ##
@@ -272,6 +275,7 @@ class Rouster
   # parameters
   # * <name> - package name
   # * <expectations> - hash of expectations, see examples
+  # * <fail_fast> - return false immediately on any failure (default is false)
   #
   # example expectations:
   # 'perl-Net-SNMP', {
@@ -292,7 +296,7 @@ class Rouster
   #  * :exists|ensure
   #  * :version  (literal or basic comparison)
   #  * :constrain
-  def validate_package(name, expectations)
+  def validate_package(name, expectations, fail_fast=false)
     packages = self.get_packages(true)
 
     if expectations[:ensure].nil? and expectations[:exists].nil?
@@ -346,13 +350,13 @@ class Rouster
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
 
+      return false if local.eql?(false) and fail_fast.eql?(true)
       results[k] = local
     end
 
     # TODO figure out a good way to allow access to the entire hash, not just boolean -- for now just print at an info level
     @log.info(results)
 
-    # TODO should we implement a fail fast method? at least an option
     results.find{|k,v| v.false? }.nil?
   end
 
@@ -380,7 +384,7 @@ class Rouster
   #  * :address
   #  * :protocol|proto
   #  * :constrain
-  def validate_port(number, expectations)
+  def validate_port(number, expectations, fail_fast=false)
     number = number.to_s
     ports  = self.get_ports(true)
 
@@ -440,12 +444,12 @@ class Rouster
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
 
+      return false if local.eql?(false) and fail_fast.eql?(true)
       results[k] = local
     end
 
     @log.info(results)
 
-    # TODO should we implement a fail fast method? at least an option
     results.find{|k,v| v.false? }.nil?
   end
 
@@ -457,6 +461,7 @@ class Rouster
   # parameters
   # * <name> - service name
   # * <expectations> - hash of expectations, see examples
+  # * <fail_fast> - return false immediately on any failure (default is false)
   #
   # example expectations:
   # 'ntp', {
@@ -472,7 +477,7 @@ class Rouster
   #  * :exists|:ensure
   #  * :state,:status
   #  * :constrain
-  def validate_service(name, expectations)
+  def validate_service(name, expectations, fail_fast=false)
     services = self.get_services(true)
 
     if expectations[:ensure].nil? and expectations[:exists].nil?
@@ -520,6 +525,7 @@ class Rouster
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
 
+      return false if local.eql?(false) and fail_fast.eql?(true)
       results[k] = local
     end
 
@@ -536,6 +542,7 @@ class Rouster
   # parameters
   # * <name> - user name
   # * <expectations> - hash of expectations, see examples
+  # * <fail_fast> - return false immediately on any failure (default is false)
   #
   # example expectations:
   # 'root' => {
@@ -561,7 +568,7 @@ class Rouster
   #  * :uid
   #  * :gid
   #  * :constrain
-  def validate_user(name, expectations)
+  def validate_user(name, expectations, fail_fast=false)
     users = self.get_users(true)
 
     if expectations[:ensure].nil? and expectations[:exists].nil?
@@ -639,6 +646,7 @@ class Rouster
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
 
+      return false if local.eql?(false) and fail_fast.eql?(true)
       results[k] = local
     end
 
