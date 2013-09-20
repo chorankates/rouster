@@ -115,7 +115,6 @@ class TestValidateFile < Test::Unit::TestCase
 
   end
 
-
   def teardown
     # noop
   end
