@@ -86,7 +86,11 @@ class Rouster
       raise InternalError.new()
     end
 
-    ## TODO ensure 'vagrant' is in path
+    begin
+      self._run('which vagrant')
+    rescue
+      raise ExternalError.new('vagrant not found in path')
+    end
 
     @log.debug('SSH key discovery and viability tests..')
     if @sshkey.nil?
@@ -390,13 +394,15 @@ class Rouster
   # * [local_file] - full or relative path (based on $PWD) of file to download to
   #
   # if no local_file is specified, will be downloaded to $PWD with the same shortname as it had in the VM
+  #
+  # returns true on successful download, false if the file DNE and raises a FileTransferError.. well, you know
   def get(remote_file, local_file=nil)
     # TODO what happens when we pass a wildcard as remote_file?
 
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
     @log.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
 
-    # TODO should we do a self.file?(remote_file) test before trying to download?
+    return false unless self.is_file?(remote_file)
 
     begin
       @ssh.scp.download!(remote_file, local_file)
@@ -404,6 +410,7 @@ class Rouster
       raise FileTransferError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
 
+    return true
   end
 
   ##
