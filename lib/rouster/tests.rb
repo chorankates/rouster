@@ -67,12 +67,11 @@ class Rouster
   # * <dir> - path to directory to act on, full path or relative to ~vagrant/
   # * [wildcard] - glob of directories to match, defaults to '*'
   # * [recursive] - boolean controlling whether or not to look in directories recursively, defaults to false
-  def dirs(dir, wildcard='*', recursive=false)
+  def dirs(dir, wildcard='*', insensitive=true, recursive=false)
     # TODO use a numerical, not boolean value for 'recursive' -- and rename to 'depth' ?
-    # TODO should we be running -iname ?
     raise InternalError.new(sprintf('invalid dir specified[%s]', dir)) unless self.is_dir?(dir)
 
-    raw = self.run(sprintf("find %s %s -type d -name '%s'", dir, recursive ? '' : '-maxdepth 1', wildcard))
+    raw = self.run(sprintf("find %s %s -type d %s '%s'", dir, recursive ? '' : '-maxdepth 1', insensitive ? '-iname' : '-name', wildcard))
     res = Array.new
 
     raw.split("\n").each do |line|
@@ -145,11 +144,11 @@ class Rouster
   # * <dir> - directory to look in, full path or relative to ~vagrant/
   # * [wildcard] - glob of files to match, defaults to '*'
   # * [recursive] - boolean controlling whether or not to look in directories recursively, defaults to false
-  def files(dir, wildcard='*', recursive=false)
+  def files(dir, wildcard='*', insensitive=true, recursive=false)
     # TODO use a numerical, not boolean value for 'recursive'
     raise InternalError.new(sprintf('invalid dir specified[%s]', dir)) unless self.is_dir?(dir)
 
-    raw = self.run(sprintf("find %s %s -type f -name '%s'", dir, recursive ? '' : '-maxdepth 1', wildcard))
+    raw = self.run(sprintf("find %s %s -type f %s '%s'", dir, recursive ? '' : '-maxdepth 1', insensitive ? '-iname' : '-name', wildcard))
     res = Array.new
 
     raw.split("\n").each do |line|
