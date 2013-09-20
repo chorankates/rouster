@@ -256,7 +256,7 @@ class Rouster
   # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
   #
   # supported OS
-  # * RedHat - runs `netstat -ln` -- TODO will this work on other operating systems too?
+  # * RedHat, Ubuntu - runs `netstat -ln`
   #
   # raises InternalError if unsupported operating system
   def get_ports(cache=false)
@@ -270,7 +270,7 @@ class Rouster
     res = Hash.new()
     os  = self.os_type()
 
-    if os.eql?(:redhat)
+    if os.eql?(:redhat) or os.eql?(:ubuntu)
 
       raw = self.run('netstat -ln')
 
@@ -289,7 +289,6 @@ class Rouster
         res[protocol][port][:address][address] = state
 
       end
-
     else
       raise InternalError.new(sprintf('unable to get port information from VM operating system[%s]', os))
     end
@@ -387,7 +386,7 @@ class Rouster
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
         # TODO tighten this up
-        next if line.match(/^([^\s\:]*).*\s(\w*)(?:\.?){3}$/).nil?
+        next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
         res[$1] = $2
       end
 

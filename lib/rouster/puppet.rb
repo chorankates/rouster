@@ -53,7 +53,11 @@ class Rouster
     # post https://<puppetmaster>/catalog/<node>?facts_format=pson&facts=<pson URL encoded> == ht to patrick@puppetlabs
     certname     = hostname.nil? ? self.run('hostname --fqdn').chomp : hostname
     puppetmaster = puppetmaster.nil? ? 'puppet' : puppetmaster
-    facts        = facts.nil? ? self.facter() : facts # TODO check for presence of certain 'required' facts/datatype?
+    facts        = facts.nil? ? self.facter() : facts
+
+    %w(fqdn hostname operatingsystem operatingsystemrelease osfamily rubyversion).each do |required|
+      raise ArgumentError.new(sprintf('missing required fact[%s]', required)) unless facts.has_key?(required)
+    end
 
     raise InternalError.new('need to finish conversion of facts to PSON')
     facts.to_pson # this does not work, but needs to
@@ -230,7 +234,6 @@ class Rouster
     end
 
     # remove all nil references
-    # TODO make this more rubyish
     resources.each_key do |name|
       resources[name].each_pair do |k,v|
         unless v

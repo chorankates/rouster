@@ -14,6 +14,7 @@ class Rouster
   VERSION = 0.42
 
   # custom exceptions -- what else do we want them to include/do?
+  class ArgumentError        < StandardError; end # thrown by methods that take parameters from users
   class FileTransferError    < StandardError; end # thrown by get() and put()
   class InternalError        < StandardError; end # thrown by most (if not all) Rouster methods
   class ExternalError        < StandardError; end # thrown when external dependencies do not respond as expected
