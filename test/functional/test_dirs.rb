@@ -56,6 +56,31 @@ class TestDirs < Test::Unit::TestCase
 
   end
 
+  def test_case_sensitvity
+    dirs_to_create = ['Fizz', 'foo', 'baz']
+    dirs_expected_sensitive = ['foo']
+    dirs_expected_insensitive = ['Fizz', 'foo']
+
+    dirs_to_create.each do |dir|
+      @app.run(sprintf('mkdir -p %s/%s', @dir, dir))
+    end
+
+    dirs_actual_sensitive = @app.dirs(@dir, 'f*', false)
+
+    dirs_actual_sensitive.each do |dir|
+      dir = dir.gsub(/#{@dir}/, '')
+      assert(dirs_expected_sensitive.member?(dir))
+    end
+
+    dirs_actual_insensitive = @app.dirs(@dir, 'f*', true)
+
+    dirs_actual_insensitive.each do |dir|
+      dir = dir.gsub(/#{@dir}/, '')
+      assert(dirs_expected_insensitive.member?(dir))
+    end
+
+  end
+
   def teardown
     @app.run(sprintf('rm -rf %s', @dir))
   end
