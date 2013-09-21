@@ -403,8 +403,6 @@ class Rouster
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
     @log.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
 
-    return false unless self.is_file?(remote_file)
-
     begin
       @ssh.scp.download!(remote_file, local_file)
     rescue => e

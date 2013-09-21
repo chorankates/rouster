@@ -44,9 +44,9 @@ class TestGet < Test::Unit::TestCase
 
   def test_remote_path_dne
 
-    assert_nothing_raised do
+    assert_raise Rouster::FileTransferError do
       res = @app.get(@kb_dne_location, @kg_local_location)
-      assert(res, false)
+      assert_equal(false, res)
     end
 
     assert_equal(false, File.file?(@kg_local_location), 'known bad remote file path DNE')
