@@ -1,77 +1,156 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 require 'json'
+require 'net/https'
 require 'socket'
+require 'uri'
 
-# == rouster/puppet
-# an extension to Rouster containing Puppet related code:
-#  * facter()
-#  * get_catalog()
-#  * get_puppet_errors()
-#  * get_puppet_notices()
-#  * parse_catalog()
-#  * remove_existing_certs()
-#  * run_puppet()
-#
+# TODO use @cache_timeout to invalidate data cached here
 
 class Rouster
 
+  ##
+  # facter
+  #
+  # runs facter, returns parsed hash of { fact1 => value1, factN => valueN }
+  #
+  # parameters
+  # * [cache] - whether to store/return cached facter data, if available
+  # * [custom_facts] - whether to include custom facts in return (uses -p argument)
   def facter(cache=true, custom_facts=true)
     if cache.true? and ! self.facts.nil?
-      self.facts
+      return self.facts
     end
 
-    json = nil
-    res  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
+    raw  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
+    res  = Hash.new()
 
-    begin
-      json = res.to_json
-    rescue
-      raise InternalError.new(sprintf('unable to parse[%s] as JSON', res))
+    raw.split("\n").each do |line|
+      next unless line.match(/(\S*?)\s\=\>\s(.*)/)
+      res[$1] = $2
     end
 
     if cache.true?
       self.facts = res
     end
 
-    json
+    res
   end
 
-  def get_catalog(hostname=nil)
-    certname = hostname.nil? ? self.run('hostname --fqdn') : hostname
+  ##
+  # get_catalog
+  #
+  # not completely implemented method to get a compiled catalog about a node (based on its facts) from a puppetmaster
+  #
+  # original implementation used the catalog face, which does not actually work. switched to an API call, but still need to convert facts into PSON
+  #
+  # parameters
+  # * [hostname] - hostname of node to return catalog for, if not specified, will use `hostname --fqdn`
+  # * [puppetmaster] - hostname of puppetmaster to use in API call, defaults to 'puppet'
+  # * [facts] - hash of facts to pass to puppetmaster
+  # * [puppetmaster_port] - port to talk to the puppetmaster on, defaults to 8140
+  def get_catalog(hostname=nil, puppetmaster=nil, facts=nil, puppetmaster_port=8140)
+    # post https://<puppetmaster>/catalog/<node>?facts_format=pson&facts=<pson URL encoded> == ht to patrick@puppetlabs
+    certname     = hostname.nil? ? self.run('hostname --fqdn').chomp : hostname
+    puppetmaster = puppetmaster.nil? ? 'puppet' : puppetmaster
+    facts        = facts.nil? ? self.facter() : facts
+
+    %w(fqdn hostname operatingsystem operatingsystemrelease osfamily rubyversion).each do |required|
+      raise ArgumentError.new(sprintf('missing required fact[%s]', required)) unless facts.has_key?(required)
+    end
+
+    raise InternalError.new('need to finish conversion of facts to PSON')
+    facts.to_pson # this does not work, but needs to
 
     json = nil
-    res  = self.run(sprintf('puppet catalog find %s', certname))
+    url  = sprintf('https://%s:%s/catalog/%s?facts_format=pson&facts=%s', puppetmaster, puppetmaster_port, certname, facts)
+    uri  = URI.parse(url)
 
     begin
+      res  = Net::HTTP.get(uri)
       json = res.to_json
-    rescue
-      raise InternalError.new(sprintf('unable to parse[%s] as JSON', res))
+    rescue => e
+      raise ExternalError.new("calling[#{url}] led to exception[#{e}")
     end
 
     json
   end
 
-  def get_puppet_errors(input = nil)
+  ##
+  # get_puppet_errors
+  #
+  # parses input for puppet errors, returns array of strings
+  #
+  # parameters
+  # * [input] - string to look at, defaults to self.get_output()
+  def get_puppet_errors(input=nil)
     str    = input.nil? ? self.get_output() : input
     errors = str.scan(/35merr:.*/)
 
     errors.empty? ? nil : errors
   end
 
-  def get_puppet_notices(input = nil)
+  ##
+  # get_puppet_notices
+  #
+  # parses input for puppet notices, returns array of strings
+  #
+  # parameters
+  # * [input] - string to look at, defaults to self.get_output()
+  def get_puppet_notices(input=nil)
     str     = input.nil? ? self.get_output() : input
     notices = str.scan(/36mnotice:.*/)
 
     notices.empty? ? nil : notices
   end
 
+  ##
+  # get_puppet_version
+  #
+  # executes `puppet --version` and returns parsed version string or nil
+  def get_puppet_version
+    version   = nil
+    installed = self.is_in_path?('puppet')
+
+    if installed
+      raw = self.run('puppet --version')
+      version = raw.match(/([\d\.]*)\s/) ? $1 : nil
+    else
+      version = nil
+    end
+
+    version
+  end
+
+  ##
+  # hiera
+  #
+  # returns hiera results from self
+  #
+  # parameters
+  # * <key> - hiera key to look up
+  # * [config] - path to hiera configuration -- this is only optional if you have a hiera.yaml file in ~/vagrant
+  def hiera(key, config=nil)
+
+    # TODO implement this
+    raise NotImplementedError.new()
+
+  end
+
+  ##
+  # parse_catalog
+  #
+  # looks at the ['data']['resources'] keys in catalog for Files, Groups, Packages, Services and Users, returns hash of expectations compatible with validate_*
+  #
+  # this is a very lightly tested implementation, please open issues as necessary
+  #
+  # parameters
+  # * <catalog> - JSON string or Hash representation of catalog, typically from get_catalog()
   def parse_catalog(catalog)
     classes   = nil
     resources = nil
     results   = Hash.new()
 
-    # support either JSON or already parsed Hash
     if catalog.is_a?(String)
       begin
         JSON.parse!(catalog)
@@ -155,7 +234,6 @@ class Rouster
     end
 
     # remove all nil references
-    # TODO make this more rubyish
     resources.each_key do |name|
       resources[name].each_pair do |k,v|
         unless v
@@ -171,12 +249,18 @@ class Rouster
     results
   end
 
+  ##
+  # remove_existing_certs
+  #
+  # ... removes existing certificates - really only useful when called on a puppetmaster
+  # useful in testing environments where you want to destroy/rebuild agents without rebuilding the puppetmaster every time (think autosign)
+  #
+  # parameters
+  # * <puppetmaster> - string/partial regex of certificate names to keep
   def remove_existing_certs (puppetmaster)
-    # removes all certificates that a puppetmaster knows about aside from it's own (useful in testing where autosign is in use)
-    # really only useful if called from a puppet master
     hosts = Array.new()
 
-    res = self.run('puppet cert --list --all')
+    res = self.run('puppet cert list --all')
 
     res.each_line do |line|
       next if line.match(/#{puppetmaster}/)
@@ -191,8 +275,81 @@ class Rouster
 
   end
 
-  def run_puppet(expected_exitcode=0)
-    self.run('/sbin/service puppet once -t', expected_exitcode)
+  ##
+  # run_puppet
+  #
+  # ... runs puppet on self, returns nothing
+  #
+  # currently supports 2 methods of running puppet:
+  #  * master - runs '/sbin/service puppet once -t'
+  #    * supported options
+  #      * expected_exitcode - string/integer/array of acceptable exit code(s)
+  #  * masterless - runs 'puppet apply <options>' after determining version of puppet running and adjusting arguments
+  #    * supported options
+  #      * expected_exitcode - string/integer/array of acceptable exit code(s)
+  #      * hiera_config - path to hiera configuration -- only supported by Puppet 3.0+
+  #      * manifest_file - string/array of strings of paths to manifest(s) to apply
+  #      * manifest_dir - string/array of strings of directories containing manifest(s) to apply - is recursive
+  #      * module_dir - path to module directory -- currently a required parameter, is this correct?
+  #
+  # parameters
+  # * [mode] - method to run puppet, defaults to 'master'
+  # * [opts] - hash of additional options
+  def run_puppet(mode='master', passed_opts=nil)
+
+    if mode.eql?('master')
+      opts = {
+        :expected_exitcode => 0
+      }.merge!(passed_opts)
+
+      self.run('/sbin/service puppet once -t', opts[:expected_exitcode])
+
+    elsif mode.eql?('masterless')
+      opts = {
+        :expected_exitcode => 2,
+        :hiera_config      => nil,
+        :manifest_file     => nil, # can be a string or array, will 'puppet apply' each
+        :manifest_dir      => nil, # can be a string or array, will 'puppet apply' each module in the dir (recursively)
+        :module_dir        => nil
+      }.merge!(passed_opts)
+
+      ## validate required arguments
+      raise InternalError.new(sprintf('invalid hiera config specified[%s]', opts[:hiera_config])) unless self.is_file?(opts[:hiera_config])
+      raise InternalError.new(sprintf('invalid module dir specified[%s]', opts[:module_dir])) unless self.is_dir?(opts[:module_dir])
+
+      puppet_version = self.get_puppet_version() # hiera_config specification is only supported in >3.0
+
+      if opts[:manifest_file]
+        opts[:manifest_file] = opts[:manifest_file].class.eql?(Array) ? opts[:manifest_file] : [opts[:manifest_file]]
+        opts[:manifest_file].each do |file|
+          raise InternalError.new(sprintf('invalid manifest file specified[%s]', file)) unless self.is_file?(file)
+
+          self.run(sprintf('puppet apply %s --modulepath=%s %s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir], file), opts[:expected_exitcode])
+
+        end
+      end
+
+      if opts[:manifest_dir]
+        opts[:manifest_dir] = opts[:manifest_dir].class.eql?(Array) ? opts[:manifest_dir] : [opts[:manifest_dir]]
+        opts[:manifest_dir].each do |dir|
+          raise InternalError.new(sprintf('invalid manifest dir specified[%s]', dir)) unless self.is_dir?(dir)
+
+          manifests = self.files(dir, '*.pp', true)
+
+          manifests.each do |m|
+
+            self.run(sprintf('puppet apply %s --modulepath=%s %s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir], m), opts[:expected_exitcode])
+
+          end
+
+        end
+      end
+
+    else
+      raise InternalError.new(sprintf('unknown mode [%s]', mode))
+    end
+
+
   end
 
 end

@@ -15,7 +15,7 @@ class TestStatus < Test::Unit::TestCase
   def test_1_destroyed
     @app.destroy()
 
-    assert_equal('not_created', @app.status())
+    assert_equal('not created', @app.status())
   end
 
   def test_2_upped

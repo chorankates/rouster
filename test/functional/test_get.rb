@@ -28,13 +28,15 @@ class TestGet < Test::Unit::TestCase
       @app.get(@kg_remote_location, @kg_local_location)
     end
 
-    assert(File.file?(@kg_local_location))
+    assert(File.file?(@kg_local_location), 'downloaded file exists')
   end
 
   def test_local_path_dne
 
     assert_raise Rouster::FileTransferError do
       @app.get(@kg_remote_location, @kb_dne_location)
+
+      # TODO how can we check the contents of the expception message?
     end
 
     assert_equal(false, File.file?(@kg_local_location), 'known bad local path DNE')
@@ -43,17 +45,18 @@ class TestGet < Test::Unit::TestCase
   def test_remote_path_dne
 
     assert_raise Rouster::FileTransferError do
-      @app.get(@kb_dne_location, @kg_local_location)
+      res = @app.get(@kb_dne_location, @kg_local_location)
+      assert_equal(false, res)
     end
 
     assert_equal(false, File.file?(@kg_local_location), 'known bad remote file path DNE')
-
   end
 
   def test_with_suspended_machine
     @app.suspend()
 
-    assert_raise Rouster::SSHConnectionError do
+    #assert_raise Rouster::SSHConnectionError do <-- why was this ever used?
+    assert_raise Rouster::FileTransferError do
       @app.get(@kg_remote_location, @kg_local_location)
     end
 

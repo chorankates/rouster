@@ -1,46 +1,52 @@
 Rouster
 ======
-```
+
+```rb
 Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines')
 => true
 ```
 
-It was conceived as the missing piece needed to functionally test Puppet manifests: while RSpec is nice (and _much_ faster), compiling a catalog and applying it are 2 distinct operations
+Rouster was conceived as the missing piece needed to functionally test Puppet manifests: while RSpec is nice (and _much_ faster), compiling a catalog and applying it are 2 distinct operations.
 
-```
+```rb
 app = Rouster.new(:name => 'app' )
 app.up()
-p app.run('/sbin/service puppet once -t', 2) # or p app.run_puppet(2), if you've required 'rouster/puppet'
+
+p app.run('/sbin/service puppet once -t', 2)
+# or p app.run_puppet('master', { :expected_exitcode => 2}), if you've required 'rouster/puppet'
+
 app.destroy()
 ```
 
-The first implementation was in Perl, called [Salesforce::Vagrant](http://github.com/forcedotcom/SalesforceVagrant). Salesforce::Vagrant is functional, but new functionality may or may not be ported back.
+The first implementation of Rouster was in Perl, called [Salesforce::Vagrant](http://github.com/forcedotcom/SalesforceVagrant). Salesforce::Vagrant is functional, but new functionality may or may not be ported back.
 
 ## Requirements
 
+* [Ruby](http://rubylang.org), version 2.0+ (best attempt made to support 1.8.7 and 1.9.3 as well)
 * [Vagrant](http://vagrantup.com), version 1.0.5+
-* a usable Vagrantfile
 
 Note: Vagrant itself requires VirtualBox or VMWare Fusion (1.0.3+)
 
 Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX (minus rouster/deltas.rb functionality, at least currently),
 but no real testing has been done to confirm this. Please file issues as appropriate.
 
-### Easiest configuration
+### From-source installation (latest)
 
+```sh
+git clone https://github.com/chorankates/rouster.git
+cd rouster
+rake buildgem
+gem install rouster-<version>.gem
 ```
-gem install vagrant
+
+### pre-built gem installation (stable)
+
+[RubyGems](http://rubygems.org/gems/rouster)
+[![Gem Version](https://badge.fury.io/rb/rouster.png)](http://badge.fury.io/rb/rouster)
+
+```sh
 gem install rouster
 ```
-
-This will pull in all of the various dependencies (Vagrant manages this itself):
-* childprocess
-* erubis
-* i18n
-* json
-* log4r
-* net-scp
-* net-ssh
 
 ## Using Rouster
 
@@ -62,6 +68,7 @@ And depending on which pieces of rouster you 'require':
 * rouster/deltas
   * get_groups()
   * get_packages()
+  * get_ports()
   * get_services()
   * get_users()
 
@@ -71,7 +78,15 @@ And depending on which pieces of rouster you 'require':
   * get_puppet_errors()
   * get_puppet_notices()
   * parse_catalog()
+  * remove_existing_certs()
   * run_puppet()
+
+* rouster/testing
+  * validate_file()
+  * validate_group()
+  * validate_package()
+  * validate_service()
+  * validate_user()
 
 * rouster/tests
   * is_dir?()
@@ -81,6 +96,9 @@ And depending on which pieces of rouster you 'require':
   * is_in_file?()
   * is_in_path?()
   * is_package?()
+  * is_port_active?()
+  * is_port_open?()
+  * is_process_running?())
   * is_readable?()
   * is_service?()
   * is_service_running?()
@@ -88,18 +106,11 @@ And depending on which pieces of rouster you 'require':
   * is_user_in_group?()
   * is_writeable?()
 
-* rouster/testing
-  * validate_file()
-  * validate_group()
-  * validate_package()
-  * validate_service()
-  * validate_user()
-
-These additional methods are added to the Rouster via class extension.
+These additional methods are added to the Rouster object via class extension.
 
 ### basic instantiation and usage
 
-```
+```rb
 require 'rouster'
 
 # the value for the 'name' attribute should be a name shown when you execute `vagrant status`
@@ -118,7 +129,7 @@ app.destroy()
 
 ### functional puppet test
 
-```
+```rb
 require 'rouster'
 require 'rouster/puppet'
 require 'test/unit'
@@ -141,9 +152,9 @@ class TestPuppetRun < Test::Unit::TestCase
 
       #res = w.run('puppet agent -t --environment development', 2)
       assert_raises_nothing do
-			  res = w.run_puppet(2)
+        res = w.run_puppet('master', { :expected_exitcode => 2 })
       end
-			assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
+      assert_match(/Finished catalog/, res, "output contains 'Finished catalog'")
     end
   end
 
@@ -157,10 +168,8 @@ end
 
 
 ## Base Methods
-```
+
+```rb
 irb(main):003:0> (Rouster.new(:name => 'app').methods - Object.methods).sort
-=> ["_env", "_run", "_vm", "_vm_config", "deltas", "destroy", "exitcode", "facts",
-"get", "get_output", "is_available_via_ssh?", "is_passthrough?", "log", "output",
-"passthrough", "put", "rebuild", "restart", "run", "status", "sudo", "suspend", "up",
-"uses_sudo?", "vagrantfile", "verbosity"]
- ```
+=> [:_run, :_vm, :check_key_permissions, :connect_ssh_tunnel, :deltas, :destroy, :dir, :exitcode, :facter, :facts, :file, :generate_unique_mac, :get, :get_catalog, :get_groups, :get_output, :get_packages, :get_ports, :get_puppet_errors, :get_puppet_notices, :get_services, :get_ssh_info, :get_users, :is_available_via_ssh?, :is_dir?, :is_executable?, :is_file?, :is_group?, :is_in_file?, :is_in_path?, :is_package?, :is_passthrough?, :is_port_active?, :is_port_open?, :is_process_running?, :is_readable?, :is_service?, :is_service_running?, :is_user?, :is_user_in_group?, :is_writeable?, :log, :os_type, :output, :parse_catalog, :parse_ls_string, :passthrough, :put, :rebuild, :remove_existing_certs, :restart, :run, :run_puppet, :sshkey, :status, :sudo, :suspend, :traverse_up, :up, :uses_sudo?, :vagrantfile, :verbosity]
+```
