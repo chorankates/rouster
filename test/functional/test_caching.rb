@@ -75,7 +75,7 @@ class TestCaching < Test::Unit::TestCase
 
   def test_ssh_caching
     timeout = 100
-    app     = Rouster.new(:name => 'app', :cache_timeout => timeout)
+    app     = Rouster.new(:name => 'app', :sshtunnel => true, :cache_timeout => timeout)
     app.up()
 
     assert_equal(app.cache_timeout, timeout)
