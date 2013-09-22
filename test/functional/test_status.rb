@@ -3,7 +3,7 @@ require sprintf('%s/../../path_helper', File.dirname(File.expand_path(__FILE__))
 require 'rouster'
 require 'test/unit'
 
-class TestPut < Test::Unit::TestCase
+class TestStatus < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
@@ -15,7 +15,7 @@ class TestPut < Test::Unit::TestCase
   def test_1_destroyed
     @app.destroy()
 
-    assert_equal('not_created', @app.status())
+    assert_equal('not created', @app.status())
   end
 
   def test_2_upped

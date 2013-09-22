@@ -4,7 +4,7 @@ require 'rouster'
 require 'rouster/deltas'
 require 'test/unit'
 
-class TestPut < Test::Unit::TestCase
+class TestDeltasGetGroups < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
@@ -28,6 +28,13 @@ class TestPut < Test::Unit::TestCase
       assert_not_nil(res[k][:users])
       assert_equal(res[k][:users].class, Array)
       assert_not_nil(res[k][:gid])
+    end
+
+    ## only working on *nix right now, check some specific accounts
+    expected = %w[root vagrant]
+
+    expected.each do |e|
+      assert_not_nil(res[e])
     end
 
   end

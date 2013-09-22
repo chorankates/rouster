@@ -6,11 +6,11 @@ require 'rouster'
 require 'rouster/tests'
 require 'test/unit'
 
-class TestPut < Test::Unit::TestCase
+class TestParseLsString < Test::Unit::TestCase
 
   def setup
 
-    @app = Rouster.new(:name => 'app')
+    @app = Rouster.new(:name => 'app', :unittest => true)
 
     def @app.exposed_parse_ls_string(*args)
       parse_ls_string(*args)
@@ -19,12 +19,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_readable_by_all
-    str = "-r--r--r-- 1 root root 199 May 27 22:51 /readable\n"
+    str = "-r--r--r-- 1 root root 199 May 27 22:51 readable\n"
 
     expectation = {
       :directory?  => false,
       :file?       => true,
       :mode        => '0444',
+      :name        => 'readable',
       :owner       => 'root',
       :group       => 'root',
       :size        => '199',
@@ -39,12 +40,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_readable_by_u
-    str = "-r-------- 1 root root 199 May 27 22:51 /readable\n"
+    str = "-r-------- 1 root root 199 May 27 22:51 readable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0400',
+        :name        => 'readable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -59,12 +61,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_readable_by_g
-    str = "----r----- 1 root root 199 May 27 22:51 /readable\n"
+    str = "----r----- 1 root root 199 May 27 22:51 readable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0040',
+        :name        => 'readable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -79,12 +82,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_readable_by_o
-    str = "-------r-- 1 root root 199 May 27 22:51 /readable\n"
+    str = "-------r-- 1 root root 199 May 27 22:51 readable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0004',
+        :name        => 'readable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -99,12 +103,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_executable_by_all
-    str = "---x--x--x 1 root root 199 May 27 22:51 /executable\n"
+    str = "---x--x--x 1 root root 199 May 27 22:51 executable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0111',
+        :name        => 'executable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -119,12 +124,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_executable_by_u
-    str = "---x------ 1 root root 199 May 27 22:51 /executable\n"
+    str = "---x------ 1 root root 199 May 27 22:51 executable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0100',
+        :name        => 'executable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -139,12 +145,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_executable_by_g
-    str = "------x--- 1 root root 199 May 27 22:51 /executable\n"
+    str = "------x--- 1 root root 199 May 27 22:51 executable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0010',
+        :name        => 'executable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -159,12 +166,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_executable_by_o
-    str = "---------x 1 root root 199 May 27 22:51 /executable\n"
+    str = "---------x 1 root root 199 May 27 22:51 executable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0001',
+        :name        => 'executable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -179,12 +187,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_writeable_by_all
-    str = "--w--w--w- 1 root root 199 May 27 22:51 /writable\n"
+    str = "--w--w--w- 1 root root 199 May 27 22:51 writeable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0222',
+        :name        => 'writeable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -199,12 +208,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_writeable_by_u
-    str = "--w------- 1 root root 199 May 27 22:51 /writable\n"
+    str = "--w------- 1 root root 199 May 27 22:51 writeable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0200',
+        :name        => 'writeable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -219,12 +229,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_writeable_by_g
-    str = "-----w---- 1 root root 199 May 27 22:51 /writable\n"
+    str = "-----w---- 1 root root 199 May 27 22:51 writeable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0020',
+        :name        => 'writeable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -239,12 +250,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_writeable_by_o
-    str = "--------w- 1 root root 199 May 27 22:51 /writable\n"
+    str = "--------w- 1 root root 199 May 27 22:51 writeable\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0002',
+        :name        => 'writeable',
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
@@ -259,12 +271,13 @@ class TestPut < Test::Unit::TestCase
   end
 
   def test_mix_and_match_1
-    str = "-------rwx 1 vagrant vagrant 1909 May 27 22:51 /able\n"
+    str = "-------rwx 1 vagrant vagrant 1909 May 27 22:51 able\n"
 
     expectation = {
         :directory?  => false,
         :file?       => true,
         :mode        => '0007',
+        :name        => 'able',
         :owner       => 'vagrant',
         :group       => 'vagrant',
         :size        => '1909',
@@ -285,6 +298,7 @@ class TestPut < Test::Unit::TestCase
         :directory?  => false,
         :file?       => true,
         :mode        => '0644',
+        :name        => 'foo',
         :owner       => 'vagrant',
         :group       => 'root',
         :size        => '0',

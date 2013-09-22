@@ -2,18 +2,26 @@ require sprintf('%s/%s', File.dirname(File.expand_path(__FILE__)), 'path_helper'
 require 'rubygems'
 require 'rake/testtask'
 
+task :buildgem do
+  sh 'gem build rouster.gemspec'
+end
+
 task :default do
   sh 'ruby test/basic.rb'
+end
+
+task :demo do
+  sh 'ruby examples/demo.rb'
+end
+
+task :doc do
+  sh 'rdoc --line-numbers lib/*'
 end
 
 task :examples do
   Dir['examples/**/*.rb'].each do |example|
 	  sh "ruby #{example}"
 	end
-end
-
-task :buildgem do
-  sh 'gem build rouster.gemspec'
 end
 
 Rake::TestTask.new do |t|

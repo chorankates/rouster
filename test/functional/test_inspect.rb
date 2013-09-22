@@ -3,7 +3,7 @@ require sprintf('%s/../../path_helper', File.dirname(File.expand_path(__FILE__))
 require 'rouster'
 require 'test/unit'
 
-class TestPut < Test::Unit::TestCase
+class TestInspect < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
@@ -16,13 +16,12 @@ class TestPut < Test::Unit::TestCase
 
     res = @app.inspect()
 
-    assert_not_nil(res.match(/created/))
-    assert_not_nil(res.match(/passthrough\[false\]/))
-    assert_not_nil(res.match(/sshkey/))
-    assert_not_nil(res.match(/status/))
-    assert_not_nil(res.match(/sudo\[true\]/))
-    assert_not_nil(res.match(/vagrantfile/))
-    assert_not_nil(res.match(/verbosity\[5\]/))
+    assert_match(/passthrough\[false\]/, res)
+    assert_match(/sshkey/, res)
+    assert_match(/status/, res)
+    assert_match(/sudo\[true\]/, res)
+    assert_match(/vagrantfile/, res)
+    assert_match(/verbosity\[4\]/, res)
   end
 
   def teardown

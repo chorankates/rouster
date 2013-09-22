@@ -4,7 +4,7 @@ require 'rouster'
 require 'rouster/tests'
 require 'test/unit'
 
-class TestPut < Test::Unit::TestCase
+class TestIsFile < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do

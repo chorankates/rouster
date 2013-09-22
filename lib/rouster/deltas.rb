@@ -1,13 +1,113 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 # deltas.rb - get information about groups, packages, services and users inside a Vagrant VM
+require 'rouster'
 require 'rouster/tests'
 
+# TODO use @cache_timeout to invalidate data cached here
+
 class Rouster
-  # deltas.rb reimplementation
+
+  ##
+  # get_crontab
+  #
+  # runs `crontab -l <user>` and parses output, returns hash:
+  # {
+  #   user => {
+  #     logicalOrderInt => {
+  #       :minute => minute,
+  #       :hour   => hour,
+  #       :dom    => dom, # day of month
+  #       :mon    => mon, # month
+  #       :dow    => dow, # day of week
+  #       :command => command,
+  #     }
+  #   }
+  # }
+  #
+  # the hash will contain integers (not strings) for numerical values -- all but '*'
+  #
+  # parameters
+  # * <user> - name of user who owns crontab for examination -- or '*' to determine list of users and iterate over them to find all cron jobs
+  # * [cache] - boolean controlling whether or not retrieved/parsed data is cached, defaults to true
+  def get_crontab(user='root', cache=true)
+
+    if cache and self.deltas[:crontab].class.eql?(Hash)
+      if self.deltas[:crontab].has_key?(user)
+        return self.deltas[:crontab][user]
+      else
+        # noop fallthrough to gather data to cache
+      end
+    elsif cache and self.deltas[:crontab].class.eql?(Hash) and user.eql?('*')
+      return self.deltas[:crontab]
+    end
+
+    i = 0
+    res = Hash.new
+    users = nil
+
+    if user.eql?('*')
+      users = self.get_users().keys
+    else
+      users = [user]
+    end
+
+    users.each do |u|
+      begin
+        raw = self.run(sprintf('crontab -u %s -l', u))
+      rescue RemoteExecutionError => e
+        # crontab throws a non-0 exit code if there is no crontab for the specified user
+        res[u] ||= Hash.new
+        next
+      end
+
+      raw.split("\n").each do |line|
+        elements = line.split("\s")
+
+        res[u] ||= Hash.new
+        res[u][i] ||= Hash.new
+
+        res[u][i][:minute]  = elements[0]
+        res[u][i][:hour]    = elements[1]
+        res[u][i][:dom]     = elements[2]
+        res[u][i][:mon]     = elements[3]
+        res[u][i][:dow]     = elements[4]
+        res[u][i][:command] = elements[5..elements.size].join(" ")
+      end
+
+      i += 1
+    end
+
+    if cache
+      if ! user.eql?('*')
+        self.deltas[:crontab] ||= Hash.new
+        self.deltas[:crontab][user] ||= Hash.new
+        self.deltas[:crontab][user] = res[user]
+      else
+        self.deltas[:crontab] ||= Hash.new
+        self.deltas[:crontab] = res
+      end
+    end
+
+    return user.eql?('*') ? res : res[user]
+  end
+
+  ##
+  # get_groups
+  #
+  # cats /etc/group and parses output, returns hash:
+  # {
+  #   groupN => {
+  #     :gid => gid,
+  #     :users => [user1, userN]
+  #   }
+  # }
+  #
+  # parameters
+  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
   def get_groups(cache=true)
     if cache and ! self.deltas[:groups].nil?
-      self.deltas[:groups]
+      return self.deltas[:groups]
     end
 
     res = Hash.new()
@@ -15,7 +115,7 @@ class Rouster
     raw = self.run('cat /etc/group')
 
     raw.split("\n").each do |line|
-      next if line.grep(/\w+:\w+:\w+/).empty?
+      next unless line.match(/\w+:\w+:\w+/)
 
       data = line.split(':')
 
@@ -35,11 +135,30 @@ class Rouster
     res
   end
 
+  ##
+  # get_packages
+  #
+  # runs an OS appropriate command to gather list of packages, returns hash:
+  # {
+  #   packageN => {
+  #     package => version|? # if 'deep', attempts to parse version numbers
+  #   }
+  # }
+  #
+  # parameters
+  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
+  # * [deep] - boolean controlling whether to attempt to parse extended information (see supported OS), defaults to true
+  #
+  # supported OS
+  # * OSX - runs `pkgutil --pkgs` and `pkgutil --pkg-info=<package>` (if deep)
+  # * RedHat - runs `rpm -qa`
+  # * Solaris - runs `pkginfo` and `pkginfo -l <package>` (if deep)
+  # * Ubuntu - runs `dpkg --get-selections` and `dpkg -s <package>` (if deep)
+  #
+  # raises InternalError if unsupported operating system
   def get_packages(cache=true, deep=true)
-    # returns { package => '<version>', package2 => '<version>' }
-
     if cache and ! self.deltas[:packages].nil?
-      self.deltas[:packages]
+      return self.deltas[:packages]
     end
 
     res = Hash.new()
@@ -96,11 +215,22 @@ class Rouster
       raw = self.run('rpm -qa')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
-        res[$1] = $2
+        #next if line.match(/(.*)-(\d+\.\d+.*)/).nil? # another alternate, but still not perfect
+
+        if deep
+          local_res = self.run(sprintf('rpm -qi %s', line))
+          name    = $1 if local_res.match(/Name\s+:\s(\S*)/)
+          version = $1 if local_res.match(/Version\s+:\s(\S*)/)
+
+          res[name] = version
+        else
+          res[$1] = $2
+        end
+
       end
 
     else
-      raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
+      raise InternalError.new(sprintf('VM operating system[%s] not currently supported', os))
     end
 
     if cache
@@ -110,9 +240,87 @@ class Rouster
     res
   end
 
+  ##
+  # get_ports
+  #
+  # runs an OS appropriate command to gather port information, returns hash:
+  # {
+  #   protocolN => {
+  #     portN => {
+  #       :addressN => state
+  #     }
+  #   }
+  # }
+  #
+  # parameters
+  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
+  #
+  # supported OS
+  # * RedHat, Ubuntu - runs `netstat -ln`
+  #
+  # raises InternalError if unsupported operating system
+  def get_ports(cache=false)
+    # TODO add unix domain sockets
+    # TODO improve ipv6 support
+
+    if cache and ! self.deltas[:ports].nil?
+      return self.deltas[:ports]
+    end
+
+    res = Hash.new()
+    os  = self.os_type()
+
+    if os.eql?(:redhat) or os.eql?(:ubuntu)
+
+      raw = self.run('netstat -ln')
+
+      raw.split("\n").each do |line|
+
+        next unless line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w+)\s/) or line.match(/(\w+)\s+\d+\s+\d+\s+([\S\:]*)\:(\w*)\s.*?(\w*)\s/)
+
+        protocol = $1
+        address  = $2
+        port     = $3
+        state    = protocol.eql?('udp') ? 'you_might_not_get_it' : $4
+
+        res[protocol] = Hash.new if res[protocol].nil?
+        res[protocol][port] = Hash.new if res[protocol][port].nil?
+        res[protocol][port][:address] = Hash.new if res[protocol][port][:address].nil?
+        res[protocol][port][:address][address] = state
+
+      end
+    else
+      raise InternalError.new(sprintf('unable to get port information from VM operating system[%s]', os))
+    end
+
+    if cache
+      self.deltas[:ports] = res
+    end
+
+    res
+  end
+
+  ##
+  # get_services
+  #
+  # runs an OS appropriate command to gather service information, returns hash:
+  # {
+  #   serviceN => mode # running|stopped|unsure
+  # }
+  #
+  # parameters
+  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
+  #
+  # supported OS
+  # * OSX - runs `launchctl list`
+  # * RedHat - runs `/sbin/service --status-all`
+  # * Solaris - runs `svcs`
+  # * Ubuntu - runs `service --status-all`
+  #
+  # raises InternalError if unsupported operating system
   def get_services(cache=true)
     if cache and ! self.deltas[:services].nil?
-      self.deltas[:services]
+      return self.deltas[:services]
     end
 
     res = Hash.new()
@@ -128,7 +336,7 @@ class Rouster
         service = $2
         mode    = $1
 
-        if mode.grep(/^\d/)
+        if mode.match(/^\d/)
           mode = 'running'
         else
           mode = 'stopped'
@@ -177,14 +385,13 @@ class Rouster
 
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
-        #next if line.grep(/([\w\s-]+?)\sis\s(\w*?)/).empty?
-        next if line.match(/^([^\s]*).*\s(\w*)\.?$/).nil?
+        # TODO tighten this up
+        next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
         res[$1] = $2
-
       end
 
     else
-      raise InternalError.new(sprintf('unable to determine VM operating system from[%s]', uname))
+      raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os))
     end
 
     if cache
@@ -194,9 +401,24 @@ class Rouster
     res
   end
 
+  ##
+  # get_users
+  #
+  # cats /etc/passwd and parses output, returns hash:
+  # {
+  #   userN => {
+  #     :gid => gid,
+  #     :home  => path_of_homedir,
+  #     :home_exists => boolean_of_is_dir?(:home),
+  #     :shell => path_to_shell,
+  #     :uid => uid
+  #   }
+  # }
+  # parameters
+  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
   def get_users(cache=true)
     if cache and ! self.deltas[:users].nil?
-      self.deltas[:users]
+      return self.deltas[:users]
     end
 
     res = Hash.new()

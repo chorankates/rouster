@@ -3,7 +3,7 @@ require sprintf('%s/../../path_helper', File.dirname(File.expand_path(__FILE__))
 require 'rouster'
 require 'test/unit'
 
-class TestPut < Test::Unit::TestCase
+class TestDestroy < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
@@ -23,7 +23,7 @@ class TestPut < Test::Unit::TestCase
     end
 
     assert_equal(false, @app.is_available_via_ssh?)
-    assert_equal('not_created', @app.status())
+    assert_equal('not created', @app.status())
   end
 
   def test_thats_what_we_call_overkill
@@ -34,13 +34,13 @@ class TestPut < Test::Unit::TestCase
     end
 
     assert_equal(false, @app.is_available_via_ssh?)
-    assert_equal('not_created', @app.status())
+    assert_equal('not created', @app.status())
 
     assert_nothing_raised do
       @app.destroy()
     end
 
-    assert_equal('not_created', @app.status())
+    assert_equal('not created', @app.status())
 
   end
 
