@@ -49,8 +49,6 @@ class TestPut < Test::Unit::TestCase
 
   end
 
-=begin
-TODO fix tests failing for unknown/incorrect reasons
   def test_with_suspended_machine
     @app.is_available_via_ssh?() # make sure we have a tunnel
     @app.suspend()
@@ -63,7 +61,7 @@ TODO fix tests failing for unknown/incorrect reasons
   end
 
   def test_with_suspended_machine_after_destroying_ssh_tunnel
-    @app._vm.channel.destroy_ssh_connection() # make sure we don't have a tunnel
+    @app.disconnect_ssh_tunnel()
     @app.suspend()
 
     assert_raise Rouster::SSHConnectionError do
@@ -72,12 +70,10 @@ TODO fix tests failing for unknown/incorrect reasons
 
     assert_equal(false, @app.is_file?(@kg_local_location), 'when machine is suspended, and connection is manually destroyed, unable to get from it')
   end
-=end
 
   def teardown
-    # TODO we should suspend instead if any test failed for triage
     #@app.destroy()
-    #@ppm.destroy()
+    @app.suspend()
     File.delete(@kg_location) if File.file?(@kg_location).true?
   end
 end

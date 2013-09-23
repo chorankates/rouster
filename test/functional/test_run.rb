@@ -72,7 +72,7 @@ class TestRun < Test::Unit::TestCase
 
   def teardown
     # TODO we should suspend instead if any test failed for triage
-    #@app.destroy()
-    #@ppm.destroy()
+    @app.suspend()
+    @app_no_sudo.suspend()
   end
 end
