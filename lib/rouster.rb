@@ -354,6 +354,18 @@ class Rouster
   end
 
   ##
+  # disconnect_ssh_tunnel
+  #
+  # shuts down the persistent Net::SSH tunnel
+  #
+  def disconnect_ssh_tunnel
+    @log.debug('closing SSH tunnel..')
+
+    @ssh.shutdown!
+    @ssh = nil
+  end
+
+  ##
   # os_type
   #
   # attempts to determine VM operating system based on `uname -a` output, supports OSX, Sun|Solaris, Ubuntu and Redhat
