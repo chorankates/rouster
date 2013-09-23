@@ -44,9 +44,6 @@ class TestValidateFile < Test::Unit::TestCase
     @app = Rouster.new(:name => 'app', :unittest => true)
     @app.deltas[:files] = fake_files
     @app.facts = fake_facts
-
-    # not quite a unit test,.
-    skip unless @app.status().eql?('running')
   end
 
   def test_positive_basic
@@ -79,8 +76,6 @@ class TestValidateFile < Test::Unit::TestCase
     assert(@app.validate_file('/fizzy', { :exists => 'false' }, false, true))
     assert(@app.validate_file('/fizzy', { :exists => false }, false, true))
 
-    # TODO need to do :contains testing in a non-unit context
-
   end
 
   def test_positive_constrained
@@ -100,11 +95,6 @@ class TestValidateFile < Test::Unit::TestCase
     assert_equal(false, @app.validate_file('/etc/hosts', { :size => 'foo' }, false, true))
     assert_equal(false, @app.validate_file('/etc/hosts', { :size => 100 }, false, true))
     assert_equal(false, @app.validate_file('/etc/hosts', { :size => '100'}, false, true))
-
-    # TODO figure out how to run these in a truly unit-y way, since the data is not present in faked hash, we will fall through to functional testing
-    assert_equal(false, @app.validate_file('/foo', {}, false, true))
-    assert_equal(false, @app.validate_file('/fizzy', { :ensure => 'directory' }, false, true))
-    assert_equal(false, @app.validate_file('/bang', { :ensure => 'file' }, false, true))
 
   end
 
