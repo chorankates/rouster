@@ -29,6 +29,7 @@ class TestDeltasGetServices < Test::Unit::TestCase
 
     res.each_key do |k|
       assert_not_nil(res[k])
+      #assert(@allowed_states.member?(res[k]))
     end
 
   end

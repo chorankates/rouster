@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'net-ssh'
   s.add_dependency 'rake'
 
-  s.add_development_dependency 'test-unit'
+  s.add_development_dependency 'test-unit', '~> 2.0'
 
   s.files = `git ls-files`.split("\n")
 end
