@@ -24,6 +24,10 @@ task :examples do
 	end
 end
 
+task :reek do
+  sh "reek lib/**/*.rb"
+end
+
 Rake::TestTask.new do |t|
   t.name = 'test'
   t.libs << 'lib'
