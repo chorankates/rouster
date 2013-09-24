@@ -166,7 +166,13 @@ class Rouster
   # parameters
   # * <dir> - path of directory to validate
   def is_dir?(dir)
-    res = self.dir(dir)
+    res = nil
+    begin
+      res = self.dir(dir)
+    rescue => e
+      return false
+    end
+
     res.class.eql?(Hash) ? res[:directory?] : false
   end
 
@@ -220,7 +226,14 @@ class Rouster
   # parameters
   # * <file> - path of filename to validate
   def is_file?(file)
-    res = self.file(file)
+    res = nil
+
+    begin
+      res = self.file(file)
+    rescue => e
+      return false
+    end
+
     res.class.eql?(Hash) ? res[:file?] : false
   end
 

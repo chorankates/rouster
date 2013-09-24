@@ -55,7 +55,7 @@ class TestGet < Test::Unit::TestCase
   def test_with_suspended_machine
     @app.suspend()
 
-    #assert_raise Rouster::SSHConnectionError do <-- why was this ever used?
+    #assert_raise Rouster::SSHConnectionError do <-- this is what we want when the connection is bad, as opposed to permission/disk space issues
     assert_raise Rouster::FileTransferError do
       @app.get(@kg_remote_location, @kg_local_location)
     end
@@ -64,10 +64,13 @@ class TestGet < Test::Unit::TestCase
   end
 
   def teardown
-    # TODO we should suspend instead if any test failed for triage
-    #@app.destroy()
-    #@ppm.destroy()
-
     File.delete(@kg_local_location) if File.file?(@kg_local_location).true?
   end
+
+  def self.shutdown
+    # TODO we should suspend instead if any test failed for triage
+    #@app.suspend()
+    #@ppm.suspend()
+  end
+
 end

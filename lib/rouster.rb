@@ -159,6 +159,7 @@ class Rouster
   # runs `vagrant destroy <name>` from the Vagrantfile path
   def destroy
     @log.info('destroy()')
+    disconnect_ssh_tunnel
     self._run(sprintf('cd %s; vagrant destroy -f %s', File.dirname(@vagrantfile), @name))
   end
 
@@ -204,6 +205,7 @@ class Rouster
   # runs `vagrant suspend <name>` from the Vagrantfile path
   def suspend
     @log.info('suspend()')
+    disconnect_ssh_tunnel()
     self._run(sprintf('cd %s; vagrant suspend %s', File.dirname(@vagrantfile), @name))
   end
 
@@ -361,7 +363,7 @@ class Rouster
   def disconnect_ssh_tunnel
     @log.debug('closing SSH tunnel..')
 
-    @ssh.shutdown!
+    @ssh.shutdown! unless @ssh.nil?
     @ssh = nil
   end
 
