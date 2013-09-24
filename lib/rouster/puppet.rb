@@ -302,7 +302,7 @@ class Rouster
         :expected_exitcode => 0
       }.merge!(passed_opts)
 
-      self.run('/sbin/service puppet once -t', opts[:expected_exitcode])
+      self.run('puppet agent -t', opts[:expected_exitcode])
 
     elsif mode.eql?('masterless')
       opts = {
