@@ -169,46 +169,45 @@ class Rouster
 
       raw = self.run('pkgutil --pkgs')
       raw.split("\n").each do |line|
+        version = '?'
 
         if deep
           # can get install time, volume and location as well
           local_res = self.run(sprintf('pkgutil --pkg-info=%s', line))
-          local     = $1 if local_res.match(/version\:\s+(.*?)$/)
-        else
-          local = '?'
+          version = $1 if local_res.match(/version\:\s+(.*?)$/)
         end
 
-        res[line] = local
+        res[line] = version
       end
 
     elsif os.eql?(:solaris)
       raw = self.run('pkginfo')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\s+(.*?)\s(.*)$/).empty?
+        name    = $2
+        version = '?'
 
         if deep
-          local_res = self.run(sprintf('pkginfo -l %s', $2))
-          local     = $1 if local_res.match(/VERSION\:\s+(.*?)$/i)
-        else
-          local = '?'
+          local_res = self.run(sprintf('pkginfo -l %s', name))
+          version   = $1 if local_res.match(/VERSION\:\s+(.*?)$/i)
         end
 
-        res[$2] = local
+        res[name] = version
       end
 
     elsif os.eql?(:ubuntu) or os.eql?(:debian)
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
         next if line.match(/^(.*?)\s/).nil?
+        name    = $1
+        version = '?'
 
         if deep
-          local_res = self.run(sprintf('dpkg -s %s', $1))
-          local     = $1 if local_res.match(/Version\:\s(.*?)$/)
-        else
-          local = '?'
+          local_res = self.run(sprintf('dpkg -s %s', name))
+          version   = $1 if local_res.match(/Version\:\s(.*?)$/)
         end
 
-        res[$1] = local
+        res[name] = version
       end
 
     elsif os.eql?(:redhat)
@@ -216,17 +215,16 @@ class Rouster
       raw.split("\n").each do |line|
         next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
         #next if line.match(/(.*)-(\d+\.\d+.*)/).nil? # another alternate, but still not perfect
+        name    = $1
+        version = $2
 
         if deep
           local_res = self.run(sprintf('rpm -qi %s', line))
           name    = $1 if local_res.match(/Name\s+:\s(\S*)/)
           version = $1 if local_res.match(/Version\s+:\s(\S*)/)
-
-          res[name] = version
-        else
-          res[$1] = $2
         end
 
+        res[name] = version
       end
 
     else

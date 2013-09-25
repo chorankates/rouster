@@ -58,8 +58,8 @@ class TestDeltasGetPackages < Test::Unit::TestCase
     res.each_key do |k|
       assert_not_nil(res[k])
 
-      # this is not the best validation, but is not the worst either
-      assert_match(/\d*\..*/, res[k]) # testing the regular expression used in deltas.rb itself
+      #assert_match(/\d*\..*/, res[k]) # testing the regular expression used in deltas.rb itself
+      assert_match(/\?/, res[k])
     end
 
   end
