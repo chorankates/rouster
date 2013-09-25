@@ -281,7 +281,7 @@ class Rouster
   # ... runs puppet on self, returns nothing
   #
   # currently supports 2 methods of running puppet:
-  #  * master - runs '/sbin/service puppet once -t'
+  #  * master - runs 'puppet agent -t'
   #    * supported options
   #      * expected_exitcode - string/integer/array of acceptable exit code(s)
   #  * masterless - runs 'puppet apply <options>' after determining version of puppet running and adjusting arguments
@@ -302,7 +302,7 @@ class Rouster
         :expected_exitcode => 0
       }.merge!(passed_opts)
 
-      self.run('/sbin/service puppet once -t', opts[:expected_exitcode])
+      self.run('puppet agent -t', opts[:expected_exitcode])
 
     elsif mode.eql?('masterless')
       opts = {
