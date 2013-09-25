@@ -216,7 +216,7 @@ class Rouster
         next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
         #next if line.match(/(.*)-(\d+\.\d+.*)/).nil? # another alternate, but still not perfect
         name    = $1
-        version = $2
+        version = '?' # we could use $2, but we don't trust it
 
         if deep
           local_res = self.run(sprintf('rpm -qi %s', line))
