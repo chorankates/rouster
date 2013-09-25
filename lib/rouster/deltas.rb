@@ -196,7 +196,7 @@ class Rouster
         res[$2] = local
       end
 
-    elsif os.eql?(:ubuntu)
+    elsif os.eql?(:ubuntu) or os.eql?(:debian)
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
         next if line.match(/^(.*?)\s/).nil?
@@ -270,7 +270,7 @@ class Rouster
     res = Hash.new()
     os  = self.os_type()
 
-    if os.eql?(:redhat) or os.eql?(:ubuntu)
+    if os.eql?(:redhat) or os.eql?(:ubuntu) or os.eql?(:debian)
 
       raw = self.run('netstat -ln')
 
@@ -366,7 +366,7 @@ class Rouster
 
       end
 
-    elsif os.eql?(:ubuntu)
+    elsif os.eql?(:ubuntu) or os.eql?(:debian)
 
       raw = self.run('service --status-all 2>&1')
       raw.split("\n").each do |line|
