@@ -113,12 +113,7 @@ class Rouster
     end
 
     if @sshtunnel
-      unless self.status.eql?('running')
-        @log.info(sprintf('upping machine[%s] in order to open SSH tunnel', @name))
-        self.up()
-      end
-
-      self.connect_ssh_tunnel()
+      self.up()
     end
 
     @log.info('Rouster object successfully instantiated')
@@ -345,11 +340,12 @@ class Rouster
   def connect_ssh_tunnel
     @log.debug('opening SSH tunnel..')
 
-    if self.status.eql?('running')
+    status = self.status()
+    if status.eql?('running')
       self.get_ssh_info()
       @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
     else
-      raise InternalError.new('VM is not running, unable open SSH tunnel')
+      raise InternalError.new(sprintf('VM is not running[%s], unable open SSH tunnel', status))
     end
 
     @ssh
