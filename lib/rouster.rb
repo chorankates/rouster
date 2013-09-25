@@ -387,6 +387,8 @@ class Rouster
         res =:solaris
       when /Ubuntu/i
         res = :ubuntu
+      when /Debian/i
+        res = :debian
       else
         if self.is_file?('/etc/redhat-release')
           res = :redhat
@@ -492,7 +494,7 @@ class Rouster
     case os_type
       when :osx
         self.run('shutdown -r now')
-      when :redhat, :ubuntu
+      when :redhat, :ubuntu, :debian
         self.run('/sbin/shutdown -rf now')
       when :solaris
         self.run('shutdown -y -i5 -g0')

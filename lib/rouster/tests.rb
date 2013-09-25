@@ -380,7 +380,7 @@ class Rouster
       os = self.os_type()
 
       case os
-        when :redhat, :osx, :ubuntu
+        when :redhat, :osx, :ubuntu, :debian
           res = self.run(sprintf('ps ax | grep -c %s', name))
         else
           raise InternalError.new(sprintf('currently unable to determine running process list on OS[%s]', os))
