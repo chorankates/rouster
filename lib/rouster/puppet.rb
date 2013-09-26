@@ -284,6 +284,7 @@ class Rouster
   #  * master - runs 'puppet agent -t'
   #    * supported options
   #      * expected_exitcode - string/integer/array of acceptable exit code(s)
+  #      * config_timeout - string/integer of the acceptable configtimeout value (default value of 2m)
   #  * masterless - runs 'puppet apply <options>' after determining version of puppet running and adjusting arguments
   #    * supported options
   #      * expected_exitcode - string/integer/array of acceptable exit code(s)
@@ -299,10 +300,11 @@ class Rouster
 
     if mode.eql?('master')
       opts = {
-        :expected_exitcode => 0
+        :expected_exitcode => 0,
+        :config_timeout => '2m'
       }.merge!(passed_opts)
 
-      self.run('puppet agent -t', opts[:expected_exitcode])
+      self.run(sprintf('puppet agent -t --configtimeout %s', opts[:config_timeout]), opts[:expected_exitcode])
 
     elsif mode.eql?('masterless')
       opts = {
