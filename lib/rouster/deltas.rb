@@ -105,7 +105,8 @@ class Rouster
   #
   # parameters
   # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
-  def get_groups(cache=true)
+  # * [deep]  - boolean controlling whether get_users() is called in order to correctly populate res[group][:users]
+  def get_groups(cache=true, deep=true)
     if cache and ! self.deltas[:groups].nil?
       return self.deltas[:groups]
     end
@@ -121,6 +122,8 @@ class Rouster
 
       group = data[0]
       gid   = data[2]
+
+      # TODO this works in some cases, but is not authoritative
       users = data[3].nil? ? ['NONE'] : data[3].split(',')
 
       res[group] = Hash.new() # i miss autovivification
@@ -128,11 +131,36 @@ class Rouster
       res[group][:users] = users
     end
 
-    if cache
-      self.deltas[:groups] = res
+    groups = res
+
+    if deep
+      users = self.get_users(cache)
+
+      # TODO better, much better -- since the number of users/groups is finite and usually small, this is a low priority
+      users.each_key do |user|
+        # iterate over each user to get their gid
+        gid = users[user][:gid]
+
+        groups.each_key do |group|
+          # iterate over each group to find the matching gid
+          if gid.eql?(groups[group][:gid])
+            if groups[group][:users].eql?(['NONE'])
+              groups[group][:users] = []
+            end
+            groups[group][:users] << user unless groups[group][:users].member?(user)
+          end
+
+          # TODO throw an error if we find a user with a GID that we don't know about from get_groups()
+        end
+
+      end
     end
 
-    res
+    if cache
+      self.deltas[:groups] = groups
+    end
+
+    groups
   end
 
   ##
