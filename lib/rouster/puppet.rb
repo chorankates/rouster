@@ -284,6 +284,12 @@ class Rouster
   #  * master - runs 'puppet agent -t'
   #    * supported options
   #      * expected_exitcode - string/integer/array of acceptable exit code(s)
+  #      * config_timeout - string/integer of the acceptable configtimeout value
+  #      * environment - string of the environment to use
+  #      * certname - string of the certname to use in place of the host fqdn
+  #      * pluginsync - bool value if pluginsync should be used
+  #      * server - string value of the puppetmasters fqdn / ip
+  #      * additional_options - string of various options that would be passed to puppet
   #  * masterless - runs 'puppet apply <options>' after determining version of puppet running and adjusting arguments
   #    * supported options
   #      * expected_exitcode - string/integer/array of acceptable exit code(s)
@@ -291,6 +297,10 @@ class Rouster
   #      * manifest_file - string/array of strings of paths to manifest(s) to apply
   #      * manifest_dir - string/array of strings of directories containing manifest(s) to apply - is recursive
   #      * module_dir - path to module directory -- currently a required parameter, is this correct?
+  #      * environment - string of the environment to use (default: production)
+  #      * certname - string of the certname to use in place of the host fqdn (default: unused)
+  #      * pluginsync - bool value if pluginsync should be used (default: true)
+  #      * additional_options - string of various options that would be passed to puppet
   #
   # parameters
   # * [mode] - method to run puppet, defaults to 'master'
@@ -299,18 +309,36 @@ class Rouster
 
     if mode.eql?('master')
       opts = {
-        :expected_exitcode => 0
+        :expected_exitcode  => 0,
+        :config_timeout     => nil,
+        :environment        => nil,
+        :certname           => nil,
+        :server             => nil,
+        :pluginsync         => false,
+        :additional_options => nil
       }.merge!(passed_opts)
 
-      self.run('puppet agent -t', opts[:expected_exitcode])
+      cmd = 'puppet agent -t'
+      cmd << sprintf(' --configtimeout %s', opts[:config_timeout]) unless opts[:config_timeout].nil?
+      cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
+      cmd << sprintf(' --certname %s', opts[:certname]) unless opts[:certname].nil?
+      cmd << sprintf(' --server %s', opts[:server]) unless opts[:server].nil?
+      cmd << ' --pluginsync' if opts[:pluginsync]
+      cmd << opts[:additional_options] unless opts[:additional_options].nil?
+
+      self.run(cmd, opts[:expected_exitcode])
 
     elsif mode.eql?('masterless')
       opts = {
-        :expected_exitcode => 2,
-        :hiera_config      => nil,
-        :manifest_file     => nil, # can be a string or array, will 'puppet apply' each
-        :manifest_dir      => nil, # can be a string or array, will 'puppet apply' each module in the dir (recursively)
-        :module_dir        => nil
+        :expected_exitcode  => 2,
+        :hiera_config       => nil,
+        :manifest_file      => nil, # can be a string or array, will 'puppet apply' each
+        :manifest_dir       => nil, # can be a string or array, will 'puppet apply' each module in the dir (recursively)
+        :module_dir         => nil,
+        :environment        => nil,
+        :certname           => nil,
+        :pluginsync         => false,
+        :additional_options => nil
       }.merge!(passed_opts)
 
       ## validate required arguments
@@ -324,8 +352,14 @@ class Rouster
         opts[:manifest_file].each do |file|
           raise InternalError.new(sprintf('invalid manifest file specified[%s]', file)) unless self.is_file?(file)
 
-          self.run(sprintf('puppet apply %s --modulepath=%s %s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir], file), opts[:expected_exitcode])
+          cmd = sprintf('puppet apply %s --modulepath=%s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir])
+          cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
+          cmd << sprintf(' --certname %s', opts[:certname]) unless opts[:certname].nil?
+          cmd << ' --pluginsync' if opts[:pluginsync]
+          cmd << opts[:additional_options] unless opts[:additional_options].nil?
+          cmd << sprintf(' %s', file)
 
+          self.run(cmd, opts[:expected_exitcode])
         end
       end
 
@@ -338,8 +372,14 @@ class Rouster
 
           manifests.each do |m|
 
-            self.run(sprintf('puppet apply %s --modulepath=%s %s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir], m), opts[:expected_exitcode])
+            cmd = sprintf('puppet apply %s --modulepath=%s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir])
+            cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
+            cmd << sprintf(' --certname %s', opts[:certname]) unless opts[:certname].nil?
+            cmd << ' --pluginsync' if opts[:pluginsync]
+            cmd << opts[:additional_options] unless opts[:additional_options].nil?
+            cmd << sprintf(' %s', m)
 
+            self.run(cmd, opts[:expected_exitcode])
           end
 
         end
