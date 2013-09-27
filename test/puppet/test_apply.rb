@@ -73,7 +73,7 @@ class TestPuppetApply < Test::Unit::TestCase
     @expected_users    = {
       'root' => {
         :ensure => 'present',
-        #:group  => 'root',
+        :group  => 'root',
       }
     }
 
