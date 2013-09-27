@@ -179,8 +179,11 @@ class Rouster
     self._run(sprintf('cd %s; vagrant status %s', File.dirname(@vagrantfile), @name))
 
     # else case here is handled by non-0 exit code
-    if self.get_output().match(/^#{@name}\s*(.*\s?\w+)\s?(.+)?$/)
-      # $1 = name, $2 = provider
+    if self.get_output().match(/^#{@name}\s*(.*\s?\w+)\s\((.+)\)$/)
+      # vagrant 1.2+, $1 = status, $2 = provider
+      status = $1
+    elsif self.get_output().match(/^#{@name}\s+(.+)$/)
+      # vagrant 1.2-, $1 = provider
       status = $1
     end
 
