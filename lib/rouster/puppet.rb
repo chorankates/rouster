@@ -266,7 +266,7 @@ class Rouster
       next if line.match(/#{puppetmaster}/)
       host = $1 if line.match(/^\+\s"(.*?)"/)
 
-      hosts.push(host)
+      hosts.push(host) unless host.nil? # only want to clear signed certs
     end
 
     hosts.each do |host|
