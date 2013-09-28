@@ -74,6 +74,9 @@ class TestCaching < Test::Unit::TestCase
   end
 
   def test_ssh_caching
+
+    skip('see comments in rouster.rb line ~84')
+
     timeout = 100
     app     = Rouster.new(:name => 'app', :sshtunnel => true, :cache_timeout => timeout)
     app.up()
