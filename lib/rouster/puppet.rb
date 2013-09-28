@@ -130,11 +130,14 @@ class Rouster
   # parameters
   # * <key> - hiera key to look up
   # * [config] - path to hiera configuration -- this is only optional if you have a hiera.yaml file in ~/vagrant
-  def hiera(key, config=nil)
+  def hiera(key, config=nil, options=nil)
 
-    # TODO implement this
-    raise NotImplementedError.new()
+    cmd = 'hiera'
+    cmd << sprintf(' -c %s', config) unless config.nil?
+    cmd << sprintf(' %s', options) unless options.nil?
+    cmd << sprintf(' %s', key)
 
+    self.run(cmd)
   end
 
   ##
