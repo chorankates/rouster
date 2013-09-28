@@ -123,7 +123,7 @@ class Rouster
       group = data[0]
       gid   = data[2]
 
-      # TODO this works in some cases, but is not authoritative
+      # this works in some cases, deep functionality picks up the others
       users = data[3].nil? ? ['NONE'] : data[3].split(',')
 
       res[group] = Hash.new() # i miss autovivification
@@ -411,7 +411,13 @@ class Rouster
 
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
-        # TODO tighten this up
+        # TODO support:
+        # <service> is <state>
+        # <service> (pid <pid> [pid]) is <state>...
+        # <service> is <state>. whatever
+        # <service>: whatever <state>
+        # <process> <state> whatever
+
         next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
         res[$1] = $2
       end
