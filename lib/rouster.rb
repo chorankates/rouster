@@ -81,6 +81,8 @@ class Rouster
 
     return if opts[:unittest].eql?(true) # quick return if we're a unit test
 
+    # this is breaking test/functional/test_caching.rb test_ssh_caching (if the VM was not running when the test started)
+    # it slows down object instantiation, but is a good test to ensure the machine name is valid..
     begin
       self.status()
     rescue Rouster::LocalExecutionError
@@ -143,7 +145,7 @@ class Rouster
   # if :sshtunnel is passed to the object during instantiation, the tunnel is created here as well
   def up
     @log.info('up()')
-    self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
+    self.vagrant(sprintf('up %s', @name))
 
     @ssh_info = nil # in case the ssh-info has changed, a la destroy/rebuild
     self.connect_ssh_tunnel() if @sshtunnel
@@ -155,7 +157,7 @@ class Rouster
   def destroy
     @log.info('destroy()')
     disconnect_ssh_tunnel
-    self._run(sprintf('cd %s; vagrant destroy -f %s', File.dirname(@vagrantfile), @name))
+    self.vagrant(sprintf('destroy -f %s', @name))
   end
 
   ##
@@ -176,7 +178,7 @@ class Rouster
     end
 
     @log.info('status()')
-    self._run(sprintf('cd %s; vagrant status %s', File.dirname(@vagrantfile), @name))
+    self.vagrant(sprintf('status %s', @name))
 
     # else case here is handled by non-0 exit code
     if self.get_output().match(/^#{@name}\s*(.*\s?\w+)\s\((.+)\)$/)
@@ -204,7 +206,7 @@ class Rouster
   def suspend
     @log.info('suspend()')
     disconnect_ssh_tunnel()
-    self._run(sprintf('cd %s; vagrant suspend %s', File.dirname(@vagrantfile), @name))
+    self.vagrant(sprintf('suspend %s', @name))
   end
 
   ## internal methods
@@ -313,7 +315,7 @@ class Rouster
       h = @ssh_info
     else
 
-      res = self._run(sprintf('cd %s; vagrant ssh-config %s', File.dirname(@vagrantfile), @name))
+      res = self.vagrant(sprintf('ssh-config %s', @name))
 
       res.split("\n").each do |line|
         if line.match(/HostName (.*?)$/)
@@ -546,6 +548,17 @@ class Rouster
 
     @exitcode = $?.to_i()
     output
+  end
+
+  ##
+  # vagrant
+  #
+  # abstraction layer to call vagrant faces
+  #
+  # parameters
+  # * <face> - vagrant face to call (include arguments)
+  def vagrant(face)
+    self._run(sprintf('cd %s; vagrant %s', File.dirname(@vagrantfile), face))
   end
 
   ##
