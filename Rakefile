@@ -56,7 +56,6 @@ Rake::TestTask.new do |t|
   t.verbose = true
 end
 
-
 Rake::TestTask.new do |t|
   t.name = 'puppet'
   t.libs << 'lib'
