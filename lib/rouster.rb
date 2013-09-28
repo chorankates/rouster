@@ -598,7 +598,6 @@ class Rouster
   # * [filename] - filename you are looking for
   # * [levels]   - number of directory levels to examine, default is 10
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
-    # TODO not sure this signature is exactly right..
     raise InternalError.new('must specify a filename') if filename.nil?
 
     @log.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels)) unless @log.nil?
