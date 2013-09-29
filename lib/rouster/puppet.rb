@@ -284,7 +284,7 @@ class Rouster
   #  * master - runs 'puppet agent -t'
   #    * supported options
   #      * expected_exitcode - string/integer/array of acceptable exit code(s)
-  #      * config_timeout - string/integer of the acceptable configtimeout value
+  #      * configtimeout - string/integer of the acceptable configtimeout value
   #      * environment - string of the environment to use
   #      * certname - string of the certname to use in place of the host fqdn
   #      * pluginsync - bool value if pluginsync should be used
@@ -310,7 +310,7 @@ class Rouster
     if mode.eql?('master')
       opts = {
         :expected_exitcode  => 0,
-        :config_timeout     => nil,
+        :configtimeout      => nil,
         :environment        => nil,
         :certname           => nil,
         :server             => nil,
@@ -319,7 +319,7 @@ class Rouster
       }.merge!(passed_opts)
 
       cmd = 'puppet agent -t'
-      cmd << sprintf(' --configtimeout %s', opts[:config_timeout]) unless opts[:config_timeout].nil?
+      cmd << sprintf(' --configtimeout %s', opts[:configtimeout]) unless opts[:configtimeout].nil?
       cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
       cmd << sprintf(' --certname %s', opts[:certname]) unless opts[:certname].nil?
       cmd << sprintf(' --server %s', opts[:server]) unless opts[:server].nil?
