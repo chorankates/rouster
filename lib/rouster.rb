@@ -302,6 +302,68 @@ class Rouster
   end
 
   ##
+  # sandbox_available?
+  #
+  # returns true or false after attempting to find out if the sandbox
+  # subcommand is available
+  def sandbox_available?
+    if @cache.has_key?(:sandbox_available?)
+      @log.debug(sprintf('using cached sandbox_available?[%s]', @cache[:sandbox_available?]))
+      return @cache[:sandbox_available?]
+    end
+
+    @log.info('sandbox_available()')
+    self._run(sprintf('cd %s; vagrant', File.dirname(@vagrantfile)))
+
+    sandbox_available = false
+    if self.get_output().match(/^\s+sandbox$/)
+      sandbox_available = true
+    end
+
+    @cache[:sandbox_available?] = sandbox_available
+    @log.debug(sprintf('caching sandbox_available?[%s]', @cache[:sandbox_available?]))
+    @log.error('sandbox support is not available, please install the "sahara" gem first, https://github.com/jedi4ever/sahara') unless sandbox_available
+
+    return sandbox_available
+  end
+
+  ##
+  # sandbox_on
+  # runs `vagrant sandbox on` from the Vagrantfile path
+  def sandbox_on
+    self._run(sprintf('cd %s; vagrant sandbox on %s', File.dirname(@vagrantfile), @name)) if self.sandbox_available?
+  end
+
+  ##
+  # sandbox_off
+  # runs `vagrant sandbox off` from the Vagrantfile path
+  def sandbox_off
+    self._run(sprintf('cd %s; vagrant sandbox off %s', File.dirname(@vagrantfile), @name)) if self.sandbox_available?
+  end
+
+  ##
+  # sandbox_rollback
+  # runs `vagrant sandbox rollback` from the Vagrantfile path
+  def sandbox_rollback
+    if self.sandbox_available?
+      self.disconnect_ssh_tunnel
+      self._run(sprintf('cd %s; vagrant sandbox rollback %s', File.dirname(@vagrantfile), @name))
+      self.connect_ssh_tunnel
+    end
+  end
+
+  ##
+  # sandbox_commit
+  # runs `vagrant sandbox commit` from the Vagrantfile path
+  def sandbox_commit
+    if self.sandbox_available?
+      self.disconnect_ssh_tunnel
+      self._run(sprintf('cd %s; vagrant sandbox commit %s', File.dirname(@vagrantfile), @name))
+      self.connect_ssh_tunnel
+    end
+  end
+
+  ##
   # get_ssh_info
   #
   # runs `vagrant ssh-config <name>` from the Vagrantfile path
