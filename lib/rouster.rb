@@ -313,7 +313,7 @@ class Rouster
     end
 
     @log.info('sandbox_available()')
-    self._run(sprintf('cd %s; vagrant', File.dirname(@vagrantfile)))
+    self._run(sprintf('cd %s; vagrant', File.dirname(@vagrantfile))) # calling 'vagrant' without parameters to determine available faces
 
     sandbox_available = false
     if self.get_output().match(/^\s+sandbox$/)
@@ -331,14 +331,15 @@ class Rouster
   # sandbox_on
   # runs `vagrant sandbox on` from the Vagrantfile path
   def sandbox_on
-    self._run(sprintf('cd %s; vagrant sandbox on %s', File.dirname(@vagrantfile), @name)) if self.sandbox_available?
+    # TODO should we raise() if sandbox is unavailable?
+    self.vagrant(sprintf('sandbox on %s', @name)) if self.sandbox_available?
   end
 
   ##
   # sandbox_off
   # runs `vagrant sandbox off` from the Vagrantfile path
   def sandbox_off
-    self._run(sprintf('cd %s; vagrant sandbox off %s', File.dirname(@vagrantfile), @name)) if self.sandbox_available?
+    self.vagrant(sprintf('sandbox off %s', @name)) if self.sandbox_available?
   end
 
   ##
@@ -347,7 +348,7 @@ class Rouster
   def sandbox_rollback
     if self.sandbox_available?
       self.disconnect_ssh_tunnel
-      self._run(sprintf('cd %s; vagrant sandbox rollback %s', File.dirname(@vagrantfile), @name))
+      self.vagrant(sprintf('sandbox rollback %s', @name))
       self.connect_ssh_tunnel
     end
   end
@@ -358,7 +359,7 @@ class Rouster
   def sandbox_commit
     if self.sandbox_available?
       self.disconnect_ssh_tunnel
-      self._run(sprintf('cd %s; vagrant sandbox commit %s', File.dirname(@vagrantfile), @name))
+      self.vagrant(sprintf('sandbox commit %s', @name))
       self.connect_ssh_tunnel
     end
   end
