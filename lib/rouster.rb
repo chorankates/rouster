@@ -185,7 +185,7 @@ class Rouster
       # vagrant 1.2+, $1 = status, $2 = provider
       status = $1
     elsif self.get_output().match(/^#{@name}\s+(.+)$/)
-      # vagrant 1.2-, $1 = provider
+      # vagrant 1.2-, $1 = status
       status = $1
     end
 
