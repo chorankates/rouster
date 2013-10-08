@@ -694,7 +694,7 @@ class Rouster
       res = generic_comparator(facts[fact], comp, expectation)
 
     else
-      res = ! facts[fact].match(/#{expectation}/).nil?
+      res = ! facts[fact].to_s.match(/#{expectation}/).nil?
       @log.debug(sprintf('meets_constraint?(%s, %s): %s', fact, expectation, res.nil?))
     end
 
