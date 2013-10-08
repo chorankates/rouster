@@ -57,7 +57,15 @@ class Rouster
       expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
 
       expectations[:constrain].each do |constraint|
-        fact, expectation = constraint.split("\s")
+        valid = constraint.match(/^(\S+?)\s(.*)$/)
+
+        if valid.nil?
+          raise InternalError.new(sprintf('invalid constraint[%s] specified', constraint))
+        end
+
+        fact        = $1
+        expectation = $2
+
         unless meets_constraint?(fact, expectation)
           @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
@@ -683,11 +691,10 @@ class Rouster
     if expectation.split("\s").size > 1
       ## generic comparator functionality
       comp, expectation = expectation.split("\s")
-
       res = generic_comparator(facts[fact], comp, expectation)
 
     else
-      res = ! expectation.match(/#{facts[fact]}/).nil?
+      res = ! facts[fact].match(/#{expectation}/).nil?
       @log.debug(sprintf('meets_constraint?(%s, %s): %s', fact, expectation, res.nil?))
     end
 
@@ -708,6 +715,7 @@ class Rouster
   def generic_comparator(comparand1, comparator, comparand2)
 
     # TODO rewrite this as an eval so we don't have to support everything..
+    # TODO come up with mechanism to determine when is it appropriate to call .to_i vs. otherwise -- comparisons will mainly be numerical (?), but need to support text matching too
     case comparator
       when '!='
         # ugh
