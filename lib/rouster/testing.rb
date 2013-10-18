@@ -6,6 +6,11 @@ require 'rouster/deltas'
 class Rouster
 
   ##
+  # validate_cron
+  #
+  # TODO how do we actually want to implement this? since cron jobs don't have names, what does the user specify instead?
+
+  ##
   # validate_file
   #
   # given a filename and a hash of expectations, returns true|false whether file matches expectations
