@@ -564,8 +564,8 @@ class Rouster
             value += 4
           when 'w'
             value += 2
-          when 'x', 't'
-            # is 't' really right here? copying Salesforce::Vagrant
+          when 'x', 't', 's'
+            # is 't' / 's' really right here? copying Salesforce::Vagrant
             value += 1
           when '-'
             # noop
