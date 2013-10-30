@@ -39,10 +39,39 @@ class TestDeltasGetGroups < Test::Unit::TestCase
 
   end
 
-  # TODO add some non-caching tests
+  def test_without_caching
+    old_groups, new_groups = nil, nil
+
+    assert_nothing_raised do
+      old_groups = @app.get_groups(false)
+    end
+
+    assert_nil(@app.deltas[:groups])
+
+    new_group = sprintf('rouster-%s', Time.now.to_i)
+
+    ## create a group here
+    if @app.os_type.eql?(:redhat)
+      @app.run(sprintf('groupadd %s', new_group))
+    else
+      skip('only doing group creation on RHEL hosts')
+    end
+
+    assert_nothing_raised do
+      new_groups = @app.get_groups(false)
+    end
+
+    assert_nil(@app.deltas[:groups])
+    assert_not_nil(new_groups[new_group])
+    assert_not_equal(old_groups, new_groups)
+
+  end
+
+  # TODO add some handling for deep tests
 
   def teardown
-    @app = nil
+    # noop
+    #@app = nil
   end
 
 end
