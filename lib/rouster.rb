@@ -331,15 +331,22 @@ class Rouster
   # sandbox_on
   # runs `vagrant sandbox on` from the Vagrantfile path
   def sandbox_on
-    # TODO should we raise() if sandbox is unavailable?
-    self.vagrant(sprintf('sandbox on %s', @name)) if self.sandbox_available?
+    if self.sandbox_available?
+      return self.vagrant(sprintf('sandbox on %s', @name))
+    else
+      raise ExternalError.new('sandbox plugin not installed')
+    end
   end
 
   ##
   # sandbox_off
   # runs `vagrant sandbox off` from the Vagrantfile path
   def sandbox_off
-    self.vagrant(sprintf('sandbox off %s', @name)) if self.sandbox_available?
+    if self.sandbox_available?
+      return self.vagrant(sprintf('sandbox off %s', @name))
+    else
+      raise ExternalError.new('sandbox plugin not installed')
+    end
   end
 
   ##
@@ -351,6 +358,8 @@ class Rouster
       self.vagrant(sprintf('sandbox rollback %s', @name))
       self.connect_ssh_tunnel
     end
+  else
+    raise ExternalError.new('sandbox plugin not installed')
   end
 
   ##
@@ -361,6 +370,8 @@ class Rouster
       self.disconnect_ssh_tunnel
       self.vagrant(sprintf('sandbox commit %s', @name))
       self.connect_ssh_tunnel
+    else
+      raise ExternalError.new('sandbox plugin not installed')
     end
   end
 
