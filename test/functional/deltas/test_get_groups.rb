@@ -67,7 +67,29 @@ class TestDeltasGetGroups < Test::Unit::TestCase
 
   end
 
-  # TODO add some handling for deep tests
+  def test_deep_inspection
+    deep, shallow = nil, nil
+
+    assert_nothing_raised do
+      deep    = @app.get_groups(false, true)
+      shallow = @app.get_groups(false, false)
+    end
+
+    assert_not_equal(deep, shallow)
+
+    ## this is not really the best test
+    deep_none, shallow_none = 0, 0
+
+    deep.each_key do |group|
+      deep_none += 1 if deep[group][:users][0].eql?('NONE')
+    end
+
+    shallow.each_key do |group|
+      shallow_none += 1 if shallow[group][:users][0].eql?('NONE')
+    end
+
+    assert(shallow_none > deep_none)
+  end
 
   def teardown
     # noop
