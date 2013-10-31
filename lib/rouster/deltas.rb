@@ -34,8 +34,7 @@ class Rouster
 
     if cache and self.deltas[:crontab].class.eql?(Hash)
 
-      # cache invalidation
-      if self.cache_timeout and (Time.now.to_i - self.cache[:crontab]) > self.cache_timeout
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:crontab]) > self.cache_timeout
         @log.debug(sprintf('invalidating [crontab] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:crontab]), self.cache_timeout))
         self.deltas.delete(:crontab)
       end
@@ -83,7 +82,7 @@ class Rouster
         res[u][i][:dom]     = elements[2]
         res[u][i][:mon]     = elements[3]
         res[u][i][:dow]     = elements[4]
-        res[u][i][:command] = elements[5..elements.size].join(" ")
+        res[u][i][:command] = elements[5..elements.size].join(' ')
       end
 
       i += 1
@@ -123,8 +122,17 @@ class Rouster
   # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
   # * [deep]  - boolean controlling whether get_users() is called in order to correctly populate res[group][:users]
   def get_groups(cache=true, deep=true)
+
     if cache and ! self.deltas[:groups].nil?
-      return self.deltas[:groups]
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:groups]) > self.cache_timeout
+        @log.debug(sprintf('invalidating [groups] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:groups]), self.cache_timeout))
+        self.deltas.delete(:groups)
+      else
+        @log.debug(sprintf('using cached groups from [%s]', self.cache[:groups]))
+        return self.deltas[:groups]
+      end
+
     end
 
     res = Hash.new()
@@ -173,7 +181,9 @@ class Rouster
     end
 
     if cache
+      @log.debug(sprintf('caching [groups] at [%s]', Time.now.to_i))
       self.deltas[:groups] = groups
+      self.cache[:groups]  = Time.now.to_i
     end
 
     groups
