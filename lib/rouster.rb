@@ -77,7 +77,7 @@ class Rouster
       raise InternalError.new(sprintf('specified Vagrantfile [%s] does not exist', @vagrantfile))
     end
 
-    raise InternalError.new() if @name.nil?
+    raise InternalError.new('name of Vagrant VM not specified') if @name.nil?
 
     return if opts[:unittest].eql?(true) # quick return if we're a unit test
 
@@ -85,8 +85,8 @@ class Rouster
     # it slows down object instantiation, but is a good test to ensure the machine name is valid..
     begin
       self.status()
-    rescue Rouster::LocalExecutionError
-      raise InternalError.new()
+    rescue Rouster::LocalExecutionError => e
+      raise InternalError.new(sprintf('caught non-0 exitcode from status(): %s', e.message))
     end
 
     begin
