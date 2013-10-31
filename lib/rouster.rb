@@ -357,9 +357,9 @@ class Rouster
       self.disconnect_ssh_tunnel
       self.vagrant(sprintf('sandbox rollback %s', @name))
       self.connect_ssh_tunnel
+    else
+      raise ExternalError.new('sandbox plugin not installed')
     end
-  else
-    raise ExternalError.new('sandbox plugin not installed')
   end
 
   ##
