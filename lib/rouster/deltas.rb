@@ -33,13 +33,23 @@ class Rouster
   def get_crontab(user='root', cache=true)
 
     if cache and self.deltas[:crontab].class.eql?(Hash)
-      if self.deltas[:crontab].has_key?(user)
+
+      # cache invalidation
+      if self.cache_timeout and (Time.now.to_i - self.cache[:crontab]) > self.cache_timeout
+        @log.debug(sprintf('invalidating [crontab] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:crontab]), self.cache_timeout))
+        self.deltas.delete(:crontab)
+      end
+
+      if self.deltas.has_key?(:crontab) and self.deltas[:crontab].has_key?(user)
+        @log.debug(sprintf('using cached crontab from [%s]', self.cache[:crontab]))
         return self.deltas[:crontab][user]
+      elsif self.deltas.has_key?(:crontab) and user.eql?('*')
+        @log.debug(sprintf('using cached crontab from [%s]', self.cache[:crontab]))
+        return self.deltas[:crontab]
       else
         # noop fallthrough to gather data to cache
       end
-    elsif cache and self.deltas[:crontab].class.eql?(Hash) and user.eql?('*')
-      return self.deltas[:crontab]
+
     end
 
     i = 0
@@ -62,6 +72,7 @@ class Rouster
       end
 
       raw.split("\n").each do |line|
+        next if line.match(/^#/)
         elements = line.split("\s")
 
         res[u] ||= Hash.new
@@ -79,6 +90,8 @@ class Rouster
     end
 
     if cache
+      @log.debug(sprintf('caching [crontab] at [%s]', Time.now.to_i))
+
       if ! user.eql?('*')
         self.deltas[:crontab] ||= Hash.new
         self.deltas[:crontab][user] ||= Hash.new
@@ -87,6 +100,9 @@ class Rouster
         self.deltas[:crontab] ||= Hash.new
         self.deltas[:crontab] = res
       end
+
+      self.cache[:crontab] = Time.now.to_i
+
     end
 
     return user.eql?('*') ? res : res[user]
