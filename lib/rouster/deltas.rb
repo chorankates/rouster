@@ -1,10 +1,8 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
-# deltas.rb - get information about groups, packages, services and users inside a Vagrant VM
+# deltas.rb - get information about crontabs, groups, packages, ports, services and users inside a Vagrant VM
 require 'rouster'
 require 'rouster/tests'
-
-# TODO use @cache_timeout to invalidate data cached here
 
 class Rouster
 
@@ -40,10 +38,10 @@ class Rouster
       end
 
       if self.deltas.has_key?(:crontab) and self.deltas[:crontab].has_key?(user)
-        @log.debug(sprintf('using cached crontab from [%s]', self.cache[:crontab]))
+        @log.debug(sprintf('using cached [crontab] from [%s]', self.cache[:crontab]))
         return self.deltas[:crontab][user]
       elsif self.deltas.has_key?(:crontab) and user.eql?('*')
-        @log.debug(sprintf('using cached crontab from [%s]', self.cache[:crontab]))
+        @log.debug(sprintf('using cached [crontab] from [%s]', self.cache[:crontab]))
         return self.deltas[:crontab]
       else
         # noop fallthrough to gather data to cache
@@ -129,7 +127,7 @@ class Rouster
         @log.debug(sprintf('invalidating [groups] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:groups]), self.cache_timeout))
         self.deltas.delete(:groups)
       else
-        @log.debug(sprintf('using cached groups from [%s]', self.cache[:groups]))
+        @log.debug(sprintf('using cached [groups] from [%s]', self.cache[:groups]))
         return self.deltas[:groups]
       end
 
@@ -217,7 +215,7 @@ class Rouster
         @log.debug(sprintf('invalidating [packages] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:packages]), self.cache_timeout))
         self.deltas.delete(:packages)
       else
-        @log.debug(sprintf('using cached packages from [%s]', self.cache[:packages]))
+        @log.debug(sprintf('using cached [packages] from [%s]', self.cache[:packages]))
         return self.deltas[:packages]
       end
 
@@ -330,7 +328,7 @@ class Rouster
         @log.debug(sprintf('invalidating [ports] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:ports]), self.cache_timeout))
         self.deltas.delete(:ports)
       else
-        @log.debug(sprintf('using cached ports from [%s]', self.cache[:ports]))
+        @log.debug(sprintf('using cached [ports] from [%s]', self.cache[:ports]))
         return self.deltas[:ports]
       end
     end
@@ -362,7 +360,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [packages] at [%s]', Time.now.to_i))
+      @log.debug(sprintf('caching [ports] at [%s]', Time.now.to_i))
       self.deltas[:ports] = res
       self.cache[:ports]  = Time.now.to_i
     end
@@ -390,7 +388,15 @@ class Rouster
   # raises InternalError if unsupported operating system
   def get_services(cache=true)
     if cache and ! self.deltas[:services].nil?
-      return self.deltas[:services]
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:services]) > self.cache_timeout
+        @log.debug(sprintf('invalidating [services] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:services]), self.cache_timeout))
+        self.deltas.delete(:services)
+      else
+        @log.debug(sprintf('using cached [services] from [%s]', self.cache[:services]))
+        return self.deltas[:services]
+      end
+
     end
 
     res = Hash.new()
@@ -471,7 +477,9 @@ class Rouster
     end
 
     if cache
+      @log.debug(sprintf('caching [services] at [%s]', Time.now.to_i))
       self.deltas[:services] = res
+      self.cache[:services]  = Time.now.to_i
     end
 
     res
@@ -494,7 +502,15 @@ class Rouster
   # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
   def get_users(cache=true)
     if cache and ! self.deltas[:users].nil?
-      return self.deltas[:users]
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:users]) > self.cache_timeout
+        @log.debug(sprintf('invalidating [users] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:users]), self.cache_timeout))
+        self.deltas.delete(:users)
+      else
+        @log.debug(sprintf('using cached [users] from [%s]', self.cache[:users]))
+        return self.deltas[:users]
+      end
+
     end
 
     res = Hash.new()
@@ -516,7 +532,9 @@ class Rouster
     end
 
     if cache
+      @log.debug(sprintf('caching [users] at [%s]', Time.now.to_i))
       self.deltas[:users] = res
+      self.cache[:users]  = Time.now.to_i
     end
 
     res

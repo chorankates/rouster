@@ -114,8 +114,7 @@ class TestDeltasGetGroups < Test::Unit::TestCase
   end
 
   def teardown
-    # noop
-    #@app = nil
+    @app = nil
   end
 
 end
