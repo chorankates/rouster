@@ -389,7 +389,7 @@ class Rouster
   # notes
   # * raises InternalError if unsupported operating system
   # * OSX, Solaris and Ubuntu/Debian will only return running|stopped|unsure, the exists|installed|operational modes are RHEL/CentOS only
-  def get_services(cache=true, huamnize=true)
+  def get_services(cache=true, humanize=true)
     if cache and ! self.deltas[:services].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:services]) > self.cache_timeout
