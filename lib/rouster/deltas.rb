@@ -212,7 +212,15 @@ class Rouster
   # raises InternalError if unsupported operating system
   def get_packages(cache=true, deep=true)
     if cache and ! self.deltas[:packages].nil?
-      return self.deltas[:packages]
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:packages]) > self.cache_timeout
+        @log.debug(sprintf('invalidating [packages] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:packages]), self.cache_timeout))
+        self.deltas.delete(:packages)
+      else
+        @log.debug(sprintf('using cached packages from [%s]', self.cache[:packages]))
+        return self.deltas[:packages]
+      end
+
     end
 
     res = Hash.new()
@@ -286,7 +294,9 @@ class Rouster
     end
 
     if cache
+      @log.debug(sprintf('caching [groups] at [%s]', Time.now.to_i))
       self.deltas[:packages] = res
+      self.cache[:packages]  = Time.now.to_i
     end
 
     res

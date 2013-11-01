@@ -10,7 +10,7 @@ class TestDeltasGetPackages < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app')
+      @app = Rouster.new(:name => 'app', :cache_timeout => 10)
     end
 
     @app.up()
@@ -61,6 +61,29 @@ class TestDeltasGetPackages < Test::Unit::TestCase
       #assert_match(/\d*\..*/, res[k]) # testing the regular expression used in deltas.rb itself
       assert_match(/\?/, res[k])
     end
+
+  end
+
+  def test_happy_path_cache_invalidation
+    res1, res2 = nil, nil
+
+    assert_nothing_raised do
+      res1 = @app.get_packages(true, false)
+    end
+
+    first_cache_time = @app.cache[:packages]
+
+    sleep (@app.cache_timeout + 1)
+
+    assert_nothing_raised do
+      res2 = @app.get_packages(true, false)
+    end
+
+    second_cache_time = @app.cache[:packages]
+
+    assert_equal(res1, res2)
+    assert_not_equal(first_cache_time, second_cache_time)
+    assert(second_cache_time > first_cache_time)
 
   end
 
