@@ -87,7 +87,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [crontab] at [%s]', Time.now.to_i))
+      @log.debug(sprintf('caching [crontab] at [%s]', Time.now.asctime))
 
       if ! user.eql?('*')
         self.deltas[:crontab] ||= Hash.new
@@ -179,7 +179,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [groups] at [%s]', Time.now.to_i))
+      @log.debug(sprintf('caching [groups] at [%s]', Time.now.asctime))
       self.deltas[:groups] = groups
       self.cache[:groups]  = Time.now.to_i
     end
@@ -292,7 +292,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [packages] at [%s]', Time.now.to_i))
+      @log.debug(sprintf('caching [packages] at [%s]', Time.now.asctime))
       self.deltas[:packages] = res
       self.cache[:packages]  = Time.now.to_i
     end
@@ -360,7 +360,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [ports] at [%s]', Time.now.to_i))
+      @log.debug(sprintf('caching [ports] at [%s]', Time.now.asctime))
       self.deltas[:ports] = res
       self.cache[:ports]  = Time.now.to_i
     end
@@ -377,7 +377,8 @@ class Rouster
   # }
   #
   # parameters
-  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
+  # * [cache]    - boolean controlling whether data retrieved/parsed is cached, defaults to true
+  # * [humanize] - boolean controlling whether data retrieved is massaged into simplified names or returned mostly as retrieved
   #
   # supported OS
   # * OSX - runs `launchctl list`
@@ -385,9 +386,10 @@ class Rouster
   # * Solaris - runs `svcs`
   # * Ubuntu - runs `service --status-all`
   #
-  # raises InternalError if unsupported operating system
-  # note that OSX, Solaris and Ubuntu/Debian will only return running|stopped|unsure, the exists|installed|operational modes are RHEL/CentOS only
-  def get_services(cache=true)
+  # notes
+  # * raises InternalError if unsupported operating system
+  # * OSX, Solaris and Ubuntu/Debian will only return running|stopped|unsure, the exists|installed|operational modes are RHEL/CentOS only
+  def get_services(cache=true, huamnize=true)
     if cache and ! self.deltas[:services].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:services]) > self.cache_timeout
@@ -415,10 +417,12 @@ class Rouster
         service = $2
         mode    = $1
 
-        if mode.match(/^\d/)
-          mode = 'running'
-        else
-          mode = 'stopped'
+        if humanize # should we do this with a .freeze instead?
+          if mode.match(/^\d/)
+            mode = 'running'
+          else
+            mode = 'stopped'
+          end
         end
 
         res[service] = mode
@@ -433,20 +437,22 @@ class Rouster
         service = $2
         mode    = $1
 
-        if mode.match(/^online/)
-          mode = 'running'
-        elsif mode.match(/^legacy_run/)
-          mode = 'running'
-        elsif mode.match(/^disabled/)
-          mode = 'stopped'
-        end
+        if humanize
+          if mode.match(/^online/)
+            mode = 'running'
+          elsif mode.match(/^legacy_run/)
+            mode = 'running'
+          elsif mode.match(/^disabled/)
+            mode = 'stopped'
+          end
 
-        if service.match(/^svc:\/.*\/(.*?):.*/)
-          # turning 'svc:/network/cswpuppetd:default' into 'cswpuppetd'
-          service = $1
-        elsif service.match(/^lrc:\/.*?\/.*\/(.*)/)
-          # turning 'lrc:/etc/rcS_d/S50sk98Sol' into 'S50sk98Sol'
-          service = $1
+          if service.match(/^svc:\/.*\/(.*?):.*/)
+            # turning 'svc:/network/cswpuppetd:default' into 'cswpuppetd'
+            service = $1
+          elsif service.match(/^lrc:\/.*?\/.*\/(.*)/)
+            # turning 'lrc:/etc/rcS_d/S50sk98Sol' into 'S50sk98Sol'
+            service = $1
+          end
         end
 
         res[service] = mode
@@ -461,9 +467,11 @@ class Rouster
         mode    = $1
         service = $2
 
-        mode = 'stopped' if mode.match('-')
-        mode = 'running' if mode.match('\+')
-        mode = 'unsure'  if mode.match('\?')
+        if humanize
+          mode = 'stopped' if mode.match('-')
+          mode = 'running' if mode.match('\+')
+          mode = 'unsure'  if mode.match('\?')
+        end
 
         res[service] = mode
       end
@@ -472,30 +480,38 @@ class Rouster
 
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
-        if line.match(/^(\w+?)\sis\s(.*)$/)
-          # <service> is <state>
-          res[$1] = $2
 
-          if $2.match(/^not/)
-            # this catches 'Kdump is not operational'
-            res[$1] = 'stopped'
+        if humanize
+
+          if line.match(/^(\w+?)\sis\s(.*)$/)
+            # <service> is <state>
+            res[$1] = $2
+
+            if $2.match(/^not/)
+              # this catches 'Kdump is not operational'
+              res[$1] = 'stopped'
+            end
+
+          elsif line.match(/^(\w+?)\s\(pid.*?\)\sis\s(\w+)$/)
+            # <service> (pid <pid> [pid]) is <state>...
+            res[$1] = $2
+          elsif line.match(/^(\w+?)\sis\s(\w+)\.*$/) # not sure this is actually needed
+            @log.debug('triggered supposedly unnecessary regex')
+            # <service> is <state>. whatever
+            res[$1] = $2
+          elsif line.match(/^(\w+?)\:.*?(\w+)$/)
+            # <service>: whatever <state>
+            res[$1] = $2
+          elsif line.match(/^(\w+)\s(\w+).*$/)
+            # <process> <state> whatever
+            res[$1] = $2
+          else
+            # original regex implementation, if we didn't match anything else, failover to this
+            next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
+            res[$1] = $2
           end
 
-        elsif line.match(/^(\w+?)\s\(pid.*?\)\sis\s(\w+)$/)
-          # <service> (pid <pid> [pid]) is <state>...
-          res[$1] = $2
-        elsif line.match(/^(\w+?)\sis\s(\w+)\.*$/) # not sure this is actually needed
-          @log.debug('triggered supposedly unnecessary regex')
-          # <service> is <state>. whatever
-          res[$1] = $2
-        elsif line.match(/^(\w+?)\:.*?(\w+)$/)
-          # <service>: whatever <state>
-          res[$1] = $2
-        elsif line.match(/^(\w+)\s(\w+).*$/)
-          # <process> <state> whatever
-          res[$1] = $2
         else
-          # original regex implementation, if we didn't match anything else, failover to this
           next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
           res[$1] = $2
         end
@@ -503,10 +519,12 @@ class Rouster
       end
 
       # issue #63 handling
-      res.each_pair do |k,v|
-        next if allowed_modes.member?(v)
-        @log.debug(sprintf('replacing service[%s] status of [%s] with [%s] for uniformity', k, v, failover_mode))
-        res[k] = failover_mode
+      if humanize
+        res.each_pair do |k,v|
+          next if allowed_modes.member?(v)
+          @log.debug(sprintf('replacing service[%s] status of [%s] with [%s] for uniformity', k, v, failover_mode))
+          res[k] = failover_mode
+        end
       end
 
     else
@@ -514,7 +532,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [services] at [%s]', Time.now.to_i))
+      @log.debug(sprintf('caching [services] at [%s]', Time.now.asctime))
       self.deltas[:services] = res
       self.cache[:services]  = Time.now.to_i
     end
@@ -569,7 +587,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [users] at [%s]', Time.now.to_i))
+      @log.debug(sprintf('caching [users] at [%s]', Time.now.asctime))
       self.deltas[:users] = res
       self.cache[:users]  = Time.now.to_i
     end
