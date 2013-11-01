@@ -4,3 +4,4 @@ doc/*
 *.swp
 *tmp*
 *.gem
+.rakeTasks
