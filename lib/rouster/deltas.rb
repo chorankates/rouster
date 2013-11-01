@@ -426,19 +426,27 @@ class Rouster
 
     elsif os.eql?(:solaris)
 
-      raw = self.run('svcs')
+      raw = self.run('svcs -a')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\s+(?:.*?)\s+(.*?)$/).nil?
 
         service = $2
         mode    = $1
 
-        if mode.match(/online/)
+        if mode.match(/^online/)
           mode = 'running'
-        elsif mode.match(/legacy_run/)
+        elsif mode.match(/^legacy_run/)
           mode = 'running'
-        elsif mode.match(//)
+        elsif mode.match(/^disabled/)
           mode = 'stopped'
+        end
+
+        if service.match(/^svc:\/.*\/(.*?):.*/)
+          # turning 'svc:/network/cswpuppetd:default' into 'cswpuppetd'
+          service = $1
+        elsif service.match(/^lrc:\/.*?\/.*\/(.*)/)
+          # turning 'lrc:/etc/rcS_d/S50sk98Sol' into 'S50sk98Sol'
+          service = $1
         end
 
         res[service] = mode
