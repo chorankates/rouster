@@ -373,7 +373,7 @@ class Rouster
   #
   # runs an OS appropriate command to gather service information, returns hash:
   # {
-  #   serviceN => mode # running|stopped|unsure
+  #   serviceN => mode # exists|installed|operational|running|stopped|unsure
   # }
   #
   # parameters
@@ -386,6 +386,7 @@ class Rouster
   # * Ubuntu - runs `service --status-all`
   #
   # raises InternalError if unsupported operating system
+  # note that OSX, Solaris and Ubuntu/Debian will only return running|stopped|unsure, the exists|installed|operational modes are RHEL/CentOS only
   def get_services(cache=true)
     if cache and ! self.deltas[:services].nil?
 
@@ -400,8 +401,10 @@ class Rouster
     end
 
     res = Hash.new()
+    os  = self.os_type
 
-    os = self.os_type
+    allowed_modes = %w(exists installed operational running stopped unsure)
+    failover_mode = 'unsure'
 
     if os.eql?(:osx)
 
@@ -461,15 +464,41 @@ class Rouster
 
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
-        # TODO support:
-        # <service> is <state>
-        # <service> (pid <pid> [pid]) is <state>...
-        # <service> is <state>. whatever
-        # <service>: whatever <state>
-        # <process> <state> whatever
+        if line.match(/^(\w+?)\sis\s(.*)$/)
+          # <service> is <state>
+          res[$1] = $2
 
-        next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
-        res[$1] = $2
+          if $2.match(/^not/)
+            # this catches 'Kdump is not operational'
+            res[$1] = 'stopped'
+          end
+
+        elsif line.match(/^(\w+?)\s\(pid.*?\)\sis\s(\w+)$/)
+          # <service> (pid <pid> [pid]) is <state>...
+          res[$1] = $2
+        elsif line.match(/^(\w+?)\sis\s(\w+)\.*$/) # not sure this is actually needed
+          @log.debug('triggered supposedly unnecessary regex')
+          # <service> is <state>. whatever
+          res[$1] = $2
+        elsif line.match(/^(\w+?)\:.*?(\w+)$/)
+          # <service>: whatever <state>
+          res[$1] = $2
+        elsif line.match(/^(\w+)\s(\w+).*$/)
+          # <process> <state> whatever
+          res[$1] = $2
+        else
+          # original regex implementation, if we didn't match anything else, failover to this
+          next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
+          res[$1] = $2
+        end
+
+      end
+
+      # issue #63 handling
+      res.each_pair do |k,v|
+        next if allowed_modes.member?(v)
+        @log.debug(sprintf('replacing service[%s] status of [%s] with [%s] for uniformity', k, v, failover_mode))
+        res[k] = failover_mode
       end
 
     else
