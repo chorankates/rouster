@@ -8,7 +8,7 @@ class TestDeltasGetPorts < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app')
+      @app = Rouster.new(:name => 'app', :cache_timeout => 10)
     end
 
     @app.up()
@@ -95,6 +95,7 @@ class TestDeltasGetPorts < Test::Unit::TestCase
     }
 
     @app.deltas[:ports] = stock
+    @app.cache[:ports]  = Time.now.to_i # since we're faking the contents, we also need to fake other artifacts that would have been generated
 
     assert_equal(true, @app.is_port_open?(1234, 'tcp', true))
     assert_equal(true, @app.is_port_active?(22, 'tcp', true))
@@ -107,8 +108,32 @@ class TestDeltasGetPorts < Test::Unit::TestCase
     assert_equal(false, @app.is_port_active?(1234, 'tcp', true))
 
     # caching/argument default validation -- can't currently do this, don't know what ports will be open on others systems
+    # TODO but can fix this by running some ncatish commands
     #assert_equal(true, @app.is_port_active?(22))
     #assert_equal(true, @app.is_port_open?(1234))
+
+  end
+
+  def test_happy_path_cache_invalidation
+    res1, res2 = nil, nil
+
+    assert_nothing_raised do
+      res1 = @app.get_ports(true)
+    end
+
+    first_cache_time = @app.cache[:ports]
+
+    sleep (@app.cache_timeout + 1)
+
+    assert_nothing_raised do
+      res2 = @app.get_ports(true)
+    end
+
+    second_cache_time = @app.cache[:ports]
+
+    assert_equal(res1, res2)
+    assert_not_equal(first_cache_time, second_cache_time)
+    assert(second_cache_time > first_cache_time)
 
   end
 

@@ -294,7 +294,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [groups] at [%s]', Time.now.to_i))
+      @log.debug(sprintf('caching [packages] at [%s]', Time.now.to_i))
       self.deltas[:packages] = res
       self.cache[:packages]  = Time.now.to_i
     end
@@ -326,7 +326,13 @@ class Rouster
     # TODO improve ipv6 support
 
     if cache and ! self.deltas[:ports].nil?
-      return self.deltas[:ports]
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:ports]) > self.cache_timeout
+        @log.debug(sprintf('invalidating [ports] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:ports]), self.cache_timeout))
+        self.deltas.delete(:ports)
+      else
+        @log.debug(sprintf('using cached ports from [%s]', self.cache[:ports]))
+        return self.deltas[:ports]
+      end
     end
 
     res = Hash.new()
@@ -356,7 +362,9 @@ class Rouster
     end
 
     if cache
+      @log.debug(sprintf('caching [packages] at [%s]', Time.now.to_i))
       self.deltas[:ports] = res
+      self.cache[:ports]  = Time.now.to_i
     end
 
     res
