@@ -23,7 +23,7 @@ class Rouster
         @log.debug(sprintf('invalidating [facter] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:facter]), self.cache_timeout))
         self.facts = nil
       else
-        @log.debug(sprintf('using cached [facter] from [%s]', self.cache[:services]))
+        @log.debug(sprintf('using cached [facter] from [%s]', self.cache[:facter]))
         return self.facts
       end
 
@@ -137,16 +137,40 @@ class Rouster
   # returns hiera results from self
   #
   # parameters
-  # * <key> - hiera key to look up
-  # * [config] - path to hiera configuration -- this is only optional if you have a hiera.yaml file in ~/vagrant
-  def hiera(key, config=nil, options=nil)
+  # * <key>     - hiera key to look up
+  # * [facts]   - hash of facts to be used in hiera lookup (technically optional, but most useful hiera lookups are based on facts)
+  # * [config]  - path to hiera configuration -- this is only optional if you have a hiera.yaml file in ~/vagrant, default option is correct for most puppet installations
+  # * [options] - any additional parameters to be passed to hiera directly
+  #
+  # note
+  # * if no facts are provided, facter() will be called - to really run hiera without facts, send an empty hash
+  # * this method is mostly useful on your puppet master, as your agents won't likely have /etc/puppet/hiera.yaml - to get data on another node, specify it's facts and call hiera on your ppm
+  def hiera(key, facts=nil, config='/etc/puppet/hiera.yaml', options=nil)
 
     cmd = 'hiera'
+
+    if facts.nil?
+      @log.info('no facts provided, calling facter() automatically')
+      facts = self.facter()
+    end
+
+    if facts.keys.size > 0
+      scope_file = sprintf('/tmp/rouster-hiera_scope.%s.%s.json', $$, Time.now.to_i)
+
+      File.write(scope_file, facts.to_json)
+      self.put(scope_file, scope_file)
+      File.delete(scope_file)
+
+      cmd << sprintf(' -j %s', scope_file)
+    end
+
     cmd << sprintf(' -c %s', config) unless config.nil?
     cmd << sprintf(' %s', options) unless options.nil?
     cmd << sprintf(' %s', key)
 
-    self.run(cmd)
+    raw = self.run(cmd)
+
+    JSON.parse(raw)
   end
 
   ##
