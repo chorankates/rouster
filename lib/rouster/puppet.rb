@@ -5,8 +5,6 @@ require 'net/https'
 require 'socket'
 require 'uri'
 
-# TODO use @cache_timeout to invalidate data cached here
-
 class Rouster
 
   ##
@@ -18,8 +16,17 @@ class Rouster
   # * [cache] - whether to store/return cached facter data, if available
   # * [custom_facts] - whether to include custom facts in return (uses -p argument)
   def facter(cache=true, custom_facts=true)
+
     if cache.true? and ! self.facts.nil?
-      return self.facts
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:facter]) > self.cache_timeout
+        @log.debug(sprintf('invalidating [facter] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:facter]), self.cache_timeout))
+        self.facts = nil
+      else
+        @log.debug(sprintf('using cached [facter] from [%s]', self.cache[:services]))
+        return self.facts
+      end
+
     end
 
     raw  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
@@ -31,7 +38,9 @@ class Rouster
     end
 
     if cache.true?
+      @log.debug(sprintf('caching [facter] at [%s]', Time.now.asctime))
       self.facts = res
+      self.cache[:facter] = Time.now.to_i
     end
 
     res

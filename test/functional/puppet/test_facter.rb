@@ -8,7 +8,7 @@ class TestFacter < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app')
+      @app = Rouster.new(:name => 'app', :cache_timeout => 10)
     end
 
     @app.up()
@@ -36,6 +36,46 @@ class TestFacter < Test::Unit::TestCase
 
     assert_equal(true, facts.class.eql?(Hash))
     assert_equal(nil, @app.facts)
+  end
+
+  def test_caching
+    # NOTE: this only works if (time_to_run_facter < cache_timeout)
+
+    assert_nothing_raised do
+      @app.facter(true)
+    end
+
+    first_cached_time = @app.cache[:facter]
+
+    assert_nothing_raised do
+      @app.facter(true)
+    end
+
+    second_cached_time = @app.cache[:facter]
+
+    assert_equal(first_cached_time, second_cached_time)
+
+  end
+
+  def test_cache_invalidation
+
+    assert_nothing_raised do
+      @app.facter(true)
+    end
+
+    first_cached_time = @app.cache[:facter]
+
+    sleep (@app.cache_timeout + 1)
+
+    assert_nothing_raised do
+      @app.facter(true)
+    end
+
+    second_cached_time = @app.cache[:facter]
+
+    assert_not_equal(first_cached_time, second_cached_time)
+    assert(second_cached_time > first_cached_time)
+
   end
 
   def test_custom_facts
