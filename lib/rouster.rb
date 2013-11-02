@@ -632,6 +632,11 @@ class Rouster
   # parameters
   # * <face> - vagrant face to call (include arguments)
   def vagrant(face)
+    if self.is_passthrough?
+      @log.info(sprintf('calling [vagrant %s] on a passthrough host is a noop', face))
+      return nil
+    end
+
     self._run(sprintf('cd %s; vagrant %s', File.dirname(@vagrantfile), face))
   end
 
