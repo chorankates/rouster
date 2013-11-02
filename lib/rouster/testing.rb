@@ -678,31 +678,41 @@ class Rouster
   # gets facts from node, and if fact expectation regex matches actual fact, returns true
   #
   # parameters
-  # * <fact> - fact
-  # * <expectation>
-  # * [cache]
-  def meets_constraint?(fact, expectation, cache=true)
+  # * <key>         - fact/hiera key to look up (actual value)
+  # * <expectation> -
+  # * [cache]       - boolean controlling whether facter lookups are cached
+  def meets_constraint?(key, expectation, cache=true)
 
-    unless self.respond_to?('facter')
-      # if we haven't loaded puppet.rb, we won't have access to facts
+    expectation = expectation.to_s
+
+    unless self.respond_to?('facter') or self.respond_to?('hiera')
+      # if we haven't loaded puppet.rb, we won't have access to facts/hiera lookups
       @log.warn('using constraints without loading [rouster/puppet] will not work, forcing no-op')
       return false
     end
 
-    expectation = expectation.to_s
-    facts = self.facter(cache)
+    facts  = self.facter(cache)
+    actual = nil
+
+    if facts[key]
+      actual = facts[key]
+    else
+      # value is not a fact, lets try to find it in hiera
+      # TODO how to handle the fact that this will really only work on the puppetmaster
+      actual = self.hiera(key, facts)
+    end
 
     res = nil
+
     if expectation.split("\s").size > 1
       ## generic comparator functionality
       comp, expectation = expectation.split("\s")
-      res = generic_comparator(facts[fact], comp, expectation)
-
+      res = generic_comparator(actual, comp, expectation)
     else
-      res = ! facts[fact].to_s.match(/#{expectation}/).nil?
-      @log.debug(sprintf('meets_constraint?(%s, %s): %s', fact, expectation, res.nil?))
+      res = ! actual.to_s.match(/#{expectation}/).nil?
     end
 
+    @log.debug(sprintf('meets_constraint?(%s, %s): %s', key, expectation, res.nil?))
     res
   end
 
