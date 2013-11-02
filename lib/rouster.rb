@@ -386,6 +386,7 @@ class Rouster
     h = Hash.new()
 
     if @ssh_info.class.eql?(Hash)
+      @log.debug('using cached SSH info')
       h = @ssh_info
     else
 
@@ -399,8 +400,14 @@ class Rouster
         elsif line.match(/Port (\d*?)$/)
           h[:ssh_port] = $1
         elsif line.match(/IdentityFile (.*?)$/)
-          # TODO what to do if the user has specified @sshkey ?
-          h[:identity_file] = $1
+          key = $1
+          unless @sshkey.eql?(key)
+            h[:identity_file] = key
+          else
+            @log.info(sprintf('using specified key[%s] instead of discovered key[%s]', @sshkey, key))
+            h[:identity_file] = @sshkey
+          end
+
         end
       end
 
@@ -604,7 +611,7 @@ class Rouster
   # parameters
   # * <command> - command to be run
   def _run(command)
-    tmp_file = sprintf('/tmp/rouster.%s.%s', Time.now.to_i, $$)
+    tmp_file = sprintf('/tmp/rouster-cmd_output.%s.%s', Time.now.to_i, $$)
     cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file) # this is a holdover from Salesforce::Vagrant, can we use '2&>1' here?
     res      = `#{cmd}` # what does this actually hold?
 
