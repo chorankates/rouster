@@ -146,6 +146,7 @@ class Rouster
   # * if no facts are provided, facter() will be called - to really run hiera without facts, send an empty hash
   # * this method is mostly useful on your puppet master, as your agents won't likely have /etc/puppet/hiera.yaml - to get data on another node, specify it's facts and call hiera on your ppm
   def hiera(key, facts=nil, config='/etc/puppet/hiera.yaml', options=nil)
+    # TODO implement caching? where do we keep it? self.hiera{}? or self.deltas{} -- leaning towards #1
 
     cmd = 'hiera'
 
