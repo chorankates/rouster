@@ -158,11 +158,19 @@ class Rouster
     if deep
       users = self.get_users(cache)
 
+      known_valid_gids = groups.keys.map { |g| groups[g][:gid] } # no need to calculate this in every loop
+
       # TODO better, much better -- since the number of users/groups is finite and usually small, this is a low priority
       users.each_key do |user|
         # iterate over each user to get their gid
         gid = users[user][:gid]
 
+        unless known_valid_gids.member?(gid)
+          @log.warn(sprintf('found user[%s] with unknown GID[%s], known GIDs[%s]', user, gid, known_valid_gids))
+          next
+        end
+
+        ## do this more efficiently
         groups.each_key do |group|
           # iterate over each group to find the matching gid
           if gid.eql?(groups[group][:gid])
@@ -172,7 +180,6 @@ class Rouster
             groups[group][:users] << user unless groups[group][:users].member?(user)
           end
 
-          # TODO throw an error if we find a user with a GID that we don't know about from get_groups()
         end
 
       end
