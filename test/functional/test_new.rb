@@ -23,7 +23,7 @@ class TestNew < Test::Unit::TestCase
 
   def test_2_good_openssh_tunnel
     @app = Rouster.new(:name => 'app', :sshtunnel => true)
-
+                                           7
     # TODO how do we properly test this? we really need the rspec should_call mechanism...
 
     assert_equal(true, @app.is_available_via_ssh?)
@@ -33,23 +33,24 @@ class TestNew < Test::Unit::TestCase
 
     assert_nothing_raised do
       @app = Rouster.new(
-        :name        => 'app',
-        :passthrough => true,
-        :sudo        => false,
-        :verbosity   => 4,
-        #:vagrantfile => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
-        :sshkey      =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']),
+        :name          => 'app',
+        :passthrough   => false,
+        :sudo          => false,
+        :verbosity     => 4,
+        #:vagrantfile  => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
+        :sshkey        =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']),
+        :cache_timeout => 10,
       )
-
 
     end
 
     assert_equal('app', @app.name)
-    assert_equal(true, @app.is_passthrough?())
+    assert_equal(false, @app.is_passthrough?())
     assert_equal(false, @app.uses_sudo?())
     assert_equal(4, @app.verbosity) # is this going to be strinigified?
     assert_equal(true, File.file?(@app.vagrantfile))
     assert_equal(true, File.file?(@app.sshkey))
+    assert_equal(10, @app.cache_timeout)
   end
 
   def test_4_bad_name_instantiation
