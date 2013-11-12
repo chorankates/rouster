@@ -302,7 +302,6 @@ class Rouster
 
     res = self.run('puppet cert list --all')
 
-    debugger
     # TODO refactor this away from the hacky_break
     res.each_line do |line|
       hacky_break = false
