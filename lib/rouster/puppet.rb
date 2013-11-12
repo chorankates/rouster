@@ -296,13 +296,25 @@ class Rouster
   #
   # parameters
   # * <puppetmaster> - string/partial regex of certificate names to keep
-  def remove_existing_certs (puppetmaster)
-    hosts = Array.new()
+  def remove_existing_certs (except)
+    except = except.kind_of?(Array) ? except : [except] # need to move from <>.class.eql? to <>.kind_of? in a number of places
+    hosts  = Array.new()
 
     res = self.run('puppet cert list --all')
 
+    debugger
+    # TODO refactor this away from the hacky_break
     res.each_line do |line|
-      next if line.match(/#{puppetmaster}/)
+      hacky_break = false
+
+      except.each do |exception|
+        hacky_break = line.match(/#{exception}/)
+
+        next if hacky_break
+      end
+
+      next unless hacky_break
+
       host = $1 if line.match(/^\+\s"(.*?)"/)
 
       hosts.push(host) unless host.nil? # only want to clear signed certs
@@ -313,33 +325,6 @@ class Rouster
     end
 
   end
-
-  ##
-  # remove_my_cert
-  #
-  # ... removes any certificates regex matching hostname - like remove_existing_certs(), really only useful on a puppetmaster
-  #
-  # parameters
-  # * [hostname] - string/partial regex of certificate names to remove
-  def remove_my_cert (hostname=nil)
-    hostname = hostname.nil? ? `hostname --fqdn`.chomp() : hostname
-    hosts    = Array.new()
-
-    res = self.run('puppet cert list --all')
-
-    res.each_line do |line|
-      next unless line.match(/#{hostname}/)
-      host = $1 if line.match(/^\+\s"(.*?)"/)
-
-      hosts.push(host) unless host.nil?
-    end
-
-    hosts.each do |host|
-      self.run(sprintf('puppet cert --clean %s', host))
-    end
-
-  end
-
 
   ##
   # run_puppet
