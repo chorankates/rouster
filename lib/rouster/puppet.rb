@@ -307,12 +307,11 @@ class Rouster
       hacky_break = false
 
       except.each do |exception|
-        hacky_break = line.match(/#{exception}/)
-
         next if hacky_break
+        hacky_break = line.match(/#{exception}/)
       end
 
-      next unless hacky_break
+      next if hacky_break
 
       host = $1 if line.match(/^\+\s"(.*?)"/)
 
