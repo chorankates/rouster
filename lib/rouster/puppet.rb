@@ -279,14 +279,13 @@ class Rouster
       end
     end
 
-
     results[:classes]   = classes
     results[:resources] = resources
 
     results
   end
 
-  # TODO: come up with better method names here.. remove_existing_certs() and remove_my_cert() are not very descriptive
+  # TODO: come up with better method names here.. remove_existing_certs() and remove_specific_cert() are not very descriptive
 
   ##
   # remove_existing_certs
@@ -323,6 +322,39 @@ class Rouster
     end
 
   end
+
+  ##
+  # remove_specific_cert
+  #
+  # ... removes a specific (or several specific) certificates, effectively the reverse of remove_existing_certs() - and again, really only useful when called on a puppet master
+  def remove_specific_cert (targets)
+    targets = targets.kind_of?(Array) ? targets : [targets]
+    hosts = Array.new()
+
+    res = self.run('puppet cert list --all')
+    debugger
+
+    res.each_line do |line|
+      hacky_break = true
+
+      targets.each do |target|
+        next unless hacky_break
+        hacky_break = line.match(/#{target}/)
+      end
+
+      next unless hacky_break
+
+      host = $1 if line.match(/^\+\s"(.*?)"/)
+      hosts.push(host) unless host.nil?
+
+    end
+
+    hosts.each do |host|
+      self.run(sprintf('puppet cert --clean %s', host))
+    end
+
+  end
+
 
   ##
   # run_puppet
