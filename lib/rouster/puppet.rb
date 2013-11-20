@@ -386,7 +386,7 @@ class Rouster
   # parameters
   # * [mode] - method to run puppet, defaults to 'master'
   # * [opts] - hash of additional options
-  def run_puppet(mode='master', passed_opts=nil)
+  def run_puppet(mode='master', passed_opts={})
 
     if mode.eql?('master')
       opts = {
