@@ -332,7 +332,6 @@ class Rouster
     hosts = Array.new()
 
     res = self.run('puppet cert list --all')
-    debugger
 
     res.each_line do |line|
       hacky_break = true
