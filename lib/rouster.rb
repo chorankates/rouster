@@ -622,12 +622,12 @@ class Rouster
     output = File.read(tmp_file)
     File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))
 
+    self.output.push(output)
+    @log.debug(sprintf('output: [%s]', output))
+
     unless $?.success?
       raise LocalExecutionError.new(sprintf('command [%s] exited with code [%s], output [%s]', cmd, $?.to_i(), output))
     end
-
-    self.output.push(output)
-    @log.debug(sprintf('output: [%s]', output))
 
     @exitcode = $?.to_i()
     output
