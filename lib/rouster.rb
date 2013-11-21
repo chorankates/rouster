@@ -23,24 +23,26 @@ class Rouster
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_accessor :facts, :sudo, :verbosity
-  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :unittest, :vagrantfile
+  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantfile
 
   ##
   # initialize - object instantiation
   #
   # parameters
-  # * <name> - the name of the VM as specified in the Vagrantfile
+  # * <name>          - the name of the VM as specified in the Vagrantfile
   # * [cache_timeout] - integer specifying how long Rouster should cache status() and is_available_via_ssh?() results, default is false
-  # * [passthrough] - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
-  # * [sshkey] - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
-  # * [sshtunnel] - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
-  # * [sudo] - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
-  # * [vagrantfile] - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
-  # * [verbosity] - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
+  # * [passthrough]   - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
+  # * [retries]       - integer specifying number of retries Rouster should attempt when running external (currently only vagrant()) commands
+  # * [sshkey]        - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
+  # * [sshtunnel]     - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
+  # * [sudo]          - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
+  # * [vagrantfile]   - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
+  # * [verbosity]     - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     @cache_timeout = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
     @name          = opts[:name]
     @passthrough   = opts[:passthrough].nil? ? false : opts[:passthrough]
+    @retries       = opts[:retries].nil? ? 0 : opts[:retries]
     @sshkey        = opts[:sshkey]
     @sshtunnel     = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
     @unittest      = opts[:unittest].nil? ? false : opts[:unittest]
@@ -644,7 +646,17 @@ class Rouster
       return nil
     end
 
-    self._run(sprintf('cd %s; vagrant %s', File.dirname(@vagrantfile), face))
+    0.upto(self.retries) do |try| # TODO should really be doing this with 'retry', but i think this code is actually cleaner
+      begin
+        return self._run(sprintf('cd %s; vagrant %s', File.dirname(@vagrantfile), face))
+      rescue
+        @log.error(sprintf('failed vagrant command[%s], attempt[%s/%s]', face, try, retries)) if self.retries > 0
+      end
+    end
+
+    raise InternalError.new(sprintf('failed to execute [%s], exitcode[%s], output[%s]', face, self.exitcode, self.get_output()))
+
+
   end
 
   ##
