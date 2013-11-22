@@ -23,31 +23,34 @@ class Rouster
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_accessor :facts, :sudo, :verbosity
-  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantfile
+  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
 
   ##
   # initialize - object instantiation
   #
   # parameters
-  # * <name>          - the name of the VM as specified in the Vagrantfile
-  # * [cache_timeout] - integer specifying how long Rouster should cache status() and is_available_via_ssh?() results, default is false
-  # * [passthrough]   - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
-  # * [retries]       - integer specifying number of retries Rouster should attempt when running external (currently only vagrant()) commands
-  # * [sshkey]        - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
-  # * [sshtunnel]     - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
-  # * [sudo]          - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
-  # * [vagrantfile]   - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
-  # * [verbosity]     - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
+  # * <name>                - the name of the VM as specified in the Vagrantfile
+  # * [cache_timeout]       - integer specifying how long Rouster should cache status() and is_available_via_ssh?() results, default is false
+  # * [passthrough]         - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
+  # * [retries]             - integer specifying number of retries Rouster should attempt when running external (currently only vagrant()) commands
+  # * [sshkey]              - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
+  # * [sshtunnel]           - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
+  # * [sudo]                - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
+  # * [vagrantfile]         - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
+  # * [vagrant_concurrency] - boolean controlling whether Rouster will attempt to run `vagrant *` if another vagrant process is already running, default is false
+  # * [verbosity]           - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     @cache_timeout = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
-    @name          = opts[:name]
-    @passthrough   = opts[:passthrough].nil? ? false : opts[:passthrough]
-    @retries       = opts[:retries].nil? ? 0 : opts[:retries]
-    @sshkey        = opts[:sshkey]
-    @sshtunnel     = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
-    @unittest      = opts[:unittest].nil? ? false : opts[:unittest]
-    @vagrantfile   = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
-    @verbosity     = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 4
+
+    @name                = opts[:name]
+    @passthrough         = opts[:passthrough].nil? ? false : opts[:passthrough]
+    @retries             = opts[:retries].nil? ? 0 : opts[:retries]
+    @sshkey              = opts[:sshkey]
+    @sshtunnel           = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
+    @unittest            = opts[:unittest].nil? ? false : opts[:unittest]
+    @vagrantfile         = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
+    @vagrant_concurrency = opts[:vagrant_concurrency].nil? ? false : opts[:vagrant_concurrency]
+    @verbosity           = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 4
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]
@@ -83,18 +86,18 @@ class Rouster
 
     return if opts[:unittest].eql?(true) # quick return if we're a unit test
 
+    begin
+      @vagrantbinary = self._run('which vagrant').chomp!
+    rescue
+      raise ExternalError.new('vagrant not found in path')
+    end
+
     # this is breaking test/functional/test_caching.rb test_ssh_caching (if the VM was not running when the test started)
     # it slows down object instantiation, but is a good test to ensure the machine name is valid..
     begin
       self.status()
     rescue Rouster::LocalExecutionError => e
       raise InternalError.new(sprintf('caught non-0 exitcode from status(): %s', e.message))
-    end
-
-    begin
-      self._run('which vagrant')
-    rescue
-      raise ExternalError.new('vagrant not found in path')
     end
 
     @log.debug('SSH key discovery and viability tests..')
@@ -646,7 +649,16 @@ class Rouster
       return nil
     end
 
-    0.upto(self.retries) do |try| # TODO should really be doing this with 'retry', but i think this code is actually cleaner
+    unless @vagrant_concurrency.eql?(true)
+      # TODO don't (ab|re)use variables
+      0.upto(@retries) do |try|
+        break if self.is_vagrant_running?().eql?(false)
+
+        sleep 10 # TODO expose this as a variable, log a message?
+      end
+    end
+
+    0.upto(@retries) do |try| # TODO should really be doing this with 'retry', but i think this code is actually cleaner
       begin
         return self._run(sprintf('cd %s; vagrant %s', File.dirname(@vagrantfile), face))
       rescue
@@ -658,6 +670,26 @@ class Rouster
 
 
   end
+
+  ##
+  # is_vagrant_running?()
+  #
+  # returns true|false if a vagrant process is running on the host machine
+  #
+  # meant to be used to prevent race-y conditions when interacting with VirtualBox (potentially others, haven't tested)
+  def is_vagrant_running?
+    res = false
+
+    begin
+      raw = self._run("ps -ef | grep -v 'grep' | grep '#{self.vagrantbinary}'")
+      res = true
+    rescue
+    end
+
+    @log.debug(sprintf('is_vagrant_running?[%s]', res))
+    res
+  end
+
 
   ##
   # get_output
