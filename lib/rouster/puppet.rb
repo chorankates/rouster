@@ -93,8 +93,17 @@ class Rouster
   # parameters
   # * [input] - string to look at, defaults to self.get_output()
   def get_puppet_errors(input=nil)
-    str    = input.nil? ? self.get_output() : input
-    errors = str.scan(/35merr:.*/)
+    str       = input.nil? ? self.get_output() : input
+    errors    = nil
+    errors_27 = str.scan(/35merr:.*/)
+    errors_30 = str.scan(/Error:.*/)
+
+    # TODO this is a little less than efficient, don't scan for 3.0 if you found 2.7
+    if errors_27.size > 0
+      errors = errors_27
+    else
+      errors = errors_30
+    end
 
     errors.empty? ? nil : errors
   end
@@ -107,8 +116,17 @@ class Rouster
   # parameters
   # * [input] - string to look at, defaults to self.get_output()
   def get_puppet_notices(input=nil)
-    str     = input.nil? ? self.get_output() : input
-    notices = str.scan(/36mnotice:.*/)
+    str        = input.nil? ? self.get_output() : input
+    notices    = nil
+    notices_27 = str.scan(/36mnotice:.*/) # not sure when this stopped working
+    notices_30 = str.scan(/Notice:.*/)
+
+    # TODO this is a little less than efficient, don't scan for 3.0 if you found 2.7
+    if notices_27.size > 0
+      notices = notices_27
+    else
+      notices = notices_30
+    end
 
     notices.empty? ? nil : notices
   end
