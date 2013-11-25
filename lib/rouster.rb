@@ -681,7 +681,8 @@ class Rouster
     res = false
 
     begin
-      raw = self._run("ps -ef | grep -v 'grep' | grep '#{self.vagrantbinary}'")
+      # TODO would like to get the 2 -v greps into a single call..
+      raw = self._run("ps -ef | grep -v 'grep' | grep -v 'ssh' | grep '#{self.vagrantbinary}'")
       res = true
     rescue
     end
