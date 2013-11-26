@@ -181,7 +181,6 @@ class Rouster
     0.upto(@retries) do |try|
       begin
         output = @ssh.exec!(cmd)
-        break
         try = @retries # TODO exit this retry loop in a smarter way
       rescue => e
         @log.error(sprintf('failed to run [%s] with [%s], attempt[%s/%s]', cmd, e, try, retries)) if self.retries > 0
@@ -190,7 +189,10 @@ class Rouster
 
     end
 
-    if output.match(/ec\[(\d+)\]/)
+    if output.nil?
+      output    = 'error gathering output, see last logged error'
+      @exitcode = 256
+    elsif output.match(/ec\[(\d+)\]/)
       @exitcode = $1.to_i
       output.gsub!(/ec\[(\d+)\]\n/, '')
     else
