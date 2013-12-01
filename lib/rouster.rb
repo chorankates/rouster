@@ -12,7 +12,7 @@ require 'rouster/vagrant'
 class Rouster
 
   # sporadically updated version number
-  VERSION = 0.53
+  VERSION = 0.57
 
   # custom exceptions -- what else do we want them to include/do?
   class ArgumentError        < StandardError; end # thrown by methods that take parameters from users
@@ -23,7 +23,7 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_accessor :facts, :sudo, :verbosity
+  attr_accessor :facts
   attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
 
   ##
@@ -40,7 +40,8 @@ class Rouster
   # * [sudo]                - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
   # * [vagrantfile]         - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
   # * [vagrant_concurrency] - boolean controlling whether Rouster will attempt to run `vagrant *` if another vagrant process is already running, default is false
-  # * [verbosity]           - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
+  # * [verbosity_stdout]    - log output displayed on the console, DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
+  # * [verbosity_logfile]   - log output sent to @logfile (if enabled), DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     @cache_timeout       = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
     @logfile             = opts[:logfile].nil? ? false : opts[:logfile]
@@ -52,7 +53,25 @@ class Rouster
     @unittest            = opts[:unittest].nil? ? false : opts[:unittest]
     @vagrantfile         = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
     @vagrant_concurrency = opts[:vagrant_concurrency].nil? ? false : opts[:vagrant_concurrency]
-    @verbosity           = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 4
+
+    if opts[:verbosity]
+      # TODO decide how to handle this case
+      # - option 1, if passed a single integer, use that level for both loggers
+      # - option 2, if passed a single integer, use that level for stdout, and a hardcoded level (probably INFO) to logfile
+
+      # kind of want to do if opts[:verbosity].responds_to?(:[]), but for 1.87 compatability, going this way..
+      if opts[:verbosity].is_a?(Integer)
+        @verbosity_console = opts[:verbosity]
+        @verbosity_logfile = 2
+      elsif opts[:verbosity].is_a?(Array)
+        # TODO more error checking here when we are sure this is the right way to go
+        @verbosity_console = opts[:verbosity][0]
+        @verbosity_logfile = opts[:verbosity][1]
+      end
+    else
+      @verbosity_console = 3
+      @verbosity_logfile = 2 # this is kind of arbitrary, but won't actually be created unless opts[:logfile] is also passed
+    end
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]
@@ -80,12 +99,11 @@ class Rouster
     #@log.outputters << Log4r::Outputter.stdout
 
     if @logfile
-      # TODO should have some way to control the level here, not just assume debug.. but good enough for now
-      logfile = @logfile.eql?(true) ? sprintf('/tmp/rouster-%s.%s.%s.log', @name, Time.now.to_i, $$) : @logfile
-      @log.outputters << Log4r::FileOutputter.new(sprintf('rouster:%s', @name), :filename => logfile, :level => 0)
+      @logfile = @logfile.eql?(true) ? sprintf('/tmp/rouster-%s.%s.%s.log', @name, Time.now.to_i, $$) : @logfile
+      @log.outputters << Log4r::FileOutputter.new(sprintf('rouster:%s', @name), :filename => @logfile, :level => @verbosity_logfile)
     end
 
-    @log.outputters[0].level = @verbosity # can't set this when instantiating a .stderr logger, and want the FileOutputter at a different level
+    @log.outputters[0].level = @verbosity_console # can't set this when instantiating a .std* logger, and want the FileOutputter at a different level
 
     @log.debug('Vagrantfile and VM name validation..')
     unless File.file?(@vagrantfile)
@@ -149,7 +167,8 @@ class Rouster
       status[#{self.status()}],
       sudo[#{@sudo}],
       vagrantfile[#{@vagrantfile}],
-      verbosity[#{@verbosity}]\n"
+      verbosity console[#{@verbosity_console}] / log[#{@verbosity_logfile} - #{@logfile}]\n"
+
   end
 
   ## internal methods
@@ -427,7 +446,7 @@ class Rouster
   #
   # convenience getter for @sudo truthiness
   def uses_sudo?
-     self.sudo.eql?(true)
+     @sudo.eql?(true)
   end
 
   ##

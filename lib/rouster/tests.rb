@@ -373,8 +373,8 @@ class Rouster
   # * RedHat
   # * Ubuntu
   def is_process_running?(name)
-    # TODO support other flavors - this will work on RHEL and OSX
-    # TODO do better validation than just grepping for a matching filename
+    # TODO support Solaris
+    # TODO do better validation than just grepping for a matching filename, start with removing 'grep' from output
     begin
 
       os = self.os_type()

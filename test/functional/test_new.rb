@@ -36,7 +36,7 @@ class TestNew < Test::Unit::TestCase
         :name          => 'app',
         :passthrough   => false,
         :sudo          => false,
-        :verbosity     => 4,
+        :verbosity     => [4,0],
         #:vagrantfile  => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
         :sshkey        =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']),
         :cache_timeout => 10,
@@ -47,10 +47,18 @@ class TestNew < Test::Unit::TestCase
     assert_equal('app', @app.name)
     assert_equal(false, @app.is_passthrough?())
     assert_equal(false, @app.uses_sudo?())
-    assert_equal(4, @app.verbosity) # is this going to be strinigified?
+    assert_equal(4, @app.get_instance_variable(:@verbosity_console))
+    assert_equal(0, @app.get_instance_variable(:@verbosity_logfile))
     assert_equal(true, File.file?(@app.vagrantfile))
     assert_equal(true, File.file?(@app.sshkey))
     assert_equal(10, @app.cache_timeout)
+
+    ## logfile validation -- do we need to do more here?
+    logfile = @app.get_instance_variable(:@logfile)
+    assert(File.file?(logfile))
+
+    contents = File.read(logfile)
+    assert_not_nil(contents)
   end
 
   def test_4_bad_name_instantiation

@@ -21,7 +21,7 @@ class TestInspect < Test::Unit::TestCase
     assert_match(/status/, res)
     assert_match(/sudo\[true\]/, res)
     assert_match(/vagrantfile/, res)
-    assert_match(/verbosity\[4\]/, res)
+    assert_match(/verbosity console\[3\] \/ log\[2/, res)
   end
 
   def teardown
