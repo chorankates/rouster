@@ -33,15 +33,15 @@ class Rouster
     if cache and self.deltas[:crontab].class.eql?(Hash)
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:crontab]) > self.cache_timeout
-        @log.debug(sprintf('invalidating [crontab] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:crontab]), self.cache_timeout))
+        @logger.debug(sprintf('invalidating [crontab] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:crontab]), self.cache_timeout))
         self.deltas.delete(:crontab)
       end
 
       if self.deltas.has_key?(:crontab) and self.deltas[:crontab].has_key?(user)
-        @log.debug(sprintf('using cached [crontab] from [%s]', self.cache[:crontab]))
+        @logger.debug(sprintf('using cached [crontab] from [%s]', self.cache[:crontab]))
         return self.deltas[:crontab][user]
       elsif self.deltas.has_key?(:crontab) and user.eql?('*')
-        @log.debug(sprintf('using cached [crontab] from [%s]', self.cache[:crontab]))
+        @logger.debug(sprintf('using cached [crontab] from [%s]', self.cache[:crontab]))
         return self.deltas[:crontab]
       else
         # noop fallthrough to gather data to cache
@@ -87,7 +87,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [crontab] at [%s]', Time.now.asctime))
+      @logger.debug(sprintf('caching [crontab] at [%s]', Time.now.asctime))
 
       if ! user.eql?('*')
         self.deltas[:crontab] ||= Hash.new
@@ -124,10 +124,10 @@ class Rouster
     if cache and ! self.deltas[:groups].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:groups]) > self.cache_timeout
-        @log.debug(sprintf('invalidating [groups] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:groups]), self.cache_timeout))
+        @logger.debug(sprintf('invalidating [groups] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:groups]), self.cache_timeout))
         self.deltas.delete(:groups)
       else
-        @log.debug(sprintf('using cached [groups] from [%s]', self.cache[:groups]))
+        @logger.debug(sprintf('using cached [groups] from [%s]', self.cache[:groups]))
         return self.deltas[:groups]
       end
 
@@ -166,7 +166,7 @@ class Rouster
         gid = users[user][:gid]
 
         unless known_valid_gids.member?(gid)
-          @log.warn(sprintf('found user[%s] with unknown GID[%s], known GIDs[%s]', user, gid, known_valid_gids))
+          @logger.warn(sprintf('found user[%s] with unknown GID[%s], known GIDs[%s]', user, gid, known_valid_gids))
           next
         end
 
@@ -186,7 +186,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [groups] at [%s]', Time.now.asctime))
+      @logger.debug(sprintf('caching [groups] at [%s]', Time.now.asctime))
       self.deltas[:groups] = groups
       self.cache[:groups]  = Time.now.to_i
     end
@@ -219,10 +219,10 @@ class Rouster
     if cache and ! self.deltas[:packages].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:packages]) > self.cache_timeout
-        @log.debug(sprintf('invalidating [packages] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:packages]), self.cache_timeout))
+        @logger.debug(sprintf('invalidating [packages] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:packages]), self.cache_timeout))
         self.deltas.delete(:packages)
       else
-        @log.debug(sprintf('using cached [packages] from [%s]', self.cache[:packages]))
+        @logger.debug(sprintf('using cached [packages] from [%s]', self.cache[:packages]))
         return self.deltas[:packages]
       end
 
@@ -299,7 +299,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [packages] at [%s]', Time.now.asctime))
+      @logger.debug(sprintf('caching [packages] at [%s]', Time.now.asctime))
       self.deltas[:packages] = res
       self.cache[:packages]  = Time.now.to_i
     end
@@ -332,10 +332,10 @@ class Rouster
 
     if cache and ! self.deltas[:ports].nil?
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:ports]) > self.cache_timeout
-        @log.debug(sprintf('invalidating [ports] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:ports]), self.cache_timeout))
+        @logger.debug(sprintf('invalidating [ports] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:ports]), self.cache_timeout))
         self.deltas.delete(:ports)
       else
-        @log.debug(sprintf('using cached [ports] from [%s]', self.cache[:ports]))
+        @logger.debug(sprintf('using cached [ports] from [%s]', self.cache[:ports]))
         return self.deltas[:ports]
       end
     end
@@ -367,7 +367,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [ports] at [%s]', Time.now.asctime))
+      @logger.debug(sprintf('caching [ports] at [%s]', Time.now.asctime))
       self.deltas[:ports] = res
       self.cache[:ports]  = Time.now.to_i
     end
@@ -400,10 +400,10 @@ class Rouster
     if cache and ! self.deltas[:services].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:services]) > self.cache_timeout
-        @log.debug(sprintf('invalidating [services] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:services]), self.cache_timeout))
+        @logger.debug(sprintf('invalidating [services] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:services]), self.cache_timeout))
         self.deltas.delete(:services)
       else
-        @log.debug(sprintf('using cached [services] from [%s]', self.cache[:services]))
+        @logger.debug(sprintf('using cached [services] from [%s]', self.cache[:services]))
         return self.deltas[:services]
       end
 
@@ -503,7 +503,7 @@ class Rouster
             # <service> (pid <pid> [pid]) is <state>...
             res[$1] = $2
           elsif line.match(/^(\w+?)\sis\s(\w+)\.*$/) # not sure this is actually needed
-            @log.debug('triggered supposedly unnecessary regex')
+            @logger.debug('triggered supposedly unnecessary regex')
             # <service> is <state>. whatever
             res[$1] = $2
           elsif line.match(/^(\w+?)\:.*?(\w+)$/)
@@ -529,7 +529,7 @@ class Rouster
       if humanize
         res.each_pair do |k,v|
           next if allowed_modes.member?(v)
-          @log.debug(sprintf('replacing service[%s] status of [%s] with [%s] for uniformity', k, v, failover_mode))
+          @logger.debug(sprintf('replacing service[%s] status of [%s] with [%s] for uniformity', k, v, failover_mode))
           res[k] = failover_mode
         end
       end
@@ -539,7 +539,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [services] at [%s]', Time.now.asctime))
+      @logger.debug(sprintf('caching [services] at [%s]', Time.now.asctime))
       self.deltas[:services] = res
       self.cache[:services]  = Time.now.to_i
     end
@@ -566,10 +566,10 @@ class Rouster
     if cache and ! self.deltas[:users].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:users]) > self.cache_timeout
-        @log.debug(sprintf('invalidating [users] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:users]), self.cache_timeout))
+        @logger.debug(sprintf('invalidating [users] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:users]), self.cache_timeout))
         self.deltas.delete(:users)
       else
-        @log.debug(sprintf('using cached [users] from [%s]', self.cache[:users]))
+        @logger.debug(sprintf('using cached [users] from [%s]', self.cache[:users]))
         return self.deltas[:users]
       end
 
@@ -594,7 +594,7 @@ class Rouster
     end
 
     if cache
-      @log.debug(sprintf('caching [users] at [%s]', Time.now.asctime))
+      @logger.debug(sprintf('caching [users] at [%s]', Time.now.asctime))
       self.deltas[:users] = res
       self.cache[:users]  = Time.now.to_i
     end

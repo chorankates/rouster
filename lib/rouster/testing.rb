@@ -72,7 +72,7 @@ class Rouster
         expectation = $2
 
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -179,7 +179,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results)
+    @logger.info(results)
     results.find{|k,v| v.false? }.nil?
 
   end
@@ -227,7 +227,7 @@ class Rouster
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -276,7 +276,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results)
+    @logger.info(results)
     results.find{|k,v| v.false? }.nil?
   end
 
@@ -322,7 +322,7 @@ class Rouster
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -368,7 +368,7 @@ class Rouster
     end
 
     # TODO figure out a good way to allow access to the entire hash, not just boolean -- for now just print at an info level
-    @log.info(results)
+    @logger.info(results)
 
     results.find{|k,v| v.false? }.nil?
   end
@@ -417,7 +417,7 @@ class Rouster
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -461,7 +461,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results)
+    @logger.info(results)
 
     results.find{|k,v| v.false? }.nil?
   end
@@ -503,7 +503,7 @@ class Rouster
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -542,7 +542,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results)
+    @logger.info(results)
     results.find{|k,v| v.false? }.nil?
 
   end
@@ -594,7 +594,7 @@ class Rouster
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -663,7 +663,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results)
+    @logger.info(results)
     results.find{|k,v| v.false? }.nil?
 
   end
@@ -687,7 +687,7 @@ class Rouster
 
     unless self.respond_to?('facter') or self.respond_to?('hiera')
       # if we haven't loaded puppet.rb, we won't have access to facts/hiera lookups
-      @log.warn('using constraints without loading [rouster/puppet] will not work, forcing no-op')
+      @logger.warn('using constraints without loading [rouster/puppet] will not work, forcing no-op')
       return false
     end
 
@@ -712,7 +712,7 @@ class Rouster
       res = ! actual.to_s.match(/#{expectation}/).nil?
     end
 
-    @log.debug(sprintf('meets_constraint?(%s, %s): %s', key, expectation, res.nil?))
+    @logger.debug(sprintf('meets_constraint?(%s, %s): %s', key, expectation, res.nil?))
     res
   end
 

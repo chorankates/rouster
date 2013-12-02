@@ -13,7 +13,7 @@ class Rouster
   # * <face> - vagrant face to call (include arguments)
   def vagrant(face, sleep_time=10)
     if self.is_passthrough?
-      @log.info(sprintf('calling [vagrant %s] on a passthrough host is a noop', face))
+      @logger.info(sprintf('calling [vagrant %s] on a passthrough host is a noop', face))
       return nil
     end
 
@@ -30,7 +30,7 @@ class Rouster
       begin
         return self._run(sprintf('cd %s; vagrant %s', File.dirname(@vagrantfile), face))
       rescue
-        @log.error(sprintf('failed vagrant command[%s], attempt[%s/%s]', face, try, retries)) if self.retries > 0
+        @logger.error(sprintf('failed vagrant command[%s], attempt[%s/%s]', face, try, retries)) if self.retries > 0
         sleep sleep_time
       end
     end
@@ -45,7 +45,7 @@ class Rouster
   # runs `vagrant up` from the Vagrantfile path
   # if :sshtunnel is passed to the object during instantiation, the tunnel is created here as well
   def up
-    @log.info('up()')
+    @logger.info('up()')
     self.vagrant(sprintf('up %s', @name))
 
     @ssh_info = nil # in case the ssh-info has changed, a la destroy/rebuild
@@ -56,7 +56,7 @@ class Rouster
   # destroy
   # runs `vagrant destroy <name>` from the Vagrantfile path
   def destroy
-    @log.info('destroy()')
+    @logger.info('destroy()')
     disconnect_ssh_tunnel
     self.vagrant(sprintf('destroy -f %s', @name))
   end
@@ -72,13 +72,13 @@ class Rouster
     if @cache_timeout
       if @cache.has_key?(:status)
         if (Time.now.to_i - @cache[:status][:time]) < @cache_timeout
-          @log.debug(sprintf('using cached status[%s] from [%s]', @cache[:status][:status], @cache[:status][:time]))
+          @logger.debug(sprintf('using cached status[%s] from [%s]', @cache[:status][:status], @cache[:status][:time]))
           return @cache[:status][:status]
         end
       end
     end
 
-    @log.info('status()')
+    @logger.info('status()')
     self.vagrant(sprintf('status %s', @name))
 
     # else case here is handled by non-0 exit code
@@ -94,7 +94,7 @@ class Rouster
       @cache[:status] = Hash.new unless @cache[:status].class.eql?(Hash)
       @cache[:status][:time] = Time.now.to_i
       @cache[:status][:status] = status
-      @log.debug(sprintf('caching status[%s] at [%s]', @cache[:status][:status], @cache[:status][:time]))
+      @logger.debug(sprintf('caching status[%s] at [%s]', @cache[:status][:status], @cache[:status][:time]))
     end
 
     return status
@@ -105,7 +105,7 @@ class Rouster
   #
   # runs `vagrant suspend <name>` from the Vagrantfile path
   def suspend
-    @log.info('suspend()')
+    @logger.info('suspend()')
     disconnect_ssh_tunnel()
     self.vagrant(sprintf('suspend %s', @name))
   end
@@ -126,7 +126,7 @@ class Rouster
     rescue
     end
 
-    @log.debug(sprintf('is_vagrant_running?[%s]', res))
+    @logger.debug(sprintf('is_vagrant_running?[%s]', res))
     res
   end
 
@@ -137,11 +137,11 @@ class Rouster
   # subcommand is available
   def sandbox_available?
     if @cache.has_key?(:sandbox_available?)
-      @log.debug(sprintf('using cached sandbox_available?[%s]', @cache[:sandbox_available?]))
+      @logger.debug(sprintf('using cached sandbox_available?[%s]', @cache[:sandbox_available?]))
       return @cache[:sandbox_available?]
     end
 
-    @log.info('sandbox_available()')
+    @logger.info('sandbox_available()')
     self._run(sprintf('cd %s; vagrant', File.dirname(@vagrantfile))) # calling 'vagrant' without parameters to determine available faces
 
     sandbox_available = false
@@ -150,8 +150,8 @@ class Rouster
     end
 
     @cache[:sandbox_available?] = sandbox_available
-    @log.debug(sprintf('caching sandbox_available?[%s]', @cache[:sandbox_available?]))
-    @log.error('sandbox support is not available, please install the "sahara" gem first, https://github.com/jedi4ever/sahara') unless sandbox_available
+    @logger.debug(sprintf('caching sandbox_available?[%s]', @cache[:sandbox_available?]))
+    @logger.error('sandbox support is not available, please install the "sahara" gem first, https://github.com/jedi4ever/sahara') unless sandbox_available
 
     return sandbox_available
   end

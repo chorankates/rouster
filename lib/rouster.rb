@@ -24,7 +24,7 @@ class Rouster
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_accessor :facts
-  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
+  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :logger, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
 
   ##
   # initialize - object instantiation
@@ -55,7 +55,7 @@ class Rouster
     @vagrant_concurrency = opts[:vagrant_concurrency].nil? ? false : opts[:vagrant_concurrency]
 
     if opts[:verbosity]
-      # TODO decide how to handle this case
+      # TODO decide how to handle this case -- currently #2 is implemented
       # - option 1, if passed a single integer, use that level for both loggers
       # - option 2, if passed a single integer, use that level for stdout, and a hardcoded level (probably INFO) to logfile
 
@@ -94,18 +94,18 @@ class Rouster
     require 'log4r/config'
     Log4r.define_levels(*Log4r::Log4rConfig::LogLevels)
 
-    @log            = Log4r::Logger.new(sprintf('rouster:%s', @name))
-    @log.outputters << Log4r::Outputter.stderr
+    @logger            = Log4r::Logger.new(sprintf('rouster:%s', @name))
+    @logger.outputters << Log4r::Outputter.stderr
     #@log.outputters << Log4r::Outputter.stdout
 
     if @logfile
       @logfile = @logfile.eql?(true) ? sprintf('/tmp/rouster-%s.%s.%s.log', @name, Time.now.to_i, $$) : @logfile
-      @log.outputters << Log4r::FileOutputter.new(sprintf('rouster:%s', @name), :filename => @logfile, :level => @verbosity_logfile)
+      @logger.outputters << Log4r::FileOutputter.new(sprintf('rouster:%s', @name), :filename => @logfile, :level => @verbosity_logfile)
     end
 
-    @log.outputters[0].level = @verbosity_console # can't set this when instantiating a .std* logger, and want the FileOutputter at a different level
+    @logger.outputters[0].level = @verbosity_console # can't set this when instantiating a .std* logger, and want the FileOutputter at a different level
 
-    @log.debug('Vagrantfile and VM name validation..')
+    @logger.debug('Vagrantfile and VM name validation..')
     unless File.file?(@vagrantfile)
       raise InternalError.new(sprintf('specified Vagrantfile [%s] does not exist', @vagrantfile))
     end
@@ -128,7 +128,7 @@ class Rouster
       raise InternalError.new(sprintf('caught non-0 exitcode from status(): %s', e.message))
     end
 
-    @log.debug('SSH key discovery and viability tests..')
+    @logger.debug('SSH key discovery and viability tests..')
     if @sshkey.nil?
       if @passthrough.eql?(true)
         raise InternalError.new('must specify sshkey when using a passthrough host')
@@ -151,7 +151,7 @@ class Rouster
       self.up()
     end
 
-    @log.info('Rouster object successfully instantiated')
+    @logger.info('Rouster object successfully instantiated')
   end
 
 
@@ -195,14 +195,14 @@ class Rouster
     expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
 
     cmd = sprintf('%s%s; echo ec[$?]', self.uses_sudo? ? 'sudo ' : '', command)
-    @log.info(sprintf('vm running: [%s]', cmd))
+    @logger.info(sprintf('vm running: [%s]', cmd))
 
     0.upto(@retries) do |try|
       begin
         output = @ssh.exec!(cmd)
         try = @retries # TODO exit this retry loop in a smarter way
       rescue => e
-        @log.error(sprintf('failed to run [%s] with [%s], attempt[%s/%s]', cmd, e, try, retries)) if self.retries > 0
+        @logger.error(sprintf('failed to run [%s] with [%s], attempt[%s/%s]', cmd, e, try, retries)) if self.retries > 0
         sleep 10 # TODO need to expose this as a variable
       end
 
@@ -219,7 +219,7 @@ class Rouster
     end
 
     self.output.push(output)
-    @log.debug(sprintf('output: [%s]', output))
+    @logger.debug(sprintf('output: [%s]', output))
 
     unless expected_exitcode.member?(@exitcode)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
@@ -241,7 +241,7 @@ class Rouster
     if @cache_timeout
       if @cache.has_key?(:is_available_via_ssh?)
         if (Time.now.to_i - @cache[:is_available_via_ssh?][:time]) < @cache_timeout
-          @log.debug(sprintf('using cached is_available_via_ssh?[%s] from [%s]', @cache[:is_available_via_ssh?][:status], @cache[:is_available_via_ssh?][:time]))
+          @logger.debug(sprintf('using cached is_available_via_ssh?[%s] from [%s]', @cache[:is_available_via_ssh?][:status], @cache[:is_available_via_ssh?][:time]))
           return @cache[:is_available_via_ssh?][:status]
         end
       end
@@ -270,7 +270,7 @@ class Rouster
       @cache[:is_available_via_ssh?] = Hash.new unless @cache[:is_available_via_ssh?].class.eql?(Hash)
       @cache[:is_available_via_ssh?][:time] = Time.now.to_i
       @cache[:is_available_via_ssh?][:status] = res
-      @log.debug(sprintf('caching is_available_via_ssh?[%s] at [%s]', @cache[:is_available_via_ssh?][:status], @cache[:is_available_via_ssh?][:time]))
+      @logger.debug(sprintf('caching is_available_via_ssh?[%s] at [%s]', @cache[:is_available_via_ssh?][:status], @cache[:is_available_via_ssh?][:time]))
     end
 
     res
@@ -287,7 +287,7 @@ class Rouster
     h = Hash.new()
 
     if @ssh_info.class.eql?(Hash)
-      @log.debug('using cached SSH info')
+      @logger.debug('using cached SSH info')
       h = @ssh_info
     else
 
@@ -305,7 +305,7 @@ class Rouster
           unless @sshkey.eql?(key)
             h[:identity_file] = key
           else
-            @log.info(sprintf('using specified key[%s] instead of discovered key[%s]', @sshkey, key))
+            @logger.info(sprintf('using specified key[%s] instead of discovered key[%s]', @sshkey, key))
             h[:identity_file] = @sshkey
           end
 
@@ -325,7 +325,7 @@ class Rouster
   #
   # raises its own InternalError if the machine isn't running, otherwise returns Net::SSH connection object
   def connect_ssh_tunnel
-    @log.debug('opening SSH tunnel..')
+    @logger.debug('opening SSH tunnel..')
 
     status = self.status()
     if status.eql?('running')
@@ -344,7 +344,7 @@ class Rouster
   # shuts down the persistent Net::SSH tunnel
   #
   def disconnect_ssh_tunnel
-    @log.debug('closing SSH tunnel..')
+    @logger.debug('closing SSH tunnel..')
 
     @ssh.shutdown! unless @ssh.nil?
     @ssh = nil
@@ -400,7 +400,7 @@ class Rouster
     # TODO what happens when we pass a wildcard as remote_file?
 
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
-    @log.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
+    @logger.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
 
     begin
       @ssh.scp.download!(remote_file, local_file)
@@ -421,7 +421,7 @@ class Rouster
   # * [remote_file] - full or relative path (based on ~vagrant) of filename to upload to
   def put(local_file, remote_file=nil)
     remote_file = remote_file.nil? ? File.basename(local_file) : remote_file
-    @log.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
+    @logger.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
 
     raise FileTransferError.new(sprintf('unable to put[%s], local file does not exist', local_file)) unless File.file?(local_file)
 
@@ -454,7 +454,7 @@ class Rouster
   #
   # destroy and then up the machine in question
   def rebuild
-    @log.debug('rebuild()')
+    @logger.debug('rebuild()')
     self.destroy
     self.up
   end
@@ -467,10 +467,10 @@ class Rouster
   # parameters
   # * [wait] - number of seconds to wait until is_available_via_ssh?() returns true before assuming failure
   def restart(wait=nil)
-    @log.debug('restart()')
+    @logger.debug('restart()')
 
     if self.is_passthrough? and self.passthrough.eql?(local)
-      @log.warn(sprintf('intercepted [restart] sent to a local passthrough, no op'))
+      @logger.warn(sprintf('intercepted [restart] sent to a local passthrough, no op'))
       return nil
     end
 
@@ -490,7 +490,7 @@ class Rouster
     if wait
       inc = wait.to_i / 10
       0..wait.each do |e|
-        @log.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
+        @logger.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
         return true if self.is_available_via_ssh?()
         sleep inc
       end
@@ -516,13 +516,13 @@ class Rouster
     cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file) # this is a holdover from Salesforce::Vagrant, can we use '2&>1' here?
     res      = `#{cmd}` # what does this actually hold?
 
-    @log.info(sprintf('host running: [%s]', cmd))
+    @logger.info(sprintf('host running: [%s]', cmd))
 
     output = File.read(tmp_file)
     File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))
 
     self.output.push(output)
-    @log.debug(sprintf('output: [%s]', output))
+    @logger.debug(sprintf('output: [%s]', output))
 
     unless $?.success?
       raise LocalExecutionError.new(sprintf('command [%s] exited with code [%s], output [%s]', cmd, $?.to_i(), output))
@@ -571,7 +571,7 @@ class Rouster
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
     raise InternalError.new('must specify a filename') if filename.nil?
 
-    @log.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels)) unless @log.nil?
+    @logger.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels)) unless @logger.nil?
 
     dirs  = startdir.split('/')
     count = 0

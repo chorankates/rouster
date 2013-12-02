@@ -20,10 +20,10 @@ class Rouster
     if cache.true? and ! self.facts.nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:facter]) > self.cache_timeout
-        @log.debug(sprintf('invalidating [facter] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:facter]), self.cache_timeout))
+        @logger.debug(sprintf('invalidating [facter] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:facter]), self.cache_timeout))
         self.facts = nil
       else
-        @log.debug(sprintf('using cached [facter] from [%s]', self.cache[:facter]))
+        @logger.debug(sprintf('using cached [facter] from [%s]', self.cache[:facter]))
         return self.facts
       end
 
@@ -38,7 +38,7 @@ class Rouster
     end
 
     if cache.true?
-      @log.debug(sprintf('caching [facter] at [%s]', Time.now.asctime))
+      @logger.debug(sprintf('caching [facter] at [%s]', Time.now.asctime))
       self.facts = res
       self.cache[:facter] = Time.now.to_i
     end
@@ -169,7 +169,7 @@ class Rouster
     cmd = 'hiera'
 
     if facts.nil?
-      @log.info('no facts provided, calling facter() automatically')
+      @logger.info('no facts provided, calling facter() automatically')
       facts = self.facter()
     end
 

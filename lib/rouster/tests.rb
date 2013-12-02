@@ -44,7 +44,7 @@ class Rouster
     if raw.match(/No such file or directory/)
       res = nil
     elsif raw.match(/Permission denied/)
-      @log.info(sprintf('dir(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
+      @logger.info(sprintf('dir(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
       res = nil
     else
       res = parse_ls_string(raw)
@@ -120,7 +120,7 @@ class Rouster
     end
 
     if raw.match(/No such file or directory/)
-      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, raw)) unless self.uses_sudo?
+      @logger.info(sprintf('is_file?(%s) output[%s], try with sudo', file, raw)) unless self.uses_sudo?
       res = nil
     elsif raw.match(/Permission denied/)
       res = nil
@@ -264,7 +264,7 @@ class Rouster
 
     if scp
       # download the file to a temporary directory
-      @log.warn('is_in_file? scp option not implemented yet')
+      @logger.warn('is_in_file? scp option not implemented yet')
     end
 
     begin
