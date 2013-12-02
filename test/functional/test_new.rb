@@ -74,6 +74,8 @@ class TestNew < Test::Unit::TestCase
 
     ## logfile validation -- do we need to do more here?
     logfile = @app.instance_variable_get(:@logfile)
+
+    assert_not_equal(true, logfile)
     assert(File.file?(logfile))
 
     contents = File.read(logfile)

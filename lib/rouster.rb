@@ -67,7 +67,6 @@ class Rouster
         @verbosity_console = opts[:verbosity][0]
         @verbosity_logfile = opts[:verbosity][1]
         @logfile = true if @logfile.eql?(false) # overriding the default setting
-
       end
     else
       @verbosity_console = 3
