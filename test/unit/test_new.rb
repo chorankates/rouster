@@ -9,6 +9,8 @@ class TestNew < Test::Unit::TestCase
 
   def setup
     @app = nil
+    # TODO make this work, don't want to have to instance_variable_get everything..
+    #Rouster.send(:public, *Rouster.instance_variables)
   end
 
   # TODO this is an awful pattern, do better

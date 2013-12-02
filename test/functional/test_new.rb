@@ -8,7 +8,7 @@ require 'test/unit'
 class TestNew < Test::Unit::TestCase
 
   def setup
-    @app = Rouster.new(:name => 'app')
+    @app = Rouster.new(:name => 'app', :sshtunnel => false)
     @app.destroy() if @app.status().eql?('running')
     @app = nil
   end
@@ -21,11 +21,29 @@ class TestNew < Test::Unit::TestCase
 
   end
 
+  def test_2_defults
+
+    assert_nothing_raised do
+      @app = Rouster.new(:name => 'app')
+    end
+
+    assert_equal('app', @app.name)
+    assert_equal(false, @app.cache_timeout)
+    assert_equal(false, @app.instance_variable_get(:@logfile))
+    assert_equal(false, @app.is_passthrough?())
+    assert_equal(0, @app.retries)
+    assert_equal(true, @app.instance_variable_get(:@sshtunnel))
+    assert_equal(false, @app.instance_variable_get(:@unittest))
+    assert_equal(false, @app.instance_variable_get(:@vagrant_concurrency))
+    assert_equal(3, @app.instance_variable_get(:@verbosity_console))
+    assert_equal(2, @app.instance_variable_get(:@verbosity_logfile))
+
+  end
+
   def test_2_good_openssh_tunnel
     @app = Rouster.new(:name => 'app', :sshtunnel => true)
                                            7
     # TODO how do we properly test this? we really need the rspec should_call mechanism...
-
     assert_equal(true, @app.is_available_via_ssh?)
   end
 
@@ -40,6 +58,7 @@ class TestNew < Test::Unit::TestCase
         #:vagrantfile  => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
         :sshkey        =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']),
         :cache_timeout => 10,
+        :logfile       => true,
       )
 
     end
@@ -47,14 +66,14 @@ class TestNew < Test::Unit::TestCase
     assert_equal('app', @app.name)
     assert_equal(false, @app.is_passthrough?())
     assert_equal(false, @app.uses_sudo?())
-    assert_equal(4, @app.get_instance_variable(:@verbosity_console))
-    assert_equal(0, @app.get_instance_variable(:@verbosity_logfile))
+    assert_equal(4, @app.instance_variable_get(:@verbosity_console))
+    assert_equal(0, @app.instance_variable_get(:@verbosity_logfile))
     assert_equal(true, File.file?(@app.vagrantfile))
     assert_equal(true, File.file?(@app.sshkey))
     assert_equal(10, @app.cache_timeout)
 
     ## logfile validation -- do we need to do more here?
-    logfile = @app.get_instance_variable(:@logfile)
+    logfile = @app.instance_variable_get(:@logfile)
     assert(File.file?(logfile))
 
     contents = File.read(logfile)

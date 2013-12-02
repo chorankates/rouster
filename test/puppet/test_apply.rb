@@ -22,8 +22,11 @@ class TestPuppetApply < Test::Unit::TestCase
     }
 
     ['manifests/hieradata', 'modules/role/manifests'].each do |dir|
+      top = dir.split('/')[0]
+
       @app.run("mkdir -p #{dir}")
-      @app.run("chown -R vagrant:vagrant #{dir}") # because sudo=true, directories will be created with root:root
+      @app.run("chown -R vagrant:vagrant #{top}") # because sudo=true, directories will be created with root:root
+
     end
 
     required_files.each_pair do |source,dest|
