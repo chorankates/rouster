@@ -40,8 +40,7 @@ class Rouster
   # * [sudo]                - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
   # * [vagrantfile]         - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
   # * [vagrant_concurrency] - boolean controlling whether Rouster will attempt to run `vagrant *` if another vagrant process is already running, default is false
-  # * [verbosity_stdout]    - log output displayed on the console, DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
-  # * [verbosity_logfile]   - log output sent to @logfile (if enabled), DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
+  # * [verbosity]           - an integer representing console level logging, or an array of integers representing console,file level logging - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     @cache_timeout       = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
     @logfile             = opts[:logfile].nil? ? false : opts[:logfile]
@@ -67,6 +66,8 @@ class Rouster
         # TODO more error checking here when we are sure this is the right way to go
         @verbosity_console = opts[:verbosity][0]
         @verbosity_logfile = opts[:verbosity][1]
+        @logfile = true if @logfile.eql?(false) # overriding the default setting
+
       end
     else
       @verbosity_console = 3
