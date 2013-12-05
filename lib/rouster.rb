@@ -200,7 +200,7 @@ class Rouster
     0.upto(@retries) do |try|
       begin
         output = @ssh.exec!(cmd)
-        try = @retries # TODO exit this retry loop in a smarter way
+        break
       rescue => e
         @logger.error(sprintf('failed to run [%s] with [%s], attempt[%s/%s]', cmd, e, try, retries)) if self.retries > 0
         sleep 10 # TODO need to expose this as a variable
