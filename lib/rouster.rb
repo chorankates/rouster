@@ -360,13 +360,19 @@ class Rouster
       return @ostype
     end
 
+    # TODO switch to file based detection
+    # Ubuntu - /etc/os-release
+    # Solaris - /etc/release
+    # RHEL/CentOS - /etc/redhat-release
+    # OSX - ?
+
     res   = nil
     uname = self.run('uname -a')
 
     case uname
       when /Darwin/i
         res = :osx
-      when /Sun|Solaris/i
+      when /SunOS|Solaris/i
         res =:solaris
       when /Ubuntu/i
         res = :ubuntu
