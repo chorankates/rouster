@@ -209,7 +209,7 @@ class Rouster
     end
 
     if output.nil?
-      output    = 'error gathering output, see last logged error'
+      output    = "error gathering output, last logged output[#{self.get_output()}]"
       @exitcode = 256
     elsif output.match(/ec\[(\d+)\]/)
       @exitcode = $1.to_i
