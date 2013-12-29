@@ -64,12 +64,14 @@ class Rouster
     puppetmaster = puppetmaster.nil? ? 'puppet' : puppetmaster
     facts        = facts.nil? ? self.facter() : facts
 
+    # TODO determine if 'fqdn' is an expected default fact, not pulling it on the CentOS vms
     %w(fqdn hostname operatingsystem operatingsystemrelease osfamily rubyversion).each do |required|
       raise ArgumentError.new(sprintf('missing required fact[%s]', required)) unless facts.has_key?(required)
     end
 
+    # TODO finish the psonification
     raise InternalError.new('need to finish conversion of facts to PSON')
-    facts.to_pson # this does not work, but needs to
+    facts.to_pson
 
     json = nil
     url  = sprintf('https://%s:%s/catalog/%s?facts_format=pson&facts=%s', puppetmaster, puppetmaster_port, certname, facts)
@@ -208,7 +210,7 @@ class Rouster
 
     if catalog.is_a?(String)
       begin
-        JSON.parse!(catalog)
+        catalog = JSON.parse!(catalog)
       rescue
         raise InternalError.new(sprintf('unable to parse catalog[%s] as JSON', catalog))
       end
@@ -223,17 +225,23 @@ class Rouster
     end
 
     raw_resources = catalog['data']['resources']
+    resources     = Hash.new()
 
     raw_resources.each do |r|
       # samples of eacb type of resource is available at
       # https://github.com/chorankates/rouster/issues/20#issuecomment-18635576
       #
-      # we can do a lot better here
+      # we can do a lot better here:
+      #  - determine/log resource dependencies (before/after/requires)
+      #  - should we really be defining hash keys with nil values?
+      #  - should we organize resources by Type on top-level hash? and if so, do we leave the [:type] key currently defined? (yes, yes)
       type = r['type']
       case type
         when 'Class'
+          debugger
           classes.push(r['title'])
         when 'File'
+          # TODO can we get source here? (puppet:// spec)
           name = r['title']
           resources[name] = Hash.new()
 
@@ -259,7 +267,7 @@ class Rouster
           resources[name] = Hash.new()
 
           resources[name][:type]    = :package
-          resources[name][:ensure]  = r['ensure'] ||= 'present'
+          resources[name][:ensure]  = r['ensure'] ||= r['parameters']['ensure'] # except that the deeper hash contains 'installed' (and assume 'non-installed'), not 'present' or a version number..
           resources[name][:version] = r['ensure'] =~ /\d/ ? r['ensure'] : nil
 
         when 'Service'
@@ -267,10 +275,11 @@ class Rouster
           resources[name] = Hash.new()
 
           resources[name][:type]   = :service
-          resources[name][:ensure] = r['ensure'] ||= 'present'
+          resources[name][:ensure] = r['ensure'] ||= r['parameters']['ensure']
           resources[name][:state]  = r['ensure']
 
         when 'User'
+          debugger
           name = r['title']
           resources[name] = Hash.new()
 
@@ -282,8 +291,15 @@ class Rouster
           resources[name][:shell]  = r['parameters'].has_key?('shell')  ? r['parameters']['shell']  : nil
           resources[name][:uid]    = r['parameters'].has_key?('uid')    ? r['parameters']['uid']    : nil
 
+        # TODO not really sure what to do with this resources
+        when 'Filebucket'
+          @logger.error("unable to parse [Filebucket]: #{r.pretty_inspect}")
+        when 'Node'
+          @logger.error("unable to parse [Node]: #{r.pretty_inspect}")
+        when 'Stage'
+          @logger.error("unable to parse [Stage]: #{r.pretty_inspect}")
         else
-          raise NotImplementedError.new(sprintf('parsing support for [%s] is incomplete', type))
+          raise NotImplementedError.new(sprintf('parsing support for [%s] is incomplete. contents[%s]', type, r))
       end
 
     end
