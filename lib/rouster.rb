@@ -7,11 +7,12 @@ require 'net/ssh'
 require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 require 'rouster/tests'
+require 'rouster/vagrant'
 
 class Rouster
 
   # sporadically updated version number
-  VERSION = 0.42
+  VERSION = 0.57
 
   # custom exceptions -- what else do we want them to include/do?
   class ArgumentError        < StandardError; end # thrown by methods that take parameters from users
@@ -22,30 +23,55 @@ class Rouster
   class RemoteExecutionError < StandardError; end # thrown by run()
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_accessor :facts, :sudo, :verbosity
-  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :log, :name, :output, :passthrough, :sshkey, :unittest, :vagrantfile
+  attr_accessor :facts
+  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :logger, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
 
   ##
   # initialize - object instantiation
   #
   # parameters
-  # * <name> - the name of the VM as specified in the Vagrantfile
-  # * [cache_timeout] - integer specifying how long Rouster should cache status() and is_available_via_ssh?() results, default is false
-  # * [passthrough] - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
-  # * [sshkey] - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
-  # * [sshtunnel] - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
-  # * [sudo] - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
-  # * [vagrantfile] - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
-  # * [verbosity] - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
+  # * <name>                - the name of the VM as specified in the Vagrantfile
+  # * [cache_timeout]       - integer specifying how long Rouster should cache status() and is_available_via_ssh?() results, default is false
+  # * [logfile]             - allows logging to an external file, if passed true, generates a dynamic filename, otherwise uses what is passed, default is false
+  # * [passthrough]         - boolean of whether this is a VM or passthrough, default is false -- passthrough is not completely implemented
+  # * [retries]             - integer specifying number of retries Rouster should attempt when running external (currently only vagrant()) commands
+  # * [sshkey]              - the full or relative path to a SSH key used to auth to VM -- defaults to location Vagrant installs to (ENV[VAGRANT_HOME} or ]~/.vagrant.d/)
+  # * [sshtunnel]           - boolean of whether or not to instantiate the SSH tunnel upon upping the VM, default is true
+  # * [sudo]                - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
+  # * [vagrantfile]         - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
+  # * [vagrant_concurrency] - boolean controlling whether Rouster will attempt to run `vagrant *` if another vagrant process is already running, default is false
+  # * [verbosity]           - an integer representing console level logging, or an array of integers representing console,file level logging - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
-    @cache_timeout = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
-    @name          = opts[:name]
-    @passthrough   = opts[:passthrough].nil? ? false : opts[:passthrough]
-    @sshkey        = opts[:sshkey]
-    @sshtunnel     = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
-    @unittest      = opts[:unittest].nil? ? false : opts[:unittest]
-    @vagrantfile   = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
-    @verbosity     = opts[:verbosity].is_a?(Integer) ? opts[:verbosity] : 4
+    @cache_timeout       = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
+    @logfile             = opts[:logfile].nil? ? false : opts[:logfile]
+    @name                = opts[:name]
+    @passthrough         = opts[:passthrough].nil? ? false : opts[:passthrough]
+    @retries             = opts[:retries].nil? ? 0 : opts[:retries]
+    @sshkey              = opts[:sshkey]
+    @sshtunnel           = opts[:sshtunnel].nil? ? true : opts[:sshtunnel]
+    @unittest            = opts[:unittest].nil? ? false : opts[:unittest]
+    @vagrantfile         = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
+    @vagrant_concurrency = opts[:vagrant_concurrency].nil? ? false : opts[:vagrant_concurrency]
+
+    if opts[:verbosity]
+      # TODO decide how to handle this case -- currently #2 is implemented
+      # - option 1, if passed a single integer, use that level for both loggers
+      # - option 2, if passed a single integer, use that level for stdout, and a hardcoded level (probably INFO) to logfile
+
+      # kind of want to do if opts[:verbosity].responds_to?(:[]), but for 1.87 compatability, going this way..
+      if opts[:verbosity].is_a?(Integer)
+        @verbosity_console = opts[:verbosity]
+        @verbosity_logfile = 2
+      elsif opts[:verbosity].is_a?(Array)
+        # TODO more error checking here when we are sure this is the right way to go
+        @verbosity_console = opts[:verbosity][0]
+        @verbosity_logfile = opts[:verbosity][1]
+        @logfile = true if @logfile.eql?(false) # overriding the default setting
+      end
+    else
+      @verbosity_console = 3
+      @verbosity_logfile = 2 # this is kind of arbitrary, but won't actually be created unless opts[:logfile] is also passed
+    end
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]
@@ -68,32 +94,41 @@ class Rouster
     require 'log4r/config'
     Log4r.define_levels(*Log4r::Log4rConfig::LogLevels)
 
-    @log            = Log4r::Logger.new(sprintf('rouster:%s', @name))
-    @log.outputters = Log4r::Outputter.stderr
-    @log.level      = @verbosity
+    @logger            = Log4r::Logger.new(sprintf('rouster:%s', @name))
+    @logger.outputters << Log4r::Outputter.stderr
+    #@log.outputters << Log4r::Outputter.stdout
 
-    @log.debug('Vagrantfile and VM name validation..')
+    if @logfile
+      @logfile = @logfile.eql?(true) ? sprintf('/tmp/rouster-%s.%s.%s.log', @name, Time.now.to_i, $$) : @logfile
+      @logger.outputters << Log4r::FileOutputter.new(sprintf('rouster:%s', @name), :filename => @logfile, :level => @verbosity_logfile)
+    end
+
+    @logger.outputters[0].level = @verbosity_console # can't set this when instantiating a .std* logger, and want the FileOutputter at a different level
+
+    @logger.debug('Vagrantfile and VM name validation..')
     unless File.file?(@vagrantfile)
       raise InternalError.new(sprintf('specified Vagrantfile [%s] does not exist', @vagrantfile))
     end
 
-    raise InternalError.new() if @name.nil?
+    raise InternalError.new('name of Vagrant VM not specified') if @name.nil?
 
     return if opts[:unittest].eql?(true) # quick return if we're a unit test
 
     begin
-      self.status()
-    rescue Rouster::LocalExecutionError
-      raise InternalError.new()
-    end
-
-    begin
-      self._run('which vagrant')
+      @vagrantbinary = self._run('which vagrant').chomp!
     rescue
       raise ExternalError.new('vagrant not found in path')
     end
 
-    @log.debug('SSH key discovery and viability tests..')
+    # this is breaking test/functional/test_caching.rb test_ssh_caching (if the VM was not running when the test started)
+    # it slows down object instantiation, but is a good test to ensure the machine name is valid..
+    begin
+      self.status()
+    rescue Rouster::LocalExecutionError => e
+      raise InternalError.new(sprintf('caught non-0 exitcode from status(): %s', e.message))
+    end
+
+    @logger.debug('SSH key discovery and viability tests..')
     if @sshkey.nil?
       if @passthrough.eql?(true)
         raise InternalError.new('must specify sshkey when using a passthrough host')
@@ -113,15 +148,10 @@ class Rouster
     end
 
     if @sshtunnel
-      unless self.status.eql?('running')
-        @log.info(sprintf('upping machine[%s] in order to open SSH tunnel', @name))
-        self.up()
-      end
-
-      self.connect_ssh_tunnel()
+      self.up()
     end
 
-    @log.info('Rouster object successfully instantiated')
+    @logger.info('Rouster object successfully instantiated')
   end
 
 
@@ -137,76 +167,8 @@ class Rouster
       status[#{self.status()}],
       sudo[#{@sudo}],
       vagrantfile[#{@vagrantfile}],
-      verbosity[#{@verbosity}]\n"
-  end
+      verbosity console[#{@verbosity_console}] / log[#{@verbosity_logfile} - #{@logfile}]\n"
 
-  ## Vagrant methods
-
-  ##
-  # up
-  # runs `vagrant up` from the Vagrantfile path
-  # if :sshtunnel is passed to the object during instantiation, the tunnel is created here as well
-  def up
-    @log.info('up()')
-    self._run(sprintf('cd %s; vagrant up %s', File.dirname(@vagrantfile), @name))
-
-    @ssh_info = nil # in case the ssh-info has changed, a la destroy/rebuild
-    self.connect_ssh_tunnel() if @sshtunnel
-  end
-
-  ##
-  # destroy
-  # runs `vagrant destroy <name>` from the Vagrantfile path
-  def destroy
-    @log.info('destroy()')
-    disconnect_ssh_tunnel
-    self._run(sprintf('cd %s; vagrant destroy -f %s', File.dirname(@vagrantfile), @name))
-  end
-
-  ##
-  # status
-  #
-  # runs `vagrant status <name>` from the Vagrantfile path
-  # parses the status and provider out of output, but only status is returned
-  def status
-    status = nil
-
-    if @cache_timeout
-      if @cache.has_key?(:status)
-        if (Time.now.to_i - @cache[:status][:time]) < @cache_timeout
-          @log.debug(sprintf('using cached status[%s] from [%s]', @cache[:status][:status], @cache[:status][:time]))
-          return @cache[:status][:status]
-        end
-      end
-    end
-
-    @log.info('status()')
-    self._run(sprintf('cd %s; vagrant status %s', File.dirname(@vagrantfile), @name))
-
-    # else case here is handled by non-0 exit code
-    if self.get_output().match(/^#{@name}\s*(.*\s?\w+)\s(.+)$/)
-      # $1 = name, $2 = provider
-      status = $1
-    end
-
-    if @cache_timeout
-      @cache[:status] = Hash.new unless @cache[:status].class.eql?(Hash)
-      @cache[:status][:time] = Time.now.to_i
-      @cache[:status][:status] = status
-      @log.debug(sprintf('caching status[%s] at [%s]', @cache[:status][:status], @cache[:status][:time]))
-    end
-
-    return status
-  end
-
-  ##
-  # suspend
-  #
-  # runs `vagrant suspend <name>` from the Vagrantfile path
-  def suspend
-    @log.info('suspend()')
-    disconnect_ssh_tunnel()
-    self._run(sprintf('cd %s; vagrant suspend %s', File.dirname(@vagrantfile), @name))
   end
 
   ## internal methods
@@ -233,10 +195,23 @@ class Rouster
     expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
 
     cmd = sprintf('%s%s; echo ec[$?]', self.uses_sudo? ? 'sudo ' : '', command)
-    @log.info(sprintf('vm running: [%s]', cmd))
+    @logger.info(sprintf('vm running: [%s]', cmd))
 
-    output = @ssh.exec!(cmd)
-    if output.match(/ec\[(\d+)\]/)
+    0.upto(@retries) do |try|
+      begin
+        output = @ssh.exec!(cmd)
+        break
+      rescue => e
+        @logger.error(sprintf('failed to run [%s] with [%s], attempt[%s/%s]', cmd, e, try, retries)) if self.retries > 0
+        sleep 10 # TODO need to expose this as a variable
+      end
+
+    end
+
+    if output.nil?
+      output    = "error gathering output, last logged output[#{self.get_output()}]"
+      @exitcode = 256
+    elsif output.match(/ec\[(\d+)\]/)
       @exitcode = $1.to_i
       output.gsub!(/ec\[(\d+)\]\n/, '')
     else
@@ -244,7 +219,7 @@ class Rouster
     end
 
     self.output.push(output)
-    @log.debug(sprintf('output: [%s]', output))
+    @logger.debug(sprintf('output: [%s]', output))
 
     unless expected_exitcode.member?(@exitcode)
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
@@ -266,7 +241,7 @@ class Rouster
     if @cache_timeout
       if @cache.has_key?(:is_available_via_ssh?)
         if (Time.now.to_i - @cache[:is_available_via_ssh?][:time]) < @cache_timeout
-          @log.debug(sprintf('using cached is_available_via_ssh?[%s] from [%s]', @cache[:is_available_via_ssh?][:status], @cache[:is_available_via_ssh?][:time]))
+          @logger.debug(sprintf('using cached is_available_via_ssh?[%s] from [%s]', @cache[:is_available_via_ssh?][:status], @cache[:is_available_via_ssh?][:time]))
           return @cache[:is_available_via_ssh?][:status]
         end
       end
@@ -295,7 +270,7 @@ class Rouster
       @cache[:is_available_via_ssh?] = Hash.new unless @cache[:is_available_via_ssh?].class.eql?(Hash)
       @cache[:is_available_via_ssh?][:time] = Time.now.to_i
       @cache[:is_available_via_ssh?][:status] = res
-      @log.debug(sprintf('caching is_available_via_ssh?[%s] at [%s]', @cache[:is_available_via_ssh?][:status], @cache[:is_available_via_ssh?][:time]))
+      @logger.debug(sprintf('caching is_available_via_ssh?[%s] at [%s]', @cache[:is_available_via_ssh?][:status], @cache[:is_available_via_ssh?][:time]))
     end
 
     res
@@ -312,10 +287,11 @@ class Rouster
     h = Hash.new()
 
     if @ssh_info.class.eql?(Hash)
+      @logger.debug('using cached SSH info')
       h = @ssh_info
     else
 
-      res = self._run(sprintf('cd %s; vagrant ssh-config %s', File.dirname(@vagrantfile), @name))
+      res = self.vagrant(sprintf('ssh-config %s', @name))
 
       res.split("\n").each do |line|
         if line.match(/HostName (.*?)$/)
@@ -325,8 +301,14 @@ class Rouster
         elsif line.match(/Port (\d*?)$/)
           h[:ssh_port] = $1
         elsif line.match(/IdentityFile (.*?)$/)
-          # TODO what to do if the user has specified @sshkey ?
-          h[:identity_file] = $1
+          key = $1
+          unless @sshkey.eql?(key)
+            h[:identity_file] = key
+          else
+            @logger.info(sprintf('using specified key[%s] instead of discovered key[%s]', @sshkey, key))
+            h[:identity_file] = @sshkey
+          end
+
         end
       end
 
@@ -343,13 +325,14 @@ class Rouster
   #
   # raises its own InternalError if the machine isn't running, otherwise returns Net::SSH connection object
   def connect_ssh_tunnel
-    @log.debug('opening SSH tunnel..')
+    @logger.debug('opening SSH tunnel..')
 
-    if self.status.eql?('running')
+    status = self.status()
+    if status.eql?('running')
       self.get_ssh_info()
       @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
     else
-      raise InternalError.new('VM is not running, unable open SSH tunnel')
+      raise InternalError.new(sprintf('VM is not running[%s], unable open SSH tunnel', status))
     end
 
     @ssh
@@ -361,7 +344,7 @@ class Rouster
   # shuts down the persistent Net::SSH tunnel
   #
   def disconnect_ssh_tunnel
-    @log.debug('closing SSH tunnel..')
+    @logger.debug('closing SSH tunnel..')
 
     @ssh.shutdown! unless @ssh.nil?
     @ssh = nil
@@ -377,16 +360,24 @@ class Rouster
       return @ostype
     end
 
+    # TODO switch to file based detection
+    # Ubuntu - /etc/os-release
+    # Solaris - /etc/release
+    # RHEL/CentOS - /etc/redhat-release
+    # OSX - ?
+
     res   = nil
     uname = self.run('uname -a')
 
     case uname
       when /Darwin/i
         res = :osx
-      when /Sun|Solaris/i
+      when /SunOS|Solaris/i
         res =:solaris
       when /Ubuntu/i
         res = :ubuntu
+      when /Debian/i
+        res = :debian
       else
         if self.is_file?('/etc/redhat-release')
           res = :redhat
@@ -415,7 +406,7 @@ class Rouster
     # TODO what happens when we pass a wildcard as remote_file?
 
     local_file = local_file.nil? ? File.basename(remote_file) : local_file
-    @log.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
+    @logger.debug(sprintf('scp from VM[%s] to host[%s]', remote_file, local_file))
 
     begin
       @ssh.scp.download!(remote_file, local_file)
@@ -436,7 +427,7 @@ class Rouster
   # * [remote_file] - full or relative path (based on ~vagrant) of filename to upload to
   def put(local_file, remote_file=nil)
     remote_file = remote_file.nil? ? File.basename(local_file) : remote_file
-    @log.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
+    @logger.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
 
     raise FileTransferError.new(sprintf('unable to put[%s], local file does not exist', local_file)) unless File.file?(local_file)
 
@@ -461,7 +452,7 @@ class Rouster
   #
   # convenience getter for @sudo truthiness
   def uses_sudo?
-     self.sudo.eql?(true)
+     @sudo.eql?(true)
   end
 
   ##
@@ -469,7 +460,7 @@ class Rouster
   #
   # destroy and then up the machine in question
   def rebuild
-    @log.debug('rebuild()')
+    @logger.debug('rebuild()')
     self.destroy
     self.up
   end
@@ -482,17 +473,17 @@ class Rouster
   # parameters
   # * [wait] - number of seconds to wait until is_available_via_ssh?() returns true before assuming failure
   def restart(wait=nil)
-    @log.debug('restart()')
+    @logger.debug('restart()')
 
     if self.is_passthrough? and self.passthrough.eql?(local)
-      @log.warn(sprintf('intercepted [restart] sent to a local passthrough, no op'))
+      @logger.warn(sprintf('intercepted [restart] sent to a local passthrough, no op'))
       return nil
     end
 
     case os_type
       when :osx
         self.run('shutdown -r now')
-      when :redhat, :ubuntu
+      when :redhat, :ubuntu, :debian
         self.run('/sbin/shutdown -rf now')
       when :solaris
         self.run('shutdown -y -i5 -g0')
@@ -505,7 +496,7 @@ class Rouster
     if wait
       inc = wait.to_i / 10
       0..wait.each do |e|
-        @log.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
+        @logger.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
         return true if self.is_available_via_ssh?()
         sleep inc
       end
@@ -527,21 +518,21 @@ class Rouster
   # parameters
   # * <command> - command to be run
   def _run(command)
-    tmp_file = sprintf('/tmp/rouster.%s.%s', Time.now.to_i, $$)
+    tmp_file = sprintf('/tmp/rouster-cmd_output.%s.%s', Time.now.to_i, $$)
     cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file) # this is a holdover from Salesforce::Vagrant, can we use '2&>1' here?
     res      = `#{cmd}` # what does this actually hold?
 
-    @log.info(sprintf('host running: [%s]', cmd))
+    @logger.info(sprintf('host running: [%s]', cmd))
 
     output = File.read(tmp_file)
     File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))
 
+    self.output.push(output)
+    @logger.debug(sprintf('output: [%s]', output))
+
     unless $?.success?
       raise LocalExecutionError.new(sprintf('command [%s] exited with code [%s], output [%s]', cmd, $?.to_i(), output))
     end
-
-    self.output.push(output)
-    @log.debug(sprintf('output: [%s]', output))
 
     @exitcode = $?.to_i()
     output
@@ -584,10 +575,9 @@ class Rouster
   # * [filename] - filename you are looking for
   # * [levels]   - number of directory levels to examine, default is 10
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
-    # TODO not sure this signature is exactly right..
     raise InternalError.new('must specify a filename') if filename.nil?
 
-    @log.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels)) unless @log.nil?
+    @logger.debug(sprintf('traverse_up() looking for [%s] in [%s], up to [%s] levels', filename, startdir, levels)) unless @logger.nil?
 
     dirs  = startdir.split('/')
     count = 0

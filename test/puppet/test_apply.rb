@@ -21,11 +21,13 @@ class TestPuppetApply < Test::Unit::TestCase
       'test/puppet/modules/role/manifests/ui.pp'     => 'modules/role/manifests/ui.pp',
     }
 
-    ## TODO figure out a better pattern here -- scp tunnel is under 'vagrant' context, but dirs created with 'root'
-    @app.sudo = false
-    @app.run('mkdir -p manifests/hieradata')
-    @app.run('mkdir -p modules/role/manifests')
-    @app.sudo = true
+    ['manifests/hieradata', 'modules/role/manifests'].each do |dir|
+      top = dir.split('/')[0]
+
+      @app.run("mkdir -p #{dir}")
+      @app.run("chown -R vagrant:vagrant #{top}") # because sudo=true, directories will be created with root:root
+
+    end
 
     required_files.each_pair do |source,dest|
       @app.put(source, dest)
@@ -73,7 +75,7 @@ class TestPuppetApply < Test::Unit::TestCase
     @expected_users    = {
       'root' => {
         :ensure => 'present',
-        #:group  => 'root',
+        :group  => 'root',
       }
     }
 

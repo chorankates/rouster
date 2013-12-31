@@ -44,7 +44,7 @@ class Rouster
     if raw.match(/No such file or directory/)
       res = nil
     elsif raw.match(/Permission denied/)
-      @log.info(sprintf('dir(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
+      @logger.info(sprintf('dir(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
       res = nil
     else
       res = parse_ls_string(raw)
@@ -120,7 +120,7 @@ class Rouster
     end
 
     if raw.match(/No such file or directory/)
-      @log.info(sprintf('is_file?(%s) output[%s], try with sudo', file, raw)) unless self.uses_sudo?
+      @logger.info(sprintf('is_file?(%s) output[%s], try with sudo', file, raw)) unless self.uses_sudo?
       res = nil
     elsif raw.match(/Permission denied/)
       res = nil
@@ -264,7 +264,7 @@ class Rouster
 
     if scp
       # download the file to a temporary directory
-      @log.warn('is_in_file? scp option not implemented yet')
+      @logger.warn('is_in_file? scp option not implemented yet')
     end
 
     begin
@@ -373,14 +373,14 @@ class Rouster
   # * RedHat
   # * Ubuntu
   def is_process_running?(name)
-    # TODO support other flavors - this will work on RHEL and OSX
-    # TODO do better validation than just grepping for a matching filename
+    # TODO support Solaris
+    # TODO do better validation than just grepping for a matching filename, start with removing 'grep' from output
     begin
 
       os = self.os_type()
 
       case os
-        when :redhat, :osx, :ubuntu
+        when :redhat, :osx, :ubuntu, :debian
           res = self.run(sprintf('ps ax | grep -c %s', name))
         else
           raise InternalError.new(sprintf('currently unable to determine running process list on OS[%s]', os))
@@ -564,8 +564,8 @@ class Rouster
             value += 4
           when 'w'
             value += 2
-          when 'x', 't'
-            # is 't' really right here? copying Salesforce::Vagrant
+          when 'x', 't', 's'
+            # is 't' / 's' really right here? copying Salesforce::Vagrant
             value += 1
           when '-'
             # noop

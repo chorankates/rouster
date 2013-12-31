@@ -6,6 +6,11 @@ require 'rouster/deltas'
 class Rouster
 
   ##
+  # validate_cron
+  #
+  # TODO how do we actually want to implement this? since cron jobs don't have names, what does the user specify instead?
+
+  ##
   # validate_file
   #
   # given a filename and a hash of expectations, returns true|false whether file matches expectations
@@ -57,9 +62,17 @@ class Rouster
       expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
 
       expectations[:constrain].each do |constraint|
-        fact, expectation = constraint.split("\s")
+        valid = constraint.match(/^(\S+?)\s(.*)$/)
+
+        if valid.nil?
+          raise InternalError.new(sprintf('invalid constraint[%s] specified', constraint))
+        end
+
+        fact        = $1
+        expectation = $2
+
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -166,7 +179,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results)
+    @logger.info(results)
     results.find{|k,v| v.false? }.nil?
 
   end
@@ -214,7 +227,7 @@ class Rouster
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -263,7 +276,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results)
+    @logger.info(results)
     results.find{|k,v| v.false? }.nil?
   end
 
@@ -309,7 +322,7 @@ class Rouster
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -355,7 +368,7 @@ class Rouster
     end
 
     # TODO figure out a good way to allow access to the entire hash, not just boolean -- for now just print at an info level
-    @log.info(results)
+    @logger.info(results)
 
     results.find{|k,v| v.false? }.nil?
   end
@@ -404,7 +417,7 @@ class Rouster
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -448,7 +461,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results)
+    @logger.info(results)
 
     results.find{|k,v| v.false? }.nil?
   end
@@ -490,7 +503,7 @@ class Rouster
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -529,7 +542,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results)
+    @logger.info(results)
     results.find{|k,v| v.false? }.nil?
 
   end
@@ -581,7 +594,7 @@ class Rouster
       expectations[:constrain].each do |constraint|
         fact, expectation = constraint.split("\s")
         unless meets_constraint?(fact, expectation)
-          @log.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
           return true
         end
       end
@@ -650,7 +663,7 @@ class Rouster
       results[k] = local
     end
 
-    @log.info(results)
+    @logger.info(results)
     results.find{|k,v| v.false? }.nil?
 
   end
@@ -665,32 +678,41 @@ class Rouster
   # gets facts from node, and if fact expectation regex matches actual fact, returns true
   #
   # parameters
-  # * <fact> - fact
-  # * <expectation>
-  # * [cache]
-  def meets_constraint?(fact, expectation, cache=true)
+  # * <key>         - fact/hiera key to look up (actual value)
+  # * <expectation> -
+  # * [cache]       - boolean controlling whether facter lookups are cached
+  def meets_constraint?(key, expectation, cache=true)
 
-    unless self.respond_to?('facter')
-      # if we haven't loaded puppet.rb, we won't have access to facts
-      @log.warn('using constraints without loading [rouster/puppet] will not work, forcing no-op')
+    expectation = expectation.to_s
+
+    unless self.respond_to?('facter') or self.respond_to?('hiera')
+      # if we haven't loaded puppet.rb, we won't have access to facts/hiera lookups
+      @logger.warn('using constraints without loading [rouster/puppet] will not work, forcing no-op')
       return false
     end
 
-    expectation = expectation.to_s
-    facts = self.facter(cache)
+    facts  = self.facter(cache)
+    actual = nil
+
+    if facts[key]
+      actual = facts[key]
+    else
+      # value is not a fact, lets try to find it in hiera
+      # TODO how to handle the fact that this will really only work on the puppetmaster
+      actual = self.hiera(key, facts)
+    end
 
     res = nil
+
     if expectation.split("\s").size > 1
       ## generic comparator functionality
       comp, expectation = expectation.split("\s")
-
-      res = generic_comparator(facts[fact], comp, expectation)
-
+      res = generic_comparator(actual, comp, expectation)
     else
-      res = ! expectation.match(/#{facts[fact]}/).nil?
-      @log.debug(sprintf('meets_constraint?(%s, %s): %s', fact, expectation, res.nil?))
+      res = ! actual.to_s.match(/#{expectation}/).nil?
     end
 
+    @logger.debug(sprintf('meets_constraint?(%s, %s): %s', key, expectation, res.nil?))
     res
   end
 
@@ -708,6 +730,7 @@ class Rouster
   def generic_comparator(comparand1, comparator, comparand2)
 
     # TODO rewrite this as an eval so we don't have to support everything..
+    # TODO come up with mechanism to determine when is it appropriate to call .to_i vs. otherwise -- comparisons will mainly be numerical (?), but need to support text matching too
     case comparator
       when '!='
         # ugh

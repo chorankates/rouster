@@ -5,8 +5,6 @@ require 'net/https'
 require 'socket'
 require 'uri'
 
-# TODO use @cache_timeout to invalidate data cached here
-
 class Rouster
 
   ##
@@ -18,8 +16,17 @@ class Rouster
   # * [cache] - whether to store/return cached facter data, if available
   # * [custom_facts] - whether to include custom facts in return (uses -p argument)
   def facter(cache=true, custom_facts=true)
+
     if cache.true? and ! self.facts.nil?
-      return self.facts
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:facter]) > self.cache_timeout
+        @logger.debug(sprintf('invalidating [facter] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:facter]), self.cache_timeout))
+        self.facts = nil
+      else
+        @logger.debug(sprintf('using cached [facter] from [%s]', self.cache[:facter]))
+        return self.facts
+      end
+
     end
 
     raw  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
@@ -31,7 +38,9 @@ class Rouster
     end
 
     if cache.true?
+      @logger.debug(sprintf('caching [facter] at [%s]', Time.now.asctime))
       self.facts = res
+      self.cache[:facter] = Time.now.to_i
     end
 
     res
@@ -84,8 +93,17 @@ class Rouster
   # parameters
   # * [input] - string to look at, defaults to self.get_output()
   def get_puppet_errors(input=nil)
-    str    = input.nil? ? self.get_output() : input
-    errors = str.scan(/35merr:.*/)
+    str       = input.nil? ? self.get_output() : input
+    errors    = nil
+    errors_27 = str.scan(/35merr:.*/)
+    errors_30 = str.scan(/Error:.*/)
+
+    # TODO this is a little less than efficient, don't scan for 3.0 if you found 2.7
+    if errors_27.size > 0
+      errors = errors_27
+    else
+      errors = errors_30
+    end
 
     errors.empty? ? nil : errors
   end
@@ -98,8 +116,17 @@ class Rouster
   # parameters
   # * [input] - string to look at, defaults to self.get_output()
   def get_puppet_notices(input=nil)
-    str     = input.nil? ? self.get_output() : input
-    notices = str.scan(/36mnotice:.*/)
+    str        = input.nil? ? self.get_output() : input
+    notices    = nil
+    notices_27 = str.scan(/36mnotice:.*/) # not sure when this stopped working
+    notices_30 = str.scan(/Notice:.*/)
+
+    # TODO this is a little less than efficient, don't scan for 3.0 if you found 2.7
+    if notices_27.size > 0
+      notices = notices_27
+    else
+      notices = notices_30
+    end
 
     notices.empty? ? nil : notices
   end
@@ -128,13 +155,41 @@ class Rouster
   # returns hiera results from self
   #
   # parameters
-  # * <key> - hiera key to look up
-  # * [config] - path to hiera configuration -- this is only optional if you have a hiera.yaml file in ~/vagrant
-  def hiera(key, config=nil)
+  # * <key>     - hiera key to look up
+  # * [facts]   - hash of facts to be used in hiera lookup (technically optional, but most useful hiera lookups are based on facts)
+  # * [config]  - path to hiera configuration -- this is only optional if you have a hiera.yaml file in ~/vagrant, default option is correct for most puppet installations
+  # * [options] - any additional parameters to be passed to hiera directly
+  #
+  # note
+  # * if no facts are provided, facter() will be called - to really run hiera without facts, send an empty hash
+  # * this method is mostly useful on your puppet master, as your agents won't likely have /etc/puppet/hiera.yaml - to get data on another node, specify it's facts and call hiera on your ppm
+  def hiera(key, facts=nil, config='/etc/puppet/hiera.yaml', options=nil)
+    # TODO implement caching? where do we keep it? self.hiera{}? or self.deltas{} -- leaning towards #1
 
-    # TODO implement this
-    raise NotImplementedError.new()
+    cmd = 'hiera'
 
+    if facts.nil?
+      @logger.info('no facts provided, calling facter() automatically')
+      facts = self.facter()
+    end
+
+    if facts.keys.size > 0
+      scope_file = sprintf('/tmp/rouster-hiera_scope.%s.%s.json', $$, Time.now.to_i)
+
+      File.write(scope_file, facts.to_json)
+      self.put(scope_file, scope_file)
+      File.delete(scope_file)
+
+      cmd << sprintf(' -j %s', scope_file)
+    end
+
+    cmd << sprintf(' -c %s', config) unless config.nil?
+    cmd << sprintf(' %s', options) unless options.nil?
+    cmd << sprintf(' %s', key)
+
+    raw = self.run(cmd)
+
+    JSON.parse(raw)
   end
 
   ##
@@ -242,12 +297,13 @@ class Rouster
       end
     end
 
-
     results[:classes]   = classes
     results[:resources] = resources
 
     results
   end
+
+  # TODO: come up with better method names here.. remove_existing_certs() and remove_specific_cert() are not very descriptive
 
   ##
   # remove_existing_certs
@@ -257,16 +313,26 @@ class Rouster
   #
   # parameters
   # * <puppetmaster> - string/partial regex of certificate names to keep
-  def remove_existing_certs (puppetmaster)
-    hosts = Array.new()
+  def remove_existing_certs (except)
+    except = except.kind_of?(Array) ? except : [except] # need to move from <>.class.eql? to <>.kind_of? in a number of places
+    hosts  = Array.new()
 
     res = self.run('puppet cert list --all')
 
+    # TODO refactor this away from the hacky_break
     res.each_line do |line|
-      next if line.match(/#{puppetmaster}/)
+      hacky_break = false
+
+      except.each do |exception|
+        next if hacky_break
+        hacky_break = line.match(/#{exception}/)
+      end
+
+      next if hacky_break
+
       host = $1 if line.match(/^\+\s"(.*?)"/)
 
-      hosts.push(host)
+      hosts.push(host) unless host.nil? # only want to clear signed certs
     end
 
     hosts.each do |host|
@@ -274,6 +340,38 @@ class Rouster
     end
 
   end
+
+  ##
+  # remove_specific_cert
+  #
+  # ... removes a specific (or several specific) certificates, effectively the reverse of remove_existing_certs() - and again, really only useful when called on a puppet master
+  def remove_specific_cert (targets)
+    targets = targets.kind_of?(Array) ? targets : [targets]
+    hosts = Array.new()
+
+    res = self.run('puppet cert list --all')
+
+    res.each_line do |line|
+      hacky_break = true
+
+      targets.each do |target|
+        next unless hacky_break
+        hacky_break = line.match(/#{target}/)
+      end
+
+      next unless hacky_break
+
+      host = $1 if line.match(/^\+\s"(.*?)"/)
+      hosts.push(host) unless host.nil?
+
+    end
+
+    hosts.each do |host|
+      self.run(sprintf('puppet cert --clean %s', host))
+    end
+
+  end
+
 
   ##
   # run_puppet
@@ -284,6 +382,12 @@ class Rouster
   #  * master - runs 'puppet agent -t'
   #    * supported options
   #      * expected_exitcode - string/integer/array of acceptable exit code(s)
+  #      * configtimeout - string/integer of the acceptable configtimeout value
+  #      * environment - string of the environment to use
+  #      * certname - string of the certname to use in place of the host fqdn
+  #      * pluginsync - bool value if pluginsync should be used
+  #      * server - string value of the puppetmasters fqdn / ip
+  #      * additional_options - string of various options that would be passed to puppet
   #  * masterless - runs 'puppet apply <options>' after determining version of puppet running and adjusting arguments
   #    * supported options
   #      * expected_exitcode - string/integer/array of acceptable exit code(s)
@@ -291,26 +395,48 @@ class Rouster
   #      * manifest_file - string/array of strings of paths to manifest(s) to apply
   #      * manifest_dir - string/array of strings of directories containing manifest(s) to apply - is recursive
   #      * module_dir - path to module directory -- currently a required parameter, is this correct?
+  #      * environment - string of the environment to use (default: production)
+  #      * certname - string of the certname to use in place of the host fqdn (default: unused)
+  #      * pluginsync - bool value if pluginsync should be used (default: true)
+  #      * additional_options - string of various options that would be passed to puppet
   #
   # parameters
   # * [mode] - method to run puppet, defaults to 'master'
   # * [opts] - hash of additional options
-  def run_puppet(mode='master', passed_opts=nil)
+  def run_puppet(mode='master', passed_opts={})
 
     if mode.eql?('master')
       opts = {
-        :expected_exitcode => 0
+        :expected_exitcode  => 0,
+        :configtimeout      => nil,
+        :environment        => nil,
+        :certname           => nil,
+        :server             => nil,
+        :pluginsync         => false,
+        :additional_options => nil
       }.merge!(passed_opts)
 
-      self.run('puppet agent -t', opts[:expected_exitcode])
+      cmd = 'puppet agent -t'
+      cmd << sprintf(' --configtimeout %s', opts[:configtimeout]) unless opts[:configtimeout].nil?
+      cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
+      cmd << sprintf(' --certname %s', opts[:certname]) unless opts[:certname].nil?
+      cmd << sprintf(' --server %s', opts[:server]) unless opts[:server].nil?
+      cmd << ' --pluginsync' if opts[:pluginsync]
+      cmd << opts[:additional_options] unless opts[:additional_options].nil?
+
+      self.run(cmd, opts[:expected_exitcode])
 
     elsif mode.eql?('masterless')
       opts = {
-        :expected_exitcode => 2,
-        :hiera_config      => nil,
-        :manifest_file     => nil, # can be a string or array, will 'puppet apply' each
-        :manifest_dir      => nil, # can be a string or array, will 'puppet apply' each module in the dir (recursively)
-        :module_dir        => nil
+        :expected_exitcode  => 2,
+        :hiera_config       => nil,
+        :manifest_file      => nil, # can be a string or array, will 'puppet apply' each
+        :manifest_dir       => nil, # can be a string or array, will 'puppet apply' each module in the dir (recursively)
+        :module_dir         => nil,
+        :environment        => nil,
+        :certname           => nil,
+        :pluginsync         => false,
+        :additional_options => nil
       }.merge!(passed_opts)
 
       ## validate required arguments
@@ -324,8 +450,14 @@ class Rouster
         opts[:manifest_file].each do |file|
           raise InternalError.new(sprintf('invalid manifest file specified[%s]', file)) unless self.is_file?(file)
 
-          self.run(sprintf('puppet apply %s --modulepath=%s %s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir], file), opts[:expected_exitcode])
+          cmd = sprintf('puppet apply %s --modulepath=%s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir])
+          cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
+          cmd << sprintf(' --certname %s', opts[:certname]) unless opts[:certname].nil?
+          cmd << ' --pluginsync' if opts[:pluginsync]
+          cmd << opts[:additional_options] unless opts[:additional_options].nil?
+          cmd << sprintf(' %s', file)
 
+          self.run(cmd, opts[:expected_exitcode])
         end
       end
 
@@ -338,8 +470,14 @@ class Rouster
 
           manifests.each do |m|
 
-            self.run(sprintf('puppet apply %s --modulepath=%s %s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir], m), opts[:expected_exitcode])
+            cmd = sprintf('puppet apply %s --modulepath=%s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir])
+            cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
+            cmd << sprintf(' --certname %s', opts[:certname]) unless opts[:certname].nil?
+            cmd << ' --pluginsync' if opts[:pluginsync]
+            cmd << opts[:additional_options] unless opts[:additional_options].nil?
+            cmd << sprintf(' %s', m)
 
+            self.run(cmd, opts[:expected_exitcode])
           end
 
         end

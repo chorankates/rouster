@@ -327,6 +327,30 @@ class TestParseLsString < Test::Unit::TestCase
 
   end
 
+  def test_suid
+    str = "drwxr-sr-x 2 root root 4096 Oct  7 17:09 /etc/nagios/objects\n"
+
+    skip('need to improve (read: implement) actual suid support')
+
+    expectation = {
+      :directory?  => true,
+      :file?       => false,
+      :mode        => '4755', # right now, we return '0755', if we detect an 's', do we just +4000?
+      :name        => '/etc/nagios/objects',
+      :owner       => 'root',
+      :group       => 'root',
+      :size        => '4096',
+      :executable? => [true, true, true], # right now, we return [true,false,true]
+      :readable?   => [true, true, true],
+      :writeable?  => [true, false, false],
+    }
+
+    res = @app.exposed_parse_ls_string(str)
+
+    assert_equal(expectation, res)
+
+  end
+
   def teardown
     # noop
   end

@@ -8,7 +8,7 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app')
+      @app = Rouster.new(:name => 'app', :cache_timeout => 20)
     end
 
     @app.up()
@@ -89,6 +89,29 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
 
     assert_equal(Hash, res.class)
     assert_nil(@app.deltas[:crontab])
+
+  end
+
+  def test_happy_path_cache_invalidated
+
+    res1, res2 = nil, nil
+
+    assert_nothing_raised do
+      res1 = @app.get_crontab('root', true)
+    end
+
+    first_cache_time = @app.cache[:crontab]
+
+    sleep (@app.cache_timeout + 1)
+
+    assert_nothing_raised do
+      res2 = @app.get_crontab('root', true)
+    end
+
+    second_cache_time = @app.cache[:crontab]
+
+    assert_equal(res1, res2)
+    assert_not_equal(first_cache_time, second_cache_time)
 
   end
 

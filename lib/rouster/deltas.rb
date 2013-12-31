@@ -1,10 +1,8 @@
 require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
-# deltas.rb - get information about groups, packages, services and users inside a Vagrant VM
+# deltas.rb - get information about crontabs, groups, packages, ports, services and users inside a Vagrant VM
 require 'rouster'
 require 'rouster/tests'
-
-# TODO use @cache_timeout to invalidate data cached here
 
 class Rouster
 
@@ -33,13 +31,22 @@ class Rouster
   def get_crontab(user='root', cache=true)
 
     if cache and self.deltas[:crontab].class.eql?(Hash)
-      if self.deltas[:crontab].has_key?(user)
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:crontab]) > self.cache_timeout
+        @logger.debug(sprintf('invalidating [crontab] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:crontab]), self.cache_timeout))
+        self.deltas.delete(:crontab)
+      end
+
+      if self.deltas.has_key?(:crontab) and self.deltas[:crontab].has_key?(user)
+        @logger.debug(sprintf('using cached [crontab] from [%s]', self.cache[:crontab]))
         return self.deltas[:crontab][user]
+      elsif self.deltas.has_key?(:crontab) and user.eql?('*')
+        @logger.debug(sprintf('using cached [crontab] from [%s]', self.cache[:crontab]))
+        return self.deltas[:crontab]
       else
         # noop fallthrough to gather data to cache
       end
-    elsif cache and self.deltas[:crontab].class.eql?(Hash) and user.eql?('*')
-      return self.deltas[:crontab]
+
     end
 
     i = 0
@@ -62,6 +69,7 @@ class Rouster
       end
 
       raw.split("\n").each do |line|
+        next if line.match(/^#/)
         elements = line.split("\s")
 
         res[u] ||= Hash.new
@@ -73,12 +81,16 @@ class Rouster
         res[u][i][:mon]     = elements[3]
         res[u][i][:dow]     = elements[4]
         res[u][i][:command] = elements[5..elements.size].join(" ")
+        res[u][i][:command] = elements[5..elements.size].join(' ')
+      end
 
         i += 1
       end
     end
 
     if cache
+      @logger.debug(sprintf('caching [crontab] at [%s]', Time.now.asctime))
+
       if ! user.eql?('*')
         self.deltas[:crontab] ||= Hash.new
         self.deltas[:crontab][user] ||= Hash.new
@@ -87,6 +99,9 @@ class Rouster
         self.deltas[:crontab] ||= Hash.new
         self.deltas[:crontab] = res
       end
+
+      self.cache[:crontab] = Time.now.to_i
+
     end
 
     return user.eql?('*') ? res : res[user]
@@ -105,9 +120,19 @@ class Rouster
   #
   # parameters
   # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
-  def get_groups(cache=true)
+  # * [deep]  - boolean controlling whether get_users() is called in order to correctly populate res[group][:users]
+  def get_groups(cache=true, deep=true)
+
     if cache and ! self.deltas[:groups].nil?
-      return self.deltas[:groups]
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:groups]) > self.cache_timeout
+        @logger.debug(sprintf('invalidating [groups] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:groups]), self.cache_timeout))
+        self.deltas.delete(:groups)
+      else
+        @logger.debug(sprintf('using cached [groups] from [%s]', self.cache[:groups]))
+        return self.deltas[:groups]
+      end
+
     end
 
     res = Hash.new()
@@ -121,6 +146,8 @@ class Rouster
 
       group = data[0]
       gid   = data[2]
+
+      # this works in some cases, deep functionality picks up the others
       users = data[3].nil? ? ['NONE'] : data[3].split(',')
 
       res[group] = Hash.new() # i miss autovivification
@@ -128,11 +155,45 @@ class Rouster
       res[group][:users] = users
     end
 
-    if cache
-      self.deltas[:groups] = res
+    groups = res
+
+    if deep
+      users = self.get_users(cache)
+
+      known_valid_gids = groups.keys.map { |g| groups[g][:gid] } # no need to calculate this in every loop
+
+      # TODO better, much better -- since the number of users/groups is finite and usually small, this is a low priority
+      users.each_key do |user|
+        # iterate over each user to get their gid
+        gid = users[user][:gid]
+
+        unless known_valid_gids.member?(gid)
+          @logger.warn(sprintf('found user[%s] with unknown GID[%s], known GIDs[%s]', user, gid, known_valid_gids))
+          next
+        end
+
+        ## do this more efficiently
+        groups.each_key do |group|
+          # iterate over each group to find the matching gid
+          if gid.eql?(groups[group][:gid])
+            if groups[group][:users].eql?(['NONE'])
+              groups[group][:users] = []
+            end
+            groups[group][:users] << user unless groups[group][:users].member?(user)
+          end
+
+        end
+
+      end
     end
 
-    res
+    if cache
+      @logger.debug(sprintf('caching [groups] at [%s]', Time.now.asctime))
+      self.deltas[:groups] = groups
+      self.cache[:groups]  = Time.now.to_i
+    end
+
+    groups
   end
 
   ##
@@ -158,7 +219,15 @@ class Rouster
   # raises InternalError if unsupported operating system
   def get_packages(cache=true, deep=true)
     if cache and ! self.deltas[:packages].nil?
-      return self.deltas[:packages]
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:packages]) > self.cache_timeout
+        @logger.debug(sprintf('invalidating [packages] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:packages]), self.cache_timeout))
+        self.deltas.delete(:packages)
+      else
+        @logger.debug(sprintf('using cached [packages] from [%s]', self.cache[:packages]))
+        return self.deltas[:packages]
+      end
+
     end
 
     res = Hash.new()
@@ -169,46 +238,45 @@ class Rouster
 
       raw = self.run('pkgutil --pkgs')
       raw.split("\n").each do |line|
+        version = '?'
 
         if deep
           # can get install time, volume and location as well
           local_res = self.run(sprintf('pkgutil --pkg-info=%s', line))
-          local     = $1 if local_res.match(/version\:\s+(.*?)$/)
-        else
-          local = '?'
+          version = $1 if local_res.match(/version\:\s+(.*?)$/)
         end
 
-        res[line] = local
+        res[line] = version
       end
 
     elsif os.eql?(:solaris)
       raw = self.run('pkginfo')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\s+(.*?)\s(.*)$/).empty?
+        name    = $2
+        version = '?'
 
         if deep
-          local_res = self.run(sprintf('pkginfo -l %s', $2))
-          local     = $1 if local_res.match(/VERSION\:\s+(.*?)$/i)
-        else
-          local = '?'
+          local_res = self.run(sprintf('pkginfo -l %s', name))
+          version   = $1 if local_res.match(/VERSION\:\s+(.*?)$/i)
         end
 
-        res[$2] = local
+        res[name] = version
       end
 
-    elsif os.eql?(:ubuntu)
+    elsif os.eql?(:ubuntu) or os.eql?(:debian)
       raw = self.run('dpkg --get-selections')
       raw.split("\n").each do |line|
         next if line.match(/^(.*?)\s/).nil?
+        name    = $1
+        version = '?'
 
         if deep
-          local_res = self.run(sprintf('dpkg -s %s', $1))
-          local     = $1 if local_res.match(/Version\:\s(.*?)$/)
-        else
-          local = '?'
+          local_res = self.run(sprintf('dpkg -s %s', name))
+          version   = $1 if local_res.match(/Version\:\s(.*?)$/)
         end
 
-        res[$1] = local
+        res[name] = version
       end
 
     elsif os.eql?(:redhat)
@@ -216,17 +284,16 @@ class Rouster
       raw.split("\n").each do |line|
         next if line.match(/(.*?)-(\d*\..*)/).nil? # ht petersen.allen
         #next if line.match(/(.*)-(\d+\.\d+.*)/).nil? # another alternate, but still not perfect
+        name    = $1
+        version = '?' # we could use $2, but we don't trust it
 
         if deep
           local_res = self.run(sprintf('rpm -qi %s', line))
           name    = $1 if local_res.match(/Name\s+:\s(\S*)/)
           version = $1 if local_res.match(/Version\s+:\s(\S*)/)
-
-          res[name] = version
-        else
-          res[$1] = $2
         end
 
+        res[name] = version
       end
 
     else
@@ -234,7 +301,9 @@ class Rouster
     end
 
     if cache
+      @logger.debug(sprintf('caching [packages] at [%s]', Time.now.asctime))
       self.deltas[:packages] = res
+      self.cache[:packages]  = Time.now.to_i
     end
 
     res
@@ -264,13 +333,19 @@ class Rouster
     # TODO improve ipv6 support
 
     if cache and ! self.deltas[:ports].nil?
-      return self.deltas[:ports]
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:ports]) > self.cache_timeout
+        @logger.debug(sprintf('invalidating [ports] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:ports]), self.cache_timeout))
+        self.deltas.delete(:ports)
+      else
+        @logger.debug(sprintf('using cached [ports] from [%s]', self.cache[:ports]))
+        return self.deltas[:ports]
+      end
     end
 
     res = Hash.new()
     os  = self.os_type()
 
-    if os.eql?(:redhat) or os.eql?(:ubuntu)
+    if os.eql?(:redhat) or os.eql?(:ubuntu) or os.eql?(:debian)
 
       raw = self.run('netstat -ln')
 
@@ -294,7 +369,9 @@ class Rouster
     end
 
     if cache
+      @logger.debug(sprintf('caching [ports] at [%s]', Time.now.asctime))
       self.deltas[:ports] = res
+      self.cache[:ports]  = Time.now.to_i
     end
 
     res
@@ -305,11 +382,12 @@ class Rouster
   #
   # runs an OS appropriate command to gather service information, returns hash:
   # {
-  #   serviceN => mode # running|stopped|unsure
+  #   serviceN => mode # exists|installed|operational|running|stopped|unsure
   # }
   #
   # parameters
-  # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
+  # * [cache]    - boolean controlling whether data retrieved/parsed is cached, defaults to true
+  # * [humanize] - boolean controlling whether data retrieved is massaged into simplified names or returned mostly as retrieved
   #
   # supported OS
   # * OSX - runs `launchctl list`
@@ -317,15 +395,27 @@ class Rouster
   # * Solaris - runs `svcs`
   # * Ubuntu - runs `service --status-all`
   #
-  # raises InternalError if unsupported operating system
-  def get_services(cache=true)
+  # notes
+  # * raises InternalError if unsupported operating system
+  # * OSX, Solaris and Ubuntu/Debian will only return running|stopped|unsure, the exists|installed|operational modes are RHEL/CentOS only
+  def get_services(cache=true, humanize=true)
     if cache and ! self.deltas[:services].nil?
-      return self.deltas[:services]
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:services]) > self.cache_timeout
+        @logger.debug(sprintf('invalidating [services] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:services]), self.cache_timeout))
+        self.deltas.delete(:services)
+      else
+        @logger.debug(sprintf('using cached [services] from [%s]', self.cache[:services]))
+        return self.deltas[:services]
+      end
+
     end
 
     res = Hash.new()
+    os  = self.os_type
 
-    os = self.os_type
+    allowed_modes = %w(exists installed operational running stopped unsure)
+    failover_mode = 'unsure'
 
     if os.eql?(:osx)
 
@@ -336,10 +426,12 @@ class Rouster
         service = $2
         mode    = $1
 
-        if mode.match(/^\d/)
-          mode = 'running'
-        else
-          mode = 'stopped'
+        if humanize # should we do this with a .freeze instead?
+          if mode.match(/^\d/)
+            mode = 'running'
+          else
+            mode = 'stopped'
+          end
         end
 
         res[service] = mode
@@ -347,26 +439,36 @@ class Rouster
 
     elsif os.eql?(:solaris)
 
-      raw = self.run('svcs')
+      raw = self.run('svcs -a')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\s+(?:.*?)\s+(.*?)$/).nil?
 
         service = $2
         mode    = $1
 
-        if mode.match(/online/)
-          mode = 'running'
-        elsif mode.match(/legacy_run/)
-          mode = 'running'
-        elsif mode.match(//)
-          mode = 'stopped'
+        if humanize
+          if mode.match(/^online/)
+            mode = 'running'
+          elsif mode.match(/^legacy_run/)
+            mode = 'running'
+          elsif mode.match(/^disabled/)
+            mode = 'stopped'
+          end
+
+          if service.match(/^svc:\/.*\/(.*?):.*/)
+            # turning 'svc:/network/cswpuppetd:default' into 'cswpuppetd'
+            service = $1
+          elsif service.match(/^lrc:\/.*?\/.*\/(.*)/)
+            # turning 'lrc:/etc/rcS_d/S50sk98Sol' into 'S50sk98Sol'
+            service = $1
+          end
         end
 
         res[service] = mode
 
       end
 
-    elsif os.eql?(:ubuntu)
+    elsif os.eql?(:ubuntu) or os.eql?(:debian)
 
       raw = self.run('service --status-all 2>&1')
       raw.split("\n").each do |line|
@@ -374,9 +476,11 @@ class Rouster
         mode    = $1
         service = $2
 
-        mode = 'stopped' if mode.match('-')
-        mode = 'running' if mode.match('\+')
-        mode = 'unsure'  if mode.match('\?')
+        if humanize
+          mode = 'stopped' if mode.match('-')
+          mode = 'running' if mode.match('\+')
+          mode = 'unsure'  if mode.match('\?')
+        end
 
         res[service] = mode
       end
@@ -385,9 +489,51 @@ class Rouster
 
       raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
-        # TODO tighten this up
-        next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
-        res[$1] = $2
+
+        if humanize
+
+          if line.match(/^(\w+?)\sis\s(.*)$/)
+            # <service> is <state>
+            res[$1] = $2
+
+            if $2.match(/^not/)
+              # this catches 'Kdump is not operational'
+              res[$1] = 'stopped'
+            end
+
+          elsif line.match(/^(\w+?)\s\(pid.*?\)\sis\s(\w+)$/)
+            # <service> (pid <pid> [pid]) is <state>...
+            res[$1] = $2
+          elsif line.match(/^(\w+?)\sis\s(\w+)\.*$/) # not sure this is actually needed
+            @logger.debug('triggered supposedly unnecessary regex')
+            # <service> is <state>. whatever
+            res[$1] = $2
+          elsif line.match(/^(\w+?)\:.*?(\w+)$/)
+            # <service>: whatever <state>
+            res[$1] = $2
+          elsif line.match(/^(\w+)\s(\w+).*$/)
+            # <process> <state> whatever
+            res[$1] = $2
+          else
+            # original regex implementation, if we didn't match anything else, failover to this
+            next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
+            res[$1] = $2
+          end
+
+        else
+          next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
+          res[$1] = $2
+        end
+
+      end
+
+      # issue #63 handling
+      if humanize
+        res.each_pair do |k,v|
+          next if allowed_modes.member?(v)
+          @logger.debug(sprintf('replacing service[%s] status of [%s] with [%s] for uniformity', k, v, failover_mode))
+          res[k] = failover_mode
+        end
       end
 
     else
@@ -395,7 +541,9 @@ class Rouster
     end
 
     if cache
+      @logger.debug(sprintf('caching [services] at [%s]', Time.now.asctime))
       self.deltas[:services] = res
+      self.cache[:services]  = Time.now.to_i
     end
 
     res
@@ -418,7 +566,15 @@ class Rouster
   # * [cache] - boolean controlling whether data retrieved/parsed is cached, defaults to true
   def get_users(cache=true)
     if cache and ! self.deltas[:users].nil?
-      return self.deltas[:users]
+
+      if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:users]) > self.cache_timeout
+        @logger.debug(sprintf('invalidating [users] cache, was [%s] old, allowed [%s]', (Time.now.to_i - self.cache[:users]), self.cache_timeout))
+        self.deltas.delete(:users)
+      else
+        @logger.debug(sprintf('using cached [users] from [%s]', self.cache[:users]))
+        return self.deltas[:users]
+      end
+
     end
 
     res = Hash.new()
@@ -440,7 +596,9 @@ class Rouster
     end
 
     if cache
+      @logger.debug(sprintf('caching [users] at [%s]', Time.now.asctime))
       self.deltas[:users] = res
+      self.cache[:users]  = Time.now.to_i
     end
 
     res
