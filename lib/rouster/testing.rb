@@ -8,7 +8,100 @@ class Rouster
   ##
   # validate_cron
   #
-  # TODO how do we actually want to implement this? since cron jobs don't have names, what does the user specify instead?
+  # given the name of the user who owns crontab, the cron's command to execute and a hash of expectations, returns true|false whether cron matches expectations
+  #
+  # parameters
+  # * <user> - name of user who owns crontab
+  # * <name> - the cron's command to execute
+  # * <expectations> - hash of expectations, see examples
+  # * <fail_fast> - return false immediately on any failure (default is false)
+  #
+  # example expectations:
+  # 'username',
+  # '/home/username/test.pl', {
+  #    :ensure => 'present',
+  #    :minute => 1,
+  #    :hour   => 0,
+  #    :dom    => '*',
+  #    :mon    => '*',
+  #    :dow    => '*',
+  # }
+  #
+  # 'root',
+  # 'printf > /var/log/apache/error_log', {
+  #    :minute => 59,
+  #    :hour   => [8, 12],
+  #    :dom    => '*',
+  #    :mon    => '*',
+  #    :dow    => '*',
+  # }
+  #
+  # supported keys:
+  #   * :exists|:ensure -- defaults to present if not specified
+  #   * :minute
+  #   * :hour
+  #   * :dom -- day of month
+  #   * :mon -- month
+  #   * :dow  -- day of week
+  #   * :constrain
+  def validate_cron(user, name, expectations, fail_fast=false)
+    if user.nil?
+      raise InternalError.new('no user specified constraint')
+    end
+
+    crontabs = self.get_crontab(user)
+
+    if expectations[:ensure].nil? and expectations[:exists].nil?
+      expectations[:ensure] = 'present'
+    end
+
+    if expectations.has_key?(:constrain)
+      expectations[:constrain] = expectations[:constrain].class.eql?(Array) ? expectations[:constrain] : [expectations[:constrain]]
+
+      expectations[:constrain].each do |constraint|
+        fact, expectation = constraint.split("\s")
+        unless meets_constraint?(fact, expectation)
+          @logger.info(sprintf('returning true for expectation [%s], did not meet constraint[%s/%s]', name, fact, expectation))
+          return true
+        end
+      end
+
+      expectations.delete(:constrain)
+    end
+
+    results = Hash.new()
+    local = nil
+
+    expectations.each do |k,v|
+      case k
+        when :ensure, :exists
+          if crontabs.has_key?(name)
+            if v.to_s.match(/absent|false/).nil?
+              local = true
+            else
+              local = false
+            end
+          else
+            local = v.to_s.match(/absent|false/).nil? ? false : true
+          end
+        when :minute, :hour, :dom, :mon, :dow
+          if crontabs.has_key?(name) and crontabs[name].has_key?(k) and crontabs[name][k].to_s.eql?(v.to_s)
+            local = true
+          else
+            local = false
+          end
+        else
+          raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
+      end
+
+      return false if local.eql?(false) and fail_fast.eql?(true)
+      results[k] = local
+    end
+
+    @logger.info(results)
+
+    results.find{|k,v| v.false? }.nil?
+  end
 
   ##
   # validate_file
