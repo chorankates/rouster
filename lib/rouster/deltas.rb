@@ -12,13 +12,12 @@ class Rouster
   # runs `crontab -l <user>` and parses output, returns hash:
   # {
   #   user => {
-  #     logicalOrderInt => {
+  #     command => {
   #       :minute => minute,
   #       :hour   => hour,
   #       :dom    => dom, # day of month
   #       :mon    => mon, # month
   #       :dow    => dow, # day of week
-  #       :command => command,
   #     }
   #   }
   # }
@@ -49,7 +48,6 @@ class Rouster
 
     end
 
-    i = 0
     res = Hash.new
     users = nil
 
@@ -72,17 +70,16 @@ class Rouster
         next if line.match(/^#/)
         elements = line.split("\s")
 
+        command = elements[5..elements.size].join(' ')
+
         res[u] ||= Hash.new
-        res[u][i] ||= Hash.new
+        res[u][command] ||= Hash.new
 
-        res[u][i][:minute]  = elements[0]
-        res[u][i][:hour]    = elements[1]
-        res[u][i][:dom]     = elements[2]
-        res[u][i][:mon]     = elements[3]
-        res[u][i][:dow]     = elements[4]
-        res[u][i][:command] = elements[5..elements.size].join(' ')
-
-        i += 1
+        res[u][command][:minute]  = elements[0]
+        res[u][command][:hour]    = elements[1]
+        res[u][command][:dom]     = elements[2]
+        res[u][command][:mon]     = elements[3]
+        res[u][command][:dow]     = elements[4]
       end
     end
 
