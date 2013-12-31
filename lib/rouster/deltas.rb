@@ -80,7 +80,6 @@ class Rouster
         res[u][i][:dom]     = elements[2]
         res[u][i][:mon]     = elements[3]
         res[u][i][:dow]     = elements[4]
-        res[u][i][:command] = elements[5..elements.size].join(" ")
         res[u][i][:command] = elements[5..elements.size].join(' ')
       end
 
