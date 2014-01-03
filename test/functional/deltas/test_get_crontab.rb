@@ -32,7 +32,7 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
     end
 
     assert_equal(Hash, res.class)
-    assert_equal(res, @app.deltas[:crontab]['root']) # shouldn't this be everyone?
+    assert_equal(res, @app.deltas[:crontab]['root'])
     assert_not_nil(@app.deltas[:crontab]['root'])
 
   end
@@ -119,18 +119,20 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
 
     res = nil
 
-    # do this in a saner way?
+    # do this in a saner way? crontab call is overwriting existing records
     user = 'puppet'
-    tmp  = sprintf('/tmp/rouster.tmp.crontab.^s.%s.%s', user, Time.now.to_i, $$)
-    @app.run("echo '5 5 * * * echo #{user}' > #{tmp}")
+    tmp  = sprintf('/tmp/rouster.tmp.crontab.%s.%s.%s', user, Time.now.to_i, $$)
+    @app.run("echo '0 0 * * * echo #{user}' > #{tmp}")
+    @app.run("echo '5 5 * * * echo #{user}' >> #{tmp}")
     @app.run("crontab -u #{user} #{tmp}")
 
     assert_nothing_raised do
-      res = @app.get_crontab()
+      res = @app.get_crontab('puppet')
     end
 
     assert_equal(Hash, res.class)
-
+    assert(res.has_key?('echo puppet'))
+    assert(res.has_key?('echo puppet-duplicate.55***echopuppet'))
 
   end
 
