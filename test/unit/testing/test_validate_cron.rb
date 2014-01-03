@@ -5,7 +5,7 @@ require 'rouster/puppet'
 require 'rouster/testing'
 require 'test/unit'
 
-class TestValidateGroup < Test::Unit::TestCase
+class TestValidateCron < Test::Unit::TestCase
 
   def setup
     # expose private methods
