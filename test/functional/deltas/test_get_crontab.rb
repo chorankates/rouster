@@ -32,7 +32,7 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
     end
 
     assert_equal(Hash, res.class)
-    assert_equal(res, @app.deltas[:crontab]['root'])
+    assert_equal(res, @app.deltas[:crontab]['root']) # shouldn't this be everyone?
     assert_not_nil(@app.deltas[:crontab]['root'])
 
   end
@@ -112,6 +112,25 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
 
     assert_equal(res1, res2)
     assert_not_equal(first_cache_time, second_cache_time)
+
+  end
+
+  def test_unhappy_duplicate_entries
+
+    res = nil
+
+    # do this in a saner way?
+    user = 'puppet'
+    tmp  = sprintf('/tmp/rouster.tmp.crontab.^s.%s.%s', user, Time.now.to_i, $$)
+    @app.run("echo '5 5 * * * echo #{user}' > #{tmp}")
+    @app.run("crontab -u #{user} #{tmp}")
+
+    assert_nothing_raised do
+      res = @app.get_crontab()
+    end
+
+    assert_equal(Hash, res.class)
+
 
   end
 

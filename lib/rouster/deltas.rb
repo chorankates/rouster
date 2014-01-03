@@ -73,7 +73,14 @@ class Rouster
         command = elements[5..elements.size].join(' ')
 
         res[u] ||= Hash.new
-        res[u][command] ||= Hash.new
+
+        if res[u][command].class.eql?(Hash)
+          unique = elements.join('')
+          command = sprintf('%s-duplicate.%s', command, unique)
+          @logger.info(sprintf('duplicate crontab command found, adding hash key[%s]', command))
+        else
+          res[u][command] = Hash.new
+        end
 
         res[u][command][:minute]  = elements[0]
         res[u][command][:hour]    = elements[1]
