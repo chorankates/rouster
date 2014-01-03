@@ -67,7 +67,7 @@ class Rouster
       end
 
       raw.split("\n").each do |line|
-        next if line.match(/^#/)
+        next if line.match(/^#|^\s+$/)
         elements = line.split("\s")
 
         command = elements[5..elements.size].join(' ')
