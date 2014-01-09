@@ -75,7 +75,7 @@ class TestPut < Test::Unit::TestCase
 
   def teardown
     #@app.destroy()
-    @app.suspend()
+    #@app.suspend()
     File.delete(@kg_location) if File.file?(@kg_location).true?
   end
 end
