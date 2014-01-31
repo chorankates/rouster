@@ -58,7 +58,7 @@ class Rouster
       # - option 1, if passed a single integer, use that level for both loggers
       # - option 2, if passed a single integer, use that level for stdout, and a hardcoded level (probably INFO) to logfile
 
-      # kind of want to do if opts[:verbosity].responds_to?(:[]), but for 1.87 compatability, going this way..
+      # kind of want to do if opts[:verbosity].respond_to?(:[]), but for 1.87 compatability, going this way..
       if opts[:verbosity].is_a?(Integer)
         @verbosity_console = opts[:verbosity]
         @verbosity_logfile = 2
@@ -75,7 +75,8 @@ class Rouster
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]
-    elsif @passthrough.eql?(true)
+    elsif @passthrough.class.eql?(Hash)
+      # TODO say something here.. or maybe check to see if our user has passwordless sudo?
       @sudo = false
     else
       @sudo = true
@@ -105,19 +106,47 @@ class Rouster
 
     @logger.outputters[0].level = @verbosity_console # can't set this when instantiating a .std* logger, and want the FileOutputter at a different level
 
-    @logger.debug('Vagrantfile and VM name validation..')
-    unless File.file?(@vagrantfile)
-      raise InternalError.new(sprintf('specified Vagrantfile [%s] does not exist', @vagrantfile))
-    end
+    if @passthrough
 
-    raise InternalError.new('name of Vagrant VM not specified') if @name.nil?
+      # TODO do better about informing of required specifications, maybe point them to an URL?
+      if @passthrough.class != Hash
+        raise ArgumentError.new('passthrough specification should be hash')
+      elsif @passthrough[:type].nil?
+        raise ArgumentError.new('passthrough :type must be specified, :local or :remote allowed')
+      elsif @passthrough[:type].eql?(:local)
+        @logger.debug('instantiating a local passthrough worker')
+      elsif @passthrough[:type].eql?(:remote)
+        raise ArgumentError.new('remote passthrough requires :host specification') if @passthrough[:host].nil?
+        raise ArgumentError.new('remote passthrough requires :user specification') if @passthrough[:user].nil?
+        raise ArgumentError.new('remote passthrough requires :key specification, should be path to public half') unless File.file?(@passthrough[:key])
+        @sshkey = @passthrough[:key] # TODO refactor so that you don't have to do this..
+        @logger.debug('instantiating a remote passthrough worker')
+      else
+        raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :local, :remote', @passthrough[:type]))
+      end
+    else
 
-    return if opts[:unittest].eql?(true) # quick return if we're a unit test
+      @logger.debug('Vagrantfile and VM name validation..')
+      unless File.file?(@vagrantfile)
+        raise ArgumentError.new(sprintf('specified Vagrantfile [%s] does not exist', @vagrantfile))
+      end
 
-    begin
-      @vagrantbinary = self._run('which vagrant').chomp!
-    rescue
-      raise ExternalError.new('vagrant not found in path')
+      raise ArgumentError.new('name of Vagrant VM not specified') if @name.nil?
+
+      return if opts[:unittest].eql?(true) # quick return if we're a unit test
+
+      begin
+        @vagrantbinary = self._run('which vagrant').chomp!
+      rescue
+        raise ExternalError.new('vagrant not found in path')
+      end
+
+      @logger.debug('SSH key discovery and viability tests..')
+      if @sshkey.nil?
+        # ref the key from the vagrant home dir if it's been overridden
+        @sshkey = sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']) if ENV['VAGRANT_HOME']
+        @sshkey = sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) unless ENV['VAGRANT_HOME']
+      end
     end
 
     # this is breaking test/functional/test_caching.rb test_ssh_caching (if the VM was not running when the test started)
@@ -126,17 +155,6 @@ class Rouster
       self.status()
     rescue Rouster::LocalExecutionError => e
       raise InternalError.new(sprintf('caught non-0 exitcode from status(): %s', e.message))
-    end
-
-    @logger.debug('SSH key discovery and viability tests..')
-    if @sshkey.nil?
-      if @passthrough.eql?(true)
-        raise InternalError.new('must specify sshkey when using a passthrough host')
-      else
-        # ref the key from the vagrant home dir if it's been overridden
-        @sshkey = sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']) if ENV['VAGRANT_HOME']
-        @sshkey = sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) unless ENV['VAGRANT_HOME']
-      end
     end
 
     begin
@@ -444,7 +462,7 @@ class Rouster
   #
   # convenience getter for @passthrough truthiness
   def is_passthrough?
-    self.passthrough.eql?(true)
+    @passthrough.class.eql?(Hash)
   end
 
   ##
@@ -475,7 +493,7 @@ class Rouster
   def restart(wait=nil)
     @logger.debug('restart()')
 
-    if self.is_passthrough? and self.passthrough.eql?(local)
+    if self.is_passthrough? and self.passthrough[:type].eql?(:local)
       @logger.warn(sprintf('intercepted [restart] sent to a local passthrough, no op'))
       return nil
     end
