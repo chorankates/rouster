@@ -80,7 +80,7 @@ class Rouster
           @logger.info(sprintf('duplicate crontab command found, adding hash key[%s]', command))
         end
 
-        res[u][command] = Hash.new
+        res[u][command]           = Hash.new
         res[u][command][:minute]  = elements[0]
         res[u][command][:hour]    = elements[1]
         res[u][command][:dom]     = elements[2]
