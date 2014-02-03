@@ -107,13 +107,13 @@ class Rouster
     @logger.outputters[0].level = @verbosity_console # can't set this when instantiating a .std* logger, and want the FileOutputter at a different level
 
     if @passthrough
-
       # TODO do better about informing of required specifications, maybe point them to an URL?
       if @passthrough.class != Hash
         raise ArgumentError.new('passthrough specification should be hash')
       elsif @passthrough[:type].nil?
         raise ArgumentError.new('passthrough :type must be specified, :local or :remote allowed')
       elsif @passthrough[:type].eql?(:local)
+        @sshtunnel = false
         @logger.debug('instantiating a local passthrough worker')
       elsif @passthrough[:type].eql?(:remote)
         raise ArgumentError.new('remote passthrough requires :host specification') if @passthrough[:host].nil?
@@ -162,7 +162,11 @@ class Rouster
       raise InternalError.new('ssh key does not exist') unless File.file?(@sshkey)
       self.check_key_permissions(@sshkey)
     rescue => e
-      raise InternalError.new("specified key [#{@sshkey}] has bad permissions. Vagrant exception: [#{e.message}]")
+
+      unless self.is_passthrough? and @passthrough[:type].eql?(:local)
+        raise InternalError.new("specified key [#{@sshkey}] has bad permissions. Vagrant exception: [#{e.message}]")
+      end
+
     end
 
     if @sshtunnel
@@ -345,12 +349,36 @@ class Rouster
   def connect_ssh_tunnel
     @logger.debug('opening SSH tunnel..')
 
-    status = self.status()
-    if status.eql?('running')
-      self.get_ssh_info()
-      @ssh = Net::SSH.start(@ssh_info[:hostname], @ssh_info[:user], :port => @ssh_info[:ssh_port], :keys => [@sshkey], :paranoid => false)
+    require 'debugger'; debugger
+
+    if self.is_passthrough?
+      if self.passthrough[:type].eql?(:local)
+        return false
+      else
+        @ssh = Net::SSH.start(
+          @passthrough[:host],
+          @passthrough[:user],
+          :port => @passthrough[:port],
+          :keys => [ @passthrough[:key] ],
+          :paranoid => false
+        )
+      end
     else
-      raise InternalError.new(sprintf('VM is not running[%s], unable open SSH tunnel', status))
+      # not a passthrough, normal connection
+      status = self.status()
+
+      if status.eql?('running')
+        self.get_ssh_info()
+        @ssh = Net::SSH.start(
+          @ssh_info[:hostname],
+          @ssh_info[:user],
+          :port => @ssh_info[:ssh_port],
+          :keys => [@sshkey],
+          :paranoid => false
+        )
+      else
+        raise InternalError.new(sprintf('VM is not running[%s], unable open SSH tunnel', status))
+      end
     end
 
     @ssh

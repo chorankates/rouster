@@ -82,7 +82,10 @@ class Rouster
     self.vagrant(sprintf('status %s', @name))
 
     # else case here is handled by non-0 exit code
-    if self.get_output().match(/^#{@name}\s*(.*\s?\w+)\s\((.+)\)$/)
+    if self.get_output().nil?
+      # should only see this for passthroughs
+      status = 'running'
+    elsif self.get_output().match(/^#{@name}\s*(.*\s?\w+)\s\((.+)\)$/)
       # vagrant 1.2+, $1 = status, $2 = provider
       status = $1
     elsif self.get_output().match(/^#{@name}\s+(.+)$/)
