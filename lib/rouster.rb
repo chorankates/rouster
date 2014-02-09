@@ -186,11 +186,12 @@ class Rouster
   #
   # overloaded method to return useful information about Rouster objects
   def inspect
+    s = self.status()
     "name [#{@name}]:
       is_available_via_ssh?[#{self.is_available_via_ssh?}],
       passthrough[#{@passthrough}],
       sshkey[#{@sshkey}],
-      status[#{self.status()}],
+      status[#{s}],
       sudo[#{@sudo}],
       vagrantfile[#{@vagrantfile}],
       verbosity console[#{@verbosity_console}] / log[#{@verbosity_logfile} - #{@logfile}]\n"
@@ -356,12 +357,12 @@ class Rouster
   #
   # raises its own InternalError if the machine isn't running, otherwise returns Net::SSH connection object
   def connect_ssh_tunnel
-    @logger.debug('opening SSH tunnel..')
 
     if self.is_passthrough?
       if self.passthrough[:type].eql?(:local)
         return false
       else
+        @logger.debug('opening remote SSH tunnel..')
         @ssh = Net::SSH.start(
           @passthrough[:host],
           @passthrough[:user],
@@ -376,6 +377,7 @@ class Rouster
 
       if status.eql?('running')
         self.get_ssh_info()
+        @logger.debug('opening VM SSH tunnel..')
         @ssh = Net::SSH.start(
           @ssh_info[:hostname],
           @ssh_info[:user],
