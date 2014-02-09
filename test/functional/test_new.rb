@@ -84,11 +84,11 @@ class TestNew < Test::Unit::TestCase
 
   def test_4_bad_name_instantiation
 
-    assert_raise Rouster::InternalError do
+    assert_raise Rouster::ArgumentError do
       @app = Rouster.new(:name => 'foo')
     end
 
-    assert_raise Rouster::InternalError do
+    assert_raise Rouster::ArgumentError do
       @app = Rouster.new(:not_a_name => 'test')
     end
 
@@ -100,7 +100,7 @@ class TestNew < Test::Unit::TestCase
       @app = Rouster.new(:name => 'FIZZY') # auto find Vagrantfile
     end
 
-    assert_raise Rouster::InternalError do
+    assert_raise Rouster::ArgumentError do
       @app = Rouster.new(:name => 'testing', :vagrantfile => '/this/file/dne')
     end
 
@@ -108,7 +108,7 @@ class TestNew < Test::Unit::TestCase
 
   def test_6_bad_sshkey_instantiation
 
-    assert_raise Rouster::InternalError do
+    assert_raise Rouster::ArgumentError do
       @app = Rouster.new(:name => 'app', :sshkey => '/this/file/dne')
     end
 
