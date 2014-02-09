@@ -53,6 +53,8 @@ class Rouster
     @vagrantfile         = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
     @vagrant_concurrency = opts[:vagrant_concurrency].nil? ? false : opts[:vagrant_concurrency]
 
+    # TODO kind of want to invert this, 0 = trace, 1 = debug, 2 = info, 3 = warning, 4 = error
+    # could do `fixed_ordering = [4, 3, 2, 1, 0]` and use user input as index instead, so an input of 4 (which should be more verbose), yields 0
     if opts[:verbosity]
       # TODO decide how to handle this case -- currently #2 is implemented
       # - option 1, if passed a single integer, use that level for both loggers
@@ -221,7 +223,12 @@ class Rouster
 
     0.upto(@retries) do |try|
       begin
-        output = @ssh.exec!(cmd)
+        if self.is_passthrough? and self.passthrough[:type].eql?(:local)
+          output = `#{cmd}`
+        else
+          output = @ssh.exec!(cmd)
+        end
+
         break
       rescue => e
         @logger.error(sprintf('failed to run [%s] with [%s], attempt[%s/%s]', cmd, e, try, retries)) if self.retries > 0
@@ -244,6 +251,7 @@ class Rouster
     @logger.debug(sprintf('output: [%s]', output))
 
     unless expected_exitcode.member?(@exitcode)
+      # TODO technically this could be a 'LocalPassthroughExecutionError' now too if local passthrough.. should we update?
       raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
     end
 
@@ -348,8 +356,6 @@ class Rouster
   # raises its own InternalError if the machine isn't running, otherwise returns Net::SSH connection object
   def connect_ssh_tunnel
     @logger.debug('opening SSH tunnel..')
-
-    require 'debugger'; debugger
 
     if self.is_passthrough?
       if self.passthrough[:type].eql?(:local)
