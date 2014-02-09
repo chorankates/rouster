@@ -13,8 +13,7 @@ class Rouster
   # * <face> - vagrant face to call (include arguments)
   def vagrant(face, sleep_time=10)
     if self.is_passthrough?
-      # it is a little odd to just return nil for a vagrant face, but raise an exception for sandbox commits.. should we be raising here? or just logging there?
-      @logger.info(sprintf('calling [vagrant %s] on a passthrough host is a noop', face))
+      @logger.warn(sprintf('calling [vagrant %s] on a passthrough host is a noop', face))
       return nil
     end
 
@@ -82,14 +81,16 @@ class Rouster
     @logger.info('status()')
     self.vagrant(sprintf('status %s', @name))
 
-    # else case here is handled by non-0 exit code
-    if self.get_output().nil?
-      # should only see this for passthroughs -- we're hitting this, but not seeing it in .inspect output
-      status = 'running'
-    elsif self.get_output().match(/^#{@name}\s*(.*\s?\w+)\s\((.+)\)$/)
+    # else case here (both for nil/non-matching output) is handled by non-0 exit code
+    output = self.get_output()
+    if output.nil?
+      if self.is_passthrough?()
+        status = 'running'
+      end
+    elsif output.match(/^#{@name}\s*(.*\s?\w+)\s\((.+)\)$/)
       # vagrant 1.2+, $1 = status, $2 = provider
       status = $1
-    elsif self.get_output().match(/^#{@name}\s+(.+)$/)
+    elsif output.match(/^#{@name}\s+(.+)$/)
       # vagrant 1.2-, $1 = status
       status = $1
     end
@@ -110,8 +111,8 @@ class Rouster
   # runs `vagrant suspend <name>` from the Vagrantfile path
   def suspend
     @logger.info('suspend()')
-    disconnect_ssh_tunnel()
     self.vagrant(sprintf('suspend %s', @name))
+    disconnect_ssh_tunnel() unless self.is_passthrough?()
   end
 
   ##
@@ -140,14 +141,16 @@ class Rouster
   # returns true or false after attempting to find out if the sandbox
   # subcommand is available
   def sandbox_available?
-    raise PassthroughError if self.is_passthrough?()
+    if self.is_passthrough?
+      @logger.warn('sandbox* methods on a passthrough host is a noop')
+      return nil
+    end
 
     if @cache.has_key?(:sandbox_available?)
       @logger.debug(sprintf('using cached sandbox_available?[%s]', @cache[:sandbox_available?]))
       return @cache[:sandbox_available?]
     end
 
-    require 'debugger'; debugger
     @logger.info('sandbox_available()')
     begin
       # at some point, vagrant changed its behavior on exit code here, so rescuing
@@ -171,7 +174,10 @@ class Rouster
   # sandbox_on
   # runs `vagrant sandbox on` from the Vagrantfile path
   def sandbox_on
-    raise PassthroughError if self.is_passthrough?()
+    if self.is_passthrough?
+      @logger.warn('sandbox* methods on a passthrough host is a noop')
+      return nil
+    end
 
     if self.sandbox_available?
       return self.vagrant(sprintf('sandbox on %s', @name))
@@ -184,7 +190,10 @@ class Rouster
   # sandbox_off
   # runs `vagrant sandbox off` from the Vagrantfile path
   def sandbox_off
-    raise PassthroughError if self.is_passthrough?()
+    if self.is_passthrough?
+      @logger.warn('sandbox* methods on a passthrough host is a noop')
+      return nil
+    end
 
     if self.sandbox_available?
       return self.vagrant(sprintf('sandbox off %s', @name))
@@ -197,7 +206,10 @@ class Rouster
   # sandbox_rollback
   # runs `vagrant sandbox rollback` from the Vagrantfile path
   def sandbox_rollback
-    raise PassthroughError if self.is_passthrough?()
+    if self.is_passthrough?
+      @logger.warn('sandbox* methods on a passthrough host is a noop')
+      return nil
+    end
 
     if self.sandbox_available?
       self.disconnect_ssh_tunnel
@@ -212,7 +224,10 @@ class Rouster
   # sandbox_commit
   # runs `vagrant sandbox commit` from the Vagrantfile path
   def sandbox_commit
-    raise PassthroughError if self.is_passthrough?()
+    if self.is_passthrough?
+      @logger.warn('sandbox* methods on a passthrough host is a noop')
+      return nil
+    end
 
     if self.sandbox_available?
       self.disconnect_ssh_tunnel
