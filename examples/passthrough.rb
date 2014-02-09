@@ -4,12 +4,14 @@ require 'rouster'
 require 'rouster/puppet'
 require 'rouster/tests'
 
+verbosity = ENV['VERBOSE'].nil? ? 4 : 0
+
 # .inspect of this is blank for sshkey and status, looks ugly, but is ~accurate.. fix this?
 local = Rouster.new(
   :name        => 'local',
   :sudo        => false,
   :passthrough => { :type => :local },
-  :verbosity   => 0,
+  :verbosity   => verbosity,
 )
 
 remote = Rouster.new(
@@ -21,23 +23,25 @@ remote = Rouster.new(
     :user => ENV['USER'],
     :key  => sprintf('%s/.ssh/id_dsa', ENV['HOME']),
   },
-  :verbosity => 0,
+  :verbosity => verbosity,
 )
 
 sudo = Rouster.new(
   :name        => 'sudo',
   :sudo        => true,
   :passthrough => { :type => :local },
-  :verbosity   => 0,
+  :verbosity   => verbosity,
 )
 
 vagrant = Rouster.new(
   :name        => 'ppm',
   :sudo        => true,
-  :verbosity   => 0,
+  :verbosity   => verbosity,
 )
 
 workers = [ local, remote, vagrant ]
+
+workers = [vagrant]
 
 workers.each do |r|
   p r
@@ -47,11 +51,13 @@ workers.each do |r|
   r.suspend()
   #r.destroy()
   r.up()
-  r.status()
 
-  if ! r.is_passthrough?()
-    r.is_vagrant_running?()
-    r.sandbox_available?()
+  p r.status() # why is this giving us nil after initial call? want to blame caching, but not sure
+
+  r.is_vagrant_running?()
+  r.sandbox_available?()
+
+  if r.sandbox_available?()
     r.sandbox_on()
     r.sandbox_off()
     r.sandbox_rollback()
@@ -59,7 +65,6 @@ workers.each do |r|
   end
 
   p r.run('echo foo')
-
 
 end
 
