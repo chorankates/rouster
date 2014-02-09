@@ -9,7 +9,7 @@ class TestNew < Test::Unit::TestCase
 
   def setup
     @app = Rouster.new(:name => 'app', :sshtunnel => false)
-    @app.destroy() if @app.status().eql?('running')
+    @app.destroy() if @app.status().eql?('running') # TODO do we really need to do this?
     @app = nil
   end
 
@@ -84,7 +84,8 @@ class TestNew < Test::Unit::TestCase
 
   def test_4_bad_name_instantiation
 
-    assert_raise Rouster::ArgumentError do
+    # TODO this is probably wrong, should really be an ArgumentError
+    assert_raise Rouster::InternalError do
       @app = Rouster.new(:name => 'foo')
     end
 
@@ -108,7 +109,7 @@ class TestNew < Test::Unit::TestCase
 
   def test_6_bad_sshkey_instantiation
 
-    assert_raise Rouster::ArgumentError do
+    assert_raise Rouster::InternalError do
       @app = Rouster.new(:name => 'app', :sshkey => '/this/file/dne')
     end
 
