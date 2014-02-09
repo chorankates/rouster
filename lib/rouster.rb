@@ -21,6 +21,7 @@ class Rouster
   class ExternalError        < StandardError; end # thrown when external dependencies do not respond as expected
   class LocalExecutionError  < StandardError; end # thrown by _run()
   class RemoteExecutionError < StandardError; end # thrown by run()
+  class PassthroughError     < StandardError; end # thrown by anything Passthrough related (mostly vagrant.rb)
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_accessor :facts
@@ -110,6 +111,7 @@ class Rouster
 
     if @passthrough
       # TODO do better about informing of required specifications, maybe point them to an URL?
+      @vagrantbinary = 'vagrant' # hacky fix to is_vagrant_running?() grepping
       if @passthrough.class != Hash
         raise ArgumentError.new('passthrough specification should be hash')
       elsif @passthrough[:type].nil?
@@ -192,7 +194,6 @@ class Rouster
       sudo[#{@sudo}],
       vagrantfile[#{@vagrantfile}],
       verbosity console[#{@verbosity_console}] / log[#{@verbosity_logfile} - #{@logfile}]\n"
-
   end
 
   ## internal methods
@@ -219,7 +220,7 @@ class Rouster
     expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
 
     cmd = sprintf('%s%s; echo ec[$?]', self.uses_sudo? ? 'sudo ' : '', command)
-    @logger.info(sprintf('vm running: [%s]', cmd))
+    @logger.info(sprintf('vm running: [%s]', cmd)) # TODO decide whether this should be changed in light of passthroughs.. 'remotely'?
 
     0.upto(@retries) do |try|
       begin
