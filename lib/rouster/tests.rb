@@ -468,6 +468,25 @@ class Rouster
   end
 
   ##
+  # is_symlink?
+  #
+  # uses file() to return boolean indicating whether parameter passed is a symlink
+  #
+  # parameters
+  # * <file> - path of filename to validate
+  def is_symlink?(file)
+    res = nil
+
+    begin
+      res = self.file(file)
+    rescue => e
+      return false
+    end
+
+    res.class.eql?(Hash) ? res[:symlink?] : false
+  end
+
+  ##
   # is_user?
   #
   # uses get_users() to return boolean indicating whether passed parameter is a user
@@ -586,6 +605,7 @@ class Rouster
 
     res[:directory?]  = tokens[0][0].chr.eql?('d')
     res[:file?]       = ! res[:directory?]
+    res[:symlink?]    = tokens[0][0].chr.eql?('l')
     res[:executable?] = [ tokens[0][3].chr.eql?('x'), tokens[0][6].chr.eql?('x'), tokens[0][9].chr.eql?('x') || tokens[0][9].chr.eql?('t') ]
     res[:writeable?]  = [ tokens[0][2].chr.eql?('w'), tokens[0][5].chr.eql?('w'), tokens[0][8].chr.eql?('w') ]
     res[:readable?]   = [ tokens[0][1].chr.eql?('r'), tokens[0][4].chr.eql?('r'), tokens[0][7].chr.eql?('r') ]
