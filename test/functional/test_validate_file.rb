@@ -23,6 +23,35 @@ class TestValidateFileFunctional < Test::Unit::TestCase
 
   end
 
+  def test_happy
+    file        = '/tmp/chiddy'
+    expectation = { :ensure => 'file' }
+
+    @app.run("touch #{file}")
+
+    assert_equal(true, @app.validate_file(file, expectation, false, true))
+
+  end
+
+  def test_happy_symlink
+    file = '/tmp/bang'
+
+    @app.run("ln -sf /etc/hosts #{file}")
+
+    expectations = [
+      { :ensure => 'symlink' },
+      { :ensure => 'link' },
+      { :ensure => 'link', :target => '/etc/hosts' }
+    ]
+
+    expectations.each do |e|
+      # this is a weird convention, maybe reconsider the calling signature for validate_file
+      #    thinking something like validate_file(expectations) instead of validate_file(file, expectations)
+      assert_equal(true, @app.validate_file(file, e, false, true))
+    end
+
+  end
+
   def teardown
     # noop
   end
