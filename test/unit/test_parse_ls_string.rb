@@ -29,6 +29,7 @@ class TestParseLsString < Test::Unit::TestCase
       :owner       => 'root',
       :group       => 'root',
       :size        => '199',
+      :symlink?    => false,
       :executable? => [false, false, false],
       :readable?   => [true, true, true],
       :writeable?  => [false, false, false]
@@ -50,6 +51,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [true,  false, false],
         :writeable?  => [false, false, false]
@@ -71,6 +73,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, true, false],
         :writeable?  => [false, false, false]
@@ -92,6 +95,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, false, true],
         :writeable?  => [false, false, false]
@@ -113,6 +117,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [true, true, true],
         :readable?   => [false, false, false],
         :writeable?  => [false, false, false]
@@ -134,6 +139,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [true, false, false],
         :readable?   => [false, false, false],
         :writeable?  => [false, false, false]
@@ -155,6 +161,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [false, true, false],
         :readable?   => [false, false, false],
         :writeable?  => [false, false, false]
@@ -176,6 +183,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [false, false, true],
         :readable?   => [false, false, false],
         :writeable?  => [false, false, false]
@@ -197,6 +205,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, false, false],
         :writeable?  => [true, true, true]
@@ -218,6 +227,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, false, false],
         :writeable?  => [true, false, false]
@@ -239,6 +249,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, false, false],
         :writeable?  => [false, true, false]
@@ -260,6 +271,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'root',
         :group       => 'root',
         :size        => '199',
+        :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, false, false],
         :writeable?  => [false, false, true]
@@ -281,6 +293,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'vagrant',
         :group       => 'vagrant',
         :size        => '1909',
+        :symlink?    => false,
         :executable? => [false, false, true],
         :readable?   => [false, false, true],
         :writeable?  => [false, false, true]
@@ -302,6 +315,7 @@ class TestParseLsString < Test::Unit::TestCase
         :owner       => 'vagrant',
         :group       => 'root',
         :size        => '0',
+        :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [true, true, true],
         :writeable?  => [true, false, false]
@@ -327,6 +341,15 @@ class TestParseLsString < Test::Unit::TestCase
 
   end
 
+  def test_symlink_detection
+    link = "lrwxrwxrwx 1 vagrant vagrant  10 Mar 13 22:53 foo -> /etc/hosts\n"
+    file = "-rw-r--r-- 2 root root 166 Mar 13 22:50 /etc/hosts\n"
+
+    assert_equal(true, @app.exposed_parse_ls_string(link)[:symlink?])
+    assert_equal(false, @app.exposed_parse_ls_string(file)[:symlink?])
+
+  end
+
   def test_suid
     str = "drwxr-sr-x 2 root root 4096 Oct  7 17:09 /etc/nagios/objects\n"
 
@@ -340,6 +363,7 @@ class TestParseLsString < Test::Unit::TestCase
       :owner       => 'root',
       :group       => 'root',
       :size        => '4096',
+      :symlink?    => false,
       :executable? => [true, true, true], # right now, we return [true,false,true]
       :readable?   => [true, true, true],
       :writeable?  => [true, false, false],
