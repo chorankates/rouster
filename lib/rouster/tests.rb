@@ -36,18 +36,9 @@ class Rouster
     end
 
     begin
-      raw = self.run(sprintf('ls -ld %s', dir))
+      res = self.determine_file_attributes(dir)
     rescue Rouster::RemoteExecutionError
-      raw = self.get_output()
-    end
-
-    if raw.match(/No such file or directory/)
       res = nil
-    elsif raw.match(/Permission denied/)
-      @logger.info(sprintf('dir(%s) output[%s], try with sudo', dir, raw)) unless self.uses_sudo?
-      res = nil
-    else
-      res = parse_ls_string(raw)
     end
 
     if cache
@@ -114,18 +105,9 @@ class Rouster
     end
 
     begin
-      raw = self.run(sprintf('ls -l %s', file))
+      res = self.determine_file_attributes(file)
     rescue Rouster::RemoteExecutionError
-      raw = self.get_output()
-    end
-
-    if raw.match(/No such file or directory/)
-      @logger.info(sprintf('is_file?(%s) output[%s], try with sudo', file, raw)) unless self.uses_sudo?
       res = nil
-    elsif raw.match(/Permission denied/)
-      res = nil
-    else
-      res = parse_ls_string(raw)
     end
 
     if cache
@@ -560,8 +542,10 @@ class Rouster
 
   # non-test, helper methods
   #private
-  def parse_ls_string(string)
+  def determine_file_attributes (file)
     # ht avaghti
+
+    string = self._run(sprintf('ls -l %s', file))
 
     res = Hash.new()
 
@@ -604,12 +588,17 @@ class Rouster
 
     res[:directory?]  = tokens[0][0].chr.eql?('d')
     res[:file?]       = ! res[:directory?]
-    res[:symlink?]    = tokens[0][0].chr.eql?('l')
     res[:executable?] = [ tokens[0][3].chr.eql?('x'), tokens[0][6].chr.eql?('x'), tokens[0][9].chr.eql?('x') || tokens[0][9].chr.eql?('t') ]
     res[:writeable?]  = [ tokens[0][2].chr.eql?('w'), tokens[0][5].chr.eql?('w'), tokens[0][8].chr.eql?('w') ]
     res[:readable?]   = [ tokens[0][1].chr.eql?('r'), tokens[0][4].chr.eql?('r'), tokens[0][7].chr.eql?('r') ]
 
     # TODO better here: this does not support files/dirs with spaces
+    begin
+      self.run("test -h #{file}")
+    rescue
+      res[:symlink?] = true
+    end
+
     if res[:symlink?]
       # not sure if we should only be adding this value if we're a symlink, or adding it to all results and just using nil if not a link
       res[:target] = tokens[-1]
