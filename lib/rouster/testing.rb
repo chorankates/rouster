@@ -185,6 +185,15 @@ class Rouster
             local = true
           elsif properties.nil?
             local = false
+          elsif v.to_s.match(/symlink|link/)
+            if expectations[:target].nil?
+              # don't validate the link path, just check whether we're a link
+              local = properties[:symlink?]
+            else
+              # validate the link path
+              @logger.info('currently unable to validate link path, only keying off of whether or not link')
+              local = properties[:symlink?]
+            end
           else
             case v
               when 'dir', 'directory'
@@ -264,6 +273,8 @@ class Rouster
           end
         when :type
           # noop allowing parse_catalog() output to be passed directly
+        when :target
+          # noop allowing ensure => 'link' / 'symlink' to specify their .. target
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
