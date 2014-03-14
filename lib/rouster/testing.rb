@@ -191,8 +191,7 @@ class Rouster
               local = properties[:symlink?]
             else
               # validate the link path
-              @logger.info('currently unable to validate link path, only keying off of whether or not link')
-              local = properties[:symlink?]
+              local = properties[:target].match(/^#{expectations[:target]}$/) ? true : false # would prefer a .equal? comparison here, but is not working..
             end
           else
             case v
