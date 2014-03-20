@@ -542,10 +542,22 @@ class Rouster
 
   # non-test, helper methods
   #private
+  # returns a hash of dir/file attributes or nil (if file DNE or no permissions)
   def determine_file_attributes (file)
     # ht avaghti
 
-    string = self._run(sprintf('ls -l %s', file))
+    begin
+      raw = self._run(sprintf('ls -l %s', file))
+    rescue Rouster::RemoteExecutionError
+      raw = self.get_output()
+    end
+
+    if raw.match(/No such file or directory/)
+      return nil
+    elsif raw.match(/Permission denied/)
+      @logger.info(sprintf('dir/file (%s) ls -l output[%s], try with sudo?', file, raw)) unless self.uses_sudo?
+      return nil
+    end
 
     res = Hash.new()
 
