@@ -543,11 +543,11 @@ class Rouster
   # non-test, helper methods
   #private
   # returns a hash of dir/file attributes or nil (if file DNE or no permissions)
-  def determine_file_attributes (file)
+  def determine_file_attributes (file, where=:vm)
     # ht avaghti
 
     begin
-      raw = self._run(sprintf('ls -l %s', file))
+        raw = where.eql?(:host) ? self._run(sprintf('ls -l %s', file)) : self.run(sprintf('ls -l %s', file))
     rescue Rouster::RemoteExecutionError
       raw = self.get_output()
     end
@@ -558,6 +558,28 @@ class Rouster
       @logger.info(sprintf('dir/file (%s) ls -l output[%s], try with sudo?', file, raw)) unless self.uses_sudo?
       return nil
     end
+
+    res = parse_ls_string(raw)
+
+    # TODO better here: this does not support files/dirs with spaces
+    begin
+      raw = where.eql?(:host) ? self._run("test -h #{file}") : self.run("test -h #{file}")
+    rescue
+      res[:symlink?] = true
+    end
+
+    if res[:symlink?]
+      # not sure if we should only be adding this value if we're a symlink, or adding it to all results and just using nil if not a link
+      res[:target] = res[:tokens][-1]
+      res[:name]   = res[:tokens][-3]
+    else
+      res[:name] = res[:tokens][-1]
+    end
+
+    res
+  end
+
+  def parse_ls_string (string)
 
     res = Hash.new()
 
@@ -604,20 +626,7 @@ class Rouster
     res[:writeable?]  = [ tokens[0][2].chr.eql?('w'), tokens[0][5].chr.eql?('w'), tokens[0][8].chr.eql?('w') ]
     res[:readable?]   = [ tokens[0][1].chr.eql?('r'), tokens[0][4].chr.eql?('r'), tokens[0][7].chr.eql?('r') ]
 
-    # TODO better here: this does not support files/dirs with spaces
-    begin
-      self.run("test -h #{file}")
-    rescue
-      res[:symlink?] = true
-    end
-
-    if res[:symlink?]
-      # not sure if we should only be adding this value if we're a symlink, or adding it to all results and just using nil if not a link
-      res[:target] = tokens[-1]
-      res[:name]   = tokens[-3]
-    else
-      res[:name] = tokens[-1]
-    end
+    res[:tokens] = tokens
 
     res
   end

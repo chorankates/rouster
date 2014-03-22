@@ -606,7 +606,7 @@ class Rouster
   def check_key_permissions(key, fix=false)
     allowed_modes = ['0400', '0600']
 
-    perms = self.determine_file_attributes(key)
+    perms = self.determine_file_attributes(key, :host)
 
     unless allowed_modes.member?(perms[:mode])
       if fix.eql?(true)
