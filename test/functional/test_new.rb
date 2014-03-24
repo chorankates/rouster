@@ -21,7 +21,7 @@ class TestNew < Test::Unit::TestCase
 
   end
 
-  def test_2_defults
+  def test_2_defaults
 
     assert_nothing_raised do
       @app = Rouster.new(:name => 'app')
@@ -111,6 +111,109 @@ class TestNew < Test::Unit::TestCase
 
     assert_raise Rouster::InternalError do
       @app = Rouster.new(:name => 'app', :sshkey => '/this/file/dne')
+    end
+
+  end
+
+  def test_7_good_local_passthrough
+
+    assert_nothing_raised do
+      @app = Rouster.new(:name => 'local', :passthrough => { :type => :local } )
+    end
+
+    assert_equal('local', @app.name)
+    assert_equal(true, @app.is_passthrough?())
+    assert_equal(true, @app.uses_sudo?())
+    assert_equal(true, @app.is_available_via_ssh?())
+
+  end
+
+  def test_8_good_remote_passthrough
+
+    require 'debugger'; debugger
+
+    sshkey   = sprintf('%s/.ssh/id_rsa.pub', ENV['HOME'])
+    authkeys = sprintf('%s/.ssh/authorized_keys', ENV['HOME'])
+
+    skip ("no sshkey found at #{sshkey}, skipping valid loopback passthrough test") unless File.file?(sshkey)
+
+    sshkey_content    = File.read(sshkey)
+    authkeys_contents = File.read(authkeys)
+    found             = nil
+
+    authkeys_contents.split("\n").each do |line|
+      found = sshkey_content.chomp.equal?(line)
+      break if found
+    end
+
+    skip ("unable to find key #{sshkey} in #{authkeys}, skipping valid loopback passthrough test") if found.nil?
+
+    # only running this test if you've added ~/.ssh/id_rsa.pub to ~/.ssh/authorized_keys
+    assert_nothing_raised do
+      @app = Rouster.new(
+        :name => 'remote',
+        :sudo => false,
+        :passthrough => {
+          :type => :remote,
+          :host => '127.0.0.1',
+          :user => ENV['USER'],
+          :key  => sshkey,
+        },
+      )
+    end
+
+    assert_equal('remote', @app.name)
+    assert_equal(true, @app.is_passthrough?())
+    assert_equal(false, @app.uses_sudo?())
+    assert_equal(true, @app.is_available_via_ssh?())
+
+  end
+
+  def test_9_invalid_passthrough
+
+    # invalid type
+    # missing required parameters
+
+    assert_raise Rouster::InternalError do
+      @app = Rouster.new(:name => 'fizzy', :passthrough => {})
+    end
+
+    assert_raise Rouster::InternalError do
+      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => 'invalid' } )
+    end
+
+    assert_raise Rouster::InternalError do
+      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => :remote } )
+    end
+
+    assert_raise Rouster::InternalError do
+      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => :remote, :user => 'foo' } )
+    end
+
+  end
+
+  def test_10_bad_passthrough
+
+    sshkey = sprintf('%s/.ssh/id_rsa.pub', ENV['HOME'])
+
+    # invalid key
+    assert_raise Rouster::ArgumentError do
+      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => :remote, :key => '/etc/hosts' } )
+    end
+
+    # key that DNE
+    assert_raise Rouster::InternalError do
+      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => :remote, :key => '/etc/this-file-dne' } )
+    end
+
+    # host that DNE
+    assert_raise Rouster::InternalError do
+      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => :remote, :key => sshkey, :host => 'this.host.does.not.exist' } )
+    end
+
+    # IP that doesn't resolve
+    assert_raise Rouster::InternalError do
+      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => :remote, :key => sshkey, :host => '255.256.257.258' } )
     end
 
   end
