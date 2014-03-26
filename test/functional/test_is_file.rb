@@ -22,8 +22,9 @@ class TestIsFile < Test::Unit::TestCase
     @file_other_rwx = sprintf('%s/other', @dir_tmp)
     @file_644       = sprintf('%s/sixfourfour', @dir_tmp)
     @file_755       = sprintf('%s/sevenfivefive', @dir_tmp)
+    @symlink        = sprintf('%s/symlinking', @dir_tmp)
 
-    @files = [@file_user_rwx, @file_group_rwx, @file_other_rwx, @file_644, @file_755]
+    @files = [@file_user_rwx, @file_group_rwx, @file_other_rwx, @file_644, @file_755, @symlink]
   end
 
   def test_user
@@ -41,6 +42,8 @@ class TestIsFile < Test::Unit::TestCase
     assert_equal(false, @app.is_readable?(@file_user_rwx,   'o'))
     assert_equal(false, @app.is_writeable?(@file_user_rwx,  'o'))
     assert_equal(false, @app.is_executable?(@file_user_rwx, 'o'))
+
+    assert_equal(false, @app.is_symlink?(@file_755))
   end
 
   def test_group
@@ -58,6 +61,8 @@ class TestIsFile < Test::Unit::TestCase
     assert_equal(false, @app.is_readable?(@file_group_rwx,   'o'))
     assert_equal(false, @app.is_writeable?(@file_group_rwx,  'o'))
     assert_equal(false, @app.is_executable?(@file_group_rwx, 'o'))
+
+    assert_equal(false, @app.is_symlink?(@file_755))
   end
 
   def test_other
@@ -76,6 +81,7 @@ class TestIsFile < Test::Unit::TestCase
     assert_equal(true, @app.is_writeable?(@file_other_rwx,  'o'))
     assert_equal(true, @app.is_executable?(@file_other_rwx, 'o'))
 
+    assert_equal(false, @app.is_symlink?(@file_755))
   end
 
   def test_644
@@ -93,6 +99,8 @@ class TestIsFile < Test::Unit::TestCase
     assert_equal(true, @app.is_readable?(@file_644,    'o'))
     assert_equal(false, @app.is_writeable?(@file_644,  'o'))
     assert_equal(false, @app.is_executable?(@file_644, 'o'))
+
+    assert_equal(false, @app.is_symlink?(@file_755))
   end
 
   def test_755
@@ -110,6 +118,14 @@ class TestIsFile < Test::Unit::TestCase
     assert_equal(true, @app.is_readable?(@file_755,   'o'))
     assert_equal(false, @app.is_writeable?(@file_755, 'o'))
     assert_equal(true, @app.is_executable?(@file_755, 'o'))
+
+    assert_equal(false, @app.is_symlink?(@file_755))
+  end
+
+  def test_symlink
+    @app.run("ln -s /etc/hosts #{@symlink}")
+
+    assert_equal(true, @app.is_symlink?(@symlink))
   end
 
   def teardown
