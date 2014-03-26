@@ -9,16 +9,19 @@ class TestPassthroughs < Test::Unit::TestCase
 
   def setup
     # noop
+    @user_sshkey = sprintf('%s/.ssh/id_rsa', ENV['HOME'])
   end
 
   def test_functional_local_passthrough
 
-    @local = Rouster.new(
-      :name => 'local',
-      :passthrough => {
-        :type => :local,
-      },
-    )
+    assert_nothing_raised do
+      @local = Rouster.new(
+        :name => 'local',
+        :passthrough => {
+          :type => :local,
+        },
+      )
+    end
 
     assert(@local.is_passthrough?(), 'worker is a passthrough')
     assert(@local.is_available_via_ssh?(), 'worker is available via SSH')
@@ -31,7 +34,7 @@ class TestPassthroughs < Test::Unit::TestCase
       @local.run("echo #{content} >> #{tmpfile}")
     end
 
-    read = @local.run("cat #{tmpfile}")
+    read = @local.run("cat #{tmpfile}").chomp! # using >> automatically includes \n
 
     assert_equal(content, read, 'worker is able to read and write files on system')
 
@@ -45,25 +48,27 @@ class TestPassthroughs < Test::Unit::TestCase
 
   def test_functional_remote_passthrough
 
-    @remote = Rouster.new(
-      :name => 'remote',
-      :passthrough => {
-        :type => :remote,
-        :host => '127.0.0.1',
-        :user => ENV['USER'],
-        key   => sshkey,
-      }
-    )
+    assert_nothing_raised do
+      @remote = Rouster.new(
+        :name => 'remote',
+        :passthrough => {
+          :type => :remote,
+          :host => '127.0.0.1',
+          :user => ENV['USER'],
+          :key  => @user_sshkey,
+        }
+      )
+    end
 
-    assert_equal('remote', @app.name)
-    assert_equal(true, @app.is_passthrough?())
-    assert_equal(false, @app.uses_sudo?())
-    assert_equal(true, @app.is_available_via_ssh?())
+    assert_equal('remote', @remote.name)
+    assert_equal(true, @remote.is_passthrough?())
+    assert_equal(false, @remote.uses_sudo?())
+    assert_equal(true, @remote.is_available_via_ssh?())
 
     # TODO better here
     assert_nothing_raised do
-      @local.file('/etc/hosts')
-      @local.dir('/tmp')
+      @remote.file('/etc/hosts')
+      @remote.dir('/tmp')
     end
 
   end
