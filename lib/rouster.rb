@@ -661,6 +661,11 @@ class Rouster
   def check_key_permissions(key, fix=false)
     allowed_modes = ['0400', '0600']
 
+    if key.match(/\.pub$/)
+      # if this is the public half of the key, be more permissive
+      allowed_modes << '0644'
+    end
+
     raw   = self._run(sprintf('ls -l %s', key))
     perms = self.parse_ls_string(raw)
 
