@@ -142,7 +142,6 @@ class TestNew < Test::Unit::TestCase
           :user => ENV['USER'],
           :key  => user_sshkey,
         },
-        :verbosity => 0,
       )
     end
 
@@ -216,7 +215,6 @@ class TestNew < Test::Unit::TestCase
           :user => 'foo',
           :host => 'this.host.does.not.exist',
         },
-        :verbosity => 0,
       )
     end
 
