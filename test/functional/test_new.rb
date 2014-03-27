@@ -11,8 +11,6 @@ class TestNew < Test::Unit::TestCase
     @app = Rouster.new(:name => 'app', :sshtunnel => false)
     @app.destroy() if @app.status().eql?('running') # TODO do we really need to do this?
     @app = nil
-
-    @user_sshkey = sprintf('%s/.ssh/id_rsa', ENV['HOME'])
   end
 
   def test_able_to_instantiate
@@ -132,6 +130,8 @@ class TestNew < Test::Unit::TestCase
 
   def test_good_remote_passthrough
 
+    user_sshkey = sprintf('%s/.ssh/id_rsa', ENV['HOME'])
+
     assert_nothing_raised do
       @app = Rouster.new(
         :name => 'remote',
@@ -140,8 +140,9 @@ class TestNew < Test::Unit::TestCase
           :type => :remote,
           :host => '127.0.0.1',
           :user => ENV['USER'],
-          :key  => @user_sshkey,
+          :key  => user_sshkey,
         },
+        :verbosity => 0,
       )
     end
 
@@ -176,6 +177,7 @@ class TestNew < Test::Unit::TestCase
   end
 
   def test_bad_passthrough
+    user_sshkey = sprintf('%s/.ssh/id_rsa', ENV['HOME'])
 
     # invalid key
     assert_raise Rouster::InternalError do
@@ -210,10 +212,11 @@ class TestNew < Test::Unit::TestCase
         :name => 'fizzy',
         :passthrough => {
           :type => :remote,
-          :key  => @user_sshkey,
+          :key  => user_sshkey,
           :user => 'foo',
           :host => 'this.host.does.not.exist',
-        }
+        },
+        :verbosity => 0,
       )
     end
 
@@ -224,7 +227,7 @@ class TestNew < Test::Unit::TestCase
         :name => 'fizzy',
         :passthrough => {
           :type => :remote,
-          :key  => @user_sshkey,
+          :key  => user_sshkey,
           :user => 'foo',
           :host => '255.256.257.258',
         }
