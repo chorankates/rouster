@@ -5,9 +5,9 @@ require 'rouster/puppet'
 require 'rouster/testing'
 require 'rouster/tests'
 
-a = Rouster.new(:name => 'app', :verbosity => 1, :vagrantfile => '../piab/Vagrantfile', :retries => 3)
+#a = Rouster.new(:name => 'app', :verbosity => 1, :vagrantfile => '../piab/Vagrantfile', :retries => 3)
 #p = Rouster.new(:name => 'ppm', :verbosity => 1, :vagrantfile => '../piab/Vagrantfile')
-
-a.is_vagrant_running?()
+#r = Rouster.new(:name => 'app', :verbosity => 1, :vagrantfile => 'Vagrantfile')
+l = Rouster.new(:name => 'local', :passthrough => { :type => :local }, :verbosity => 3)
 
 p 'DBGZ' if nil?
