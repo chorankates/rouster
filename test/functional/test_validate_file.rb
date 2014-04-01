@@ -23,13 +23,28 @@ class TestValidateFileFunctional < Test::Unit::TestCase
 
   end
 
-  def test_happy
+  def test_happy_basic
+    # TODO expand this.. considerably
     file        = '/tmp/chiddy'
     expectation = { :ensure => 'file' }
 
     @app.run("touch #{file}")
 
     assert_equal(true, @app.validate_file(file, expectation, false, true))
+
+  end
+
+  def test_happy_doesnt_contain
+    file         = '/etc/hosts'
+    expectations = {
+      :ensure        => 'file',
+      :doesntcontain => 'fizzybang.12345',
+      :notcontains   => 'this.isnt.there.either'
+    }
+
+    expectations.each do |e|
+      assert_equal(true, @app.validate_file(file, e, false, true))
+    end
 
   end
 

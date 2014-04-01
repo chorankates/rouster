@@ -191,7 +191,7 @@ class Rouster
               local = properties[:symlink?]
             else
               # validate the link path
-              local = properties[:target].match(/^#{expectations[:target]}$/) ? true : false # would prefer a .equal? comparison here, but is not working..
+              local = properties[:target].eql?(expectations[:target])
             end
           else
             case v
@@ -240,6 +240,18 @@ class Rouster
             end
             next if local.false?
           end
+        when :notcontains, :doesntcontain # TODO determine the appropriate attribute title here
+          v = v.class.eql?(Array) ? v : [v]
+          v.each do |regex|
+            local = true
+            begin
+              self.run(sprintf("grep -c '%s' %s", regex, name))
+              local = false
+            rescue
+              local = true
+            end
+            next if local.false?
+          end
         when :mode, :permissions
           if properties.nil?
             local = false
@@ -284,7 +296,6 @@ class Rouster
 
     @logger.info(results)
     results.find{|k,v| v.false? }.nil?
-
   end
 
   ##
