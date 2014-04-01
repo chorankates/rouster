@@ -439,11 +439,20 @@ class Rouster
         :additional_options => nil
       }.merge!(passed_opts)
 
-      ## validate required arguments
-      raise InternalError.new(sprintf('invalid hiera config specified[%s]', opts[:hiera_config])) unless self.is_file?(opts[:hiera_config])
-      raise InternalError.new(sprintf('invalid module dir specified[%s]', opts[:module_dir])) unless self.is_dir?(opts[:module_dir])
-
+      ## validate arguments -- can do better here (:manifest_dir, :manifest_file)
       puppet_version = self.get_puppet_version() # hiera_config specification is only supported in >3.0
+
+      if opts[:hiera_config]
+        if puppet_version > '3.0'
+          raise InternalError.new(sprintf('invalid hiera config specified[%s]', opts[:hiera_config])) unless self.is_file?(opts[:hiera_config])
+        else
+          @logger.error(sprintf('puppet version[%s] does not support --hiera_config, ignoring', puppet_version))
+        end
+      end
+
+      if opts[:module_dir]
+        raise InternalError.new(sprintf('invalid module dir specified[%s]', opts[:module_dir])) unless self.is_dir?(opts[:module_dir])
+      end
 
       if opts[:manifest_file]
         opts[:manifest_file] = opts[:manifest_file].class.eql?(Array) ? opts[:manifest_file] : [opts[:manifest_file]]
