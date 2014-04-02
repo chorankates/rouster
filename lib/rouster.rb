@@ -62,13 +62,13 @@ class Rouster
       # - option 2, if passed a single integer, use that level for stdout, and a hardcoded level (probably INFO) to logfile
 
       # kind of want to do if opts[:verbosity].respond_to?(:[]), but for 1.87 compatability, going this way..
-      if opts[:verbosity].is_a?(Integer)
-        @verbosity_console = opts[:verbosity]
+      if ! opts[:verbosity].is_a?(Array) or opts[:verbosity].is_a?(Integer)
+        @verbosity_console = opts[:verbosity].to_i
         @verbosity_logfile = 2
       elsif opts[:verbosity].is_a?(Array)
         # TODO more error checking here when we are sure this is the right way to go
-        @verbosity_console = opts[:verbosity][0]
-        @verbosity_logfile = opts[:verbosity][1]
+        @verbosity_console = opts[:verbosity][0].to_i
+        @verbosity_logfile = opts[:verbosity][1].to_i
         @logfile = true if @logfile.eql?(false) # overriding the default setting
       end
     else
@@ -111,7 +111,7 @@ class Rouster
 
     if @passthrough
       # TODO do better about informing of required specifications, maybe point them to an URL?
-      @vagrantbinary = 'vagrant' # hacky fix to is_vagrant_running?() grepping
+      @vagrantbinary = 'vagrant' # hacky fix to is_vagrant_running?() grepping, doesn't need to actually be in $PATH
       if @passthrough.class != Hash
         raise ArgumentError.new('passthrough specification should be hash')
       elsif @passthrough[:type].nil?
