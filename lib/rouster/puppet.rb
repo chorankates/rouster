@@ -440,7 +440,7 @@ class Rouster
       }.merge!(passed_opts)
 
       ## validate arguments -- can do better here (:manifest_dir, :manifest_file)
-      puppet_version = self.get_puppet_version() # hiera_config specification is only supported in >3.0
+      puppet_version = self.get_puppet_version() # hiera_config specification is only supported in >3.0, but NOT required anywhere
 
       if opts[:hiera_config]
         if puppet_version > '3.0'
@@ -459,11 +459,13 @@ class Rouster
         opts[:manifest_file].each do |file|
           raise InternalError.new(sprintf('invalid manifest file specified[%s]', file)) unless self.is_file?(file)
 
-          cmd = sprintf('puppet apply %s --modulepath=%s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir])
+          cmd = 'puppet apply'
+          cmd << sprintf(' --modulepath=%s', opts[:module_dir]) unless opts[:module_dir].nil?
+          cmd << sprintf(' --hiera_config=%s', opts[:hiera_config]) unless opts[:hiera_config].nil? or puppet_version < '3.0'
           cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
           cmd << sprintf(' --certname %s', opts[:certname]) unless opts[:certname].nil?
           cmd << ' --pluginsync' if opts[:pluginsync]
-          cmd << opts[:additional_options] unless opts[:additional_options].nil?
+          cmd << sprintf(' %s', opts[:additional_options]) unless opts[:additional_options].nil?
           cmd << sprintf(' %s', file)
 
           self.run(cmd, opts[:expected_exitcode])
@@ -479,11 +481,13 @@ class Rouster
 
           manifests.each do |m|
 
-            cmd = sprintf('puppet apply %s --modulepath=%s', (puppet_version > '3.0') ? "--hiera_config=#{opts[:hiera_config]}" : '', opts[:module_dir])
+            cmd = 'puppet apply'
+            cmd << sprintf(' --modulepath=%s', opts[:module_dir]) unless opts[:module_dir].nil?
+            cmd << sprintf(' --hiera_config=%s', opts[:hiera_config]) unless opts[:hiera_config].nil? or puppet_version < '3.0'
             cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
             cmd << sprintf(' --certname %s', opts[:certname]) unless opts[:certname].nil?
             cmd << ' --pluginsync' if opts[:pluginsync]
-            cmd << opts[:additional_options] unless opts[:additional_options].nil?
+            cmd << sprintf(' %s', opts[:additional_options]) unless opts[:additional_options].nil?
             cmd << sprintf(' %s', m)
 
             self.run(cmd, opts[:expected_exitcode])
