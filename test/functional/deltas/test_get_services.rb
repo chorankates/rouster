@@ -31,6 +31,12 @@ class TestDeltasGetServices < Test::Unit::TestCase
       assert(@allowed_states.member?(res[k]))
     end
 
+    # this isn't the best validation, but does prove a point - no nil keys/values
+    assert_nothing_raised do
+      res.keys.sort
+      res.values.sort
+    end
+
   end
 
   def test_happy_path_caching

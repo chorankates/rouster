@@ -495,11 +495,13 @@ class Rouster
 
           if line.match(/^(\w+?)\sis\s(.*)$/)
             # <service> is <state>
-            res[$1] = $2
+            name = $1
+            state = $2
+            res[name] = state
 
-            if $2.match(/^not/)
+            if state.match(/^not/)
               # this catches 'Kdump is not operational'
-              res[$1] = 'stopped'
+              res[name] = 'stopped'
             end
 
           elsif line.match(/^(\w+?)\s\(pid.*?\)\sis\s(\w+)$/)
