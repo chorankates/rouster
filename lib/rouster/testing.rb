@@ -98,8 +98,7 @@ class Rouster
       results[k] = local
     end
 
-    @logger.info(results)
-
+    @logger.info("#{name} [#{expectations}] => #{results}")
     results.find{|k,v| v.false? }.nil?
   end
 
@@ -294,7 +293,7 @@ class Rouster
       results[k] = local
     end
 
-    @logger.info(results)
+    @logger.info("#{name} [#{expectations}] => #{results}")
     results.find{|k,v| v.false? }.nil?
   end
 
@@ -390,7 +389,7 @@ class Rouster
       results[k] = local
     end
 
-    @logger.info(results)
+    @logger.info("#{name} [#{expectations}] => #{results}")
     results.find{|k,v| v.false? }.nil?
   end
 
@@ -482,8 +481,8 @@ class Rouster
     end
 
     # TODO figure out a good way to allow access to the entire hash, not just boolean -- for now just print at an info level
-    @logger.info(results)
 
+    @logger.info("#{name} [#{expectations}] => #{results}")
     results.find{|k,v| v.false? }.nil?
   end
 
@@ -575,8 +574,7 @@ class Rouster
       results[k] = local
     end
 
-    @logger.info(results)
-
+    @logger.info("#{name} [#{expectations}] => #{results}")
     results.find{|k,v| v.false? }.nil?
   end
 
@@ -656,9 +654,8 @@ class Rouster
       results[k] = local
     end
 
-    @logger.info(results)
+    @logger.info("#{name} [#{expectations}] => #{results}")
     results.find{|k,v| v.false? }.nil?
-
   end
 
   ##
@@ -777,9 +774,8 @@ class Rouster
       results[k] = local
     end
 
-    @logger.info(results)
+    @logger.info("#{name} [#{expectations}] => #{results}")
     results.find{|k,v| v.false? }.nil?
-
   end
 
   ## internal methods
