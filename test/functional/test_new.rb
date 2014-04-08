@@ -7,7 +7,10 @@ require 'test/unit'
 
 class TestNew < Test::Unit::TestCase
 
-  def setup
+  # when run under Rake, if named 'setup', @@user_sshkey is not initialized in the
+  # TestNew namespace (does not matter if running directly). since setup() really
+  # only needed to be run once anyway, this isn't a huge problem
+  def test_0_setup
     @app = Rouster.new(:name => 'app', :sshtunnel => false)
     @app.destroy() if @app.status().eql?('running') # TODO do we really need to do this?
     @app = nil
