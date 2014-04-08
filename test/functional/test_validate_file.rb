@@ -52,9 +52,7 @@ class TestValidateFileFunctional < Test::Unit::TestCase
       :notcontains   => 'this.isnt.there.either'
     }
 
-    expectations.each do |e|
-      assert_equal(true, @app.validate_file(file, e, false, true))
-    end
+    assert_equal(true, @app.validate_file(file, expectations, false, true))
 
   end
 
