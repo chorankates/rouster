@@ -17,14 +17,24 @@ class TestValidateFileFunctional < Test::Unit::TestCase
 
   def test_negative_functional_fallthrough
 
-    assert_equal(false, @app.validate_file('/foo', {}, false, true))
-    assert_equal(false, @app.validate_file('/fizzy', { :ensure => 'directory' }, false, true))
-    assert_equal(false, @app.validate_file('/bang', { :ensure => 'file' }, false, true))
+    assert_equal(false, @app.validate_file('/foo', {}, false, true), 'when no expectation is specified, :ensure => present is assumed')
+    assert_equal(false, @app.validate_file('/fizzy', { :ensure => 'directory' }, false, true), 'standard DNE directory test')
+    assert_equal(false, @app.validate_file('/bang', { :ensure => 'file' }, false, true), '~standard DNE directory test')
 
   end
 
+  # TODO tests
+  # :contains string
+  # :contains array
+  # :exists vs. :ensure -> what options are supported?
+  # :mode vs. :permissions
+  # :size
+  # :owner
+  # :group
+  # :constrain
+
+
   def test_happy_basic
-    # TODO expand this.. considerably
     file        = '/tmp/chiddy'
     expectation = { :ensure => 'file' }
 

@@ -123,7 +123,7 @@ class Rouster
         raise ArgumentError.new('remote passthrough requires :host specification') if @passthrough[:host].nil?
         raise ArgumentError.new('remote passthrough requires :user specification') if @passthrough[:user].nil?
         raise ArgumentError.new('remote passthrough requires :key specification')  if @passthrough[:key].nil?
-        raise ArgumentError.new('remote passthrough requires valid :key specification, should be path to public half') unless File.file?(@passthrough[:key])
+        raise ArgumentError.new('remote passthrough requires valid :key specification, should be path to private half') unless File.file?(@passthrough[:key])
         @sshkey = @passthrough[:key] # TODO refactor so that you don't have to do this..
         @logger.debug('instantiating a remote passthrough worker')
       else
