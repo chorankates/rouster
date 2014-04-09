@@ -13,7 +13,7 @@ app = Rouster.new(:name => 'app' )
 app.up()
 
 p app.run('/sbin/service puppet once -t', 2)
-# or p app.run\_puppet('master', { :expected\_exitcode => 2}), if you've required 'rouster/puppet'
+# or p app.run_puppet('master', { :expected_exitcode => 2}), if you've required 'rouster/puppet'
 
 app.destroy()
 ```
