@@ -393,13 +393,13 @@ class Rouster
   # supported OS
   # * OSX - runs `launchctl list`
   # * RedHat - runs `/sbin/service --status-all`
-  # * Solaris - runs `svcs`
+  # * Solaris - runs `svcs -a`
   # * Ubuntu - runs `service --status-all`
   #
   # notes
   # * raises InternalError if unsupported operating system
   # * OSX, Solaris and Ubuntu/Debian will only return running|stopped|unsure, the exists|installed|operational modes are RHEL/CentOS only
-  def get_services(cache=true, humanize=true)
+  def get_services(cache=true, humanize=true, type=:default)
     if cache and ! self.deltas[:services].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:services]) > self.cache_timeout
@@ -415,12 +415,42 @@ class Rouster
     res = Hash.new()
     os  = self.os_type
 
+    commands = {
+      :osx => {
+        :default => 'launchctl list',
+      },
+      :solaris => {
+        :default => 'svcs -a',
+      },
+
+      # TODO we really need to implement something like osfamily
+      :ubuntu => {
+        :default => 'service --status-all 2>&1', #
+        :upstart => 'initctl list',
+      },
+      :debian => {
+        :default => 'service --status-all 2>&1', #
+        :upstart => 'initctl list',
+      },
+      :redhat => {
+        :default => '/sbin/service --status-all',
+        :upstart => 'initctl list',
+      },
+    }
+
+    raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os)) unless commands.has_key?(os)
+    raise ArgumentError.new(sprintf('unable to find command type[%s] for [%s]', type, os))  if commands[os][type].nil?
+
+    # TODO while this is true, what if self.user is 'root'..
+    @logger.warn('gathering service information typically works better with sudo, which is currently not being used') unless self.uses_sudo?
+
     allowed_modes = %w(exists installed operational running stopped unsure)
     failover_mode = 'unsure'
 
+    raw = self.run(commands[os][type])
+
     if os.eql?(:osx)
 
-      raw = self.run('launchctl list')
       raw.split("\n").each do |line|
         next if line.match(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).nil?
 
@@ -440,7 +470,6 @@ class Rouster
 
     elsif os.eql?(:solaris)
 
-      raw = self.run('svcs -a')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\s+(?:.*?)\s+(.*?)$/).nil?
 
@@ -471,24 +500,46 @@ class Rouster
 
     elsif os.eql?(:ubuntu) or os.eql?(:debian)
 
-      raw = self.run('service --status-all 2>&1')
-      raw.split("\n").each do |line|
-        next if line.match(/\[(.*?)\]\s+(.*)$/).nil?
-        mode    = $1
-        service = $2
+      if type.eql?(:default)
+        raw.split("\n").each do |line|
+          next if line.match(/\[(.*?)\]\s+(.*)$/).nil?
+          mode    = $1
+          service = $2
 
-        if humanize
-          mode = 'stopped' if mode.match('-')
-          mode = 'running' if mode.match('\+')
-          mode = 'unsure'  if mode.match('\?')
+          if humanize
+            mode = 'stopped' if mode.match('-')
+            mode = 'running' if mode.match('\+')
+            mode = 'unsure'  if mode.match('\?')
+          end
+
+          res[service] = mode
         end
+      elsif type.eql?(:upstart)
+        raw.split("\n").each do |line|
+          if line.match(/(.*?)\s.*?(.*?),/)
+            # tty (/dev/tty3) start/running, process 1601
+            # named start/running, process 8959
+            service = $1
+            mode    = $2
+          elsif line.match(/(.*?)\s(.*)/)
+            # rcS stop/waiting
+            service = $1
+            mode    = $2
+          end
 
-        res[service] = mode
+          if humanize
+            mode = 'stopped' if mode.match('stop/waiting')
+            mode = 'running' if mode.match('start/running')
+            mode = 'unsure'  unless mode.eql?('stopped') or mode.eql?('running')
+          end
+
+          res[service] = mode
+
+        end
       end
 
     elsif os.eql?(:redhat)
 
-      raw = self.run('/sbin/service --status-all')
       raw.split("\n").each do |line|
 
         if humanize
@@ -530,17 +581,15 @@ class Rouster
 
       end
 
-      # issue #63 handling
-      if humanize
-        res.each_pair do |k,v|
-          next if allowed_modes.member?(v)
-          @logger.debug(sprintf('replacing service[%s] status of [%s] with [%s] for uniformity', k, v, failover_mode))
-          res[k] = failover_mode
-        end
-      end
+    end
 
-    else
-      raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os))
+    # issue #63 handling
+    if humanize
+      res.each_pair do |k,v|
+        next if allowed_modes.member?(v)
+        @logger.debug(sprintf('replacing service[%s] status of [%s] with [%s] for uniformity', k, v, failover_mode))
+        res[k] = failover_mode
+      end
     end
 
     if cache
