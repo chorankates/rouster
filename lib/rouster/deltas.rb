@@ -402,7 +402,7 @@ class Rouster
 
   # TODO need to figure out how we want to do goldfile testing..
   # should probably just seed #{raw}.. except that we cache processed records, not raw - so what's the entry point? splitting get from processing?
-  def get_services(cache=true, humanize=true, type=:default)
+  def get_services(cache=true, humanize=true, type=:default, raw=nil)
     if cache and ! self.deltas[:services].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:services]) > self.cache_timeout
@@ -450,21 +450,24 @@ class Rouster
     allowed_modes = %w(exists installed operational running stopped unsure)
     failover_mode = 'unsure'
 
-    raw = self.run(commands[os][type])
+    # TODO come up with a better test hook
+    raw = raw.nil? ? self.run(commands[os][type]) : raw
 
     if os.eql?(:osx)
 
       raw.split("\n").each do |line|
-        next if line.match(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).nil?
-
-        service = $2
-        mode    = $1
+        next if line.match(/(?:\S*?)\s+(\S*?)\s+(\S+)$/).nil?
+        tokens = line.split("\s")
+        service = tokens[-1]
+        mode    = tokens[0]
 
         if humanize # should we do this with a .freeze instead?
           if mode.match(/^\d/)
             mode = 'running'
-          else
+          elsif mode.match(/-/)
             mode = 'stopped'
+          else
+            next # this should handle the banner "PID     Status  Label"
           end
         end
 
