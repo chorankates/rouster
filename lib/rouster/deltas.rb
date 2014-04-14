@@ -399,6 +399,9 @@ class Rouster
   # notes
   # * raises InternalError if unsupported operating system
   # * OSX, Solaris and Ubuntu/Debian will only return running|stopped|unsure, the exists|installed|operational modes are RHEL/CentOS only
+
+  # TODO need to figure out how we want to do goldfile testing..
+  # should probably just seed #{raw}.. except that we cache processed records, not raw - so what's the entry point? splitting get from processing?
   def get_services(cache=true, humanize=true, type=:default)
     if cache and ! self.deltas[:services].nil?
 
@@ -500,22 +503,84 @@ class Rouster
 
     elsif os.eql?(:ubuntu) or os.eql?(:debian)
 
-      if type.eql?(:default)
-        raw.split("\n").each do |line|
-          next if line.match(/\[(.*?)\]\s+(.*)$/).nil?
-          mode    = $1
-          service = $2
+      raw.split("\n").each do |line|
+        if type.eql?(:default)
+            next if line.match(/\[(.*?)\]\s+(.*)$/).nil?
+            mode    = $1
+            service = $2
 
-          if humanize
-            mode = 'stopped' if mode.match('-')
-            mode = 'running' if mode.match('\+')
-            mode = 'unsure'  if mode.match('\?')
-          end
+            if humanize
+              mode = 'stopped' if mode.match('-')
+              mode = 'running' if mode.match('\+')
+              mode = 'unsure'  if mode.match('\?')
+            end
 
-          res[service] = mode
+            res[service] = mode
+        elsif type.eql?(:upstart)
+            if line.match(/(.*?)\s.*?(.*?),/)
+              # tty (/dev/tty3) start/running, process 1601
+              # named start/running, process 8959
+              service = $1
+              mode    = $2
+            elsif line.match(/(.*?)\s(.*)/)
+              # rcS stop/waiting
+              service = $1
+              mode    = $2
+            end
+
+            if humanize
+              mode = 'stopped' if mode.match('stop/waiting')
+              mode = 'running' if mode.match('start/running')
+              mode = 'unsure'  unless mode.eql?('stopped') or mode.eql?('running')
+            end
+
+            res[service] = mode
         end
-      elsif type.eql?(:upstart)
-        raw.split("\n").each do |line|
+      end
+
+    elsif os.eql?(:redhat)
+
+      raw.split("\n").each do |line|
+
+        if type.eql?(:default)
+          if humanize
+
+            if line.match(/^(\w+?)\sis\s(.*)$/)
+              # <service> is <state>
+              name = $1
+              state = $2
+              res[name] = state
+
+              if state.match(/^not/)
+                # this catches 'Kdump is not operational'
+                res[name] = 'stopped'
+              end
+
+            elsif line.match(/^(\w+?)\s\(pid.*?\)\sis\s(\w+)$/)
+              # <service> (pid <pid> [pid]) is <state>...
+              res[$1] = $2
+            elsif line.match(/^(\w+?)\sis\s(\w+)\.*$/) # not sure this is actually needed
+              @logger.debug('triggered supposedly unnecessary regex')
+              # <service> is <state>. whatever
+              res[$1] = $2
+            elsif line.match(/^(\w+?)\:.*?(\w+)$/)
+              # <service>: whatever <state>
+              res[$1] = $2
+            elsif line.match(/^(\w+)\s(\w+).*$/)
+              # <process> <state> whatever
+              res[$1] = $2
+            else
+              # original regex implementation, if we didn't match anything else, failover to this
+              next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
+              res[$1] = $2
+            end
+
+          else
+            next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
+            res[$1] = $2
+          end
+        elsif type.eql?(:upstart)
+
           if line.match(/(.*?)\s.*?(.*?),/)
             # tty (/dev/tty3) start/running, process 1601
             # named start/running, process 8959
@@ -535,48 +600,7 @@ class Rouster
 
           res[service] = mode
 
-        end
-      end
 
-    elsif os.eql?(:redhat)
-
-      raw.split("\n").each do |line|
-
-        if humanize
-
-          if line.match(/^(\w+?)\sis\s(.*)$/)
-            # <service> is <state>
-            name = $1
-            state = $2
-            res[name] = state
-
-            if state.match(/^not/)
-              # this catches 'Kdump is not operational'
-              res[name] = 'stopped'
-            end
-
-          elsif line.match(/^(\w+?)\s\(pid.*?\)\sis\s(\w+)$/)
-            # <service> (pid <pid> [pid]) is <state>...
-            res[$1] = $2
-          elsif line.match(/^(\w+?)\sis\s(\w+)\.*$/) # not sure this is actually needed
-            @logger.debug('triggered supposedly unnecessary regex')
-            # <service> is <state>. whatever
-            res[$1] = $2
-          elsif line.match(/^(\w+?)\:.*?(\w+)$/)
-            # <service>: whatever <state>
-            res[$1] = $2
-          elsif line.match(/^(\w+)\s(\w+).*$/)
-            # <process> <state> whatever
-            res[$1] = $2
-          else
-            # original regex implementation, if we didn't match anything else, failover to this
-            next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
-            res[$1] = $2
-          end
-
-        else
-          next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
-          res[$1] = $2
         end
 
       end
