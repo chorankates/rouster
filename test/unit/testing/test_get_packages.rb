@@ -26,13 +26,12 @@ class TestFunctionalGetPackages < Test::Unit::TestCase
       services = @app.get_services(:false, :true, :default, raw)
     end
 
-    require 'debugger'; debugger
     expected = {
       'acpid'      => 'running', # acpid (pid  945) is running...
-      'ip6tables'  => 'stopped', # ip6tables: Firewall is not running.       <-- this is broken
+      'ip6tables'  => 'stopped', # ip6tables: Firewall is not running.
       'Kdump'      => 'stopped', # Kdump is not operational
       'mdmonitor'  => 'stopped', # mdmonitor is stopped
-      'netconsole' => 'stopped', # netconsole module not loaded   <-- this is broken too
+      'netconsole' => 'stopped', # netconsole module not loaded
     }
 
     expected.each_pair do |service,state|

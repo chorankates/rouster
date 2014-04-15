@@ -569,6 +569,13 @@ class Rouster
             elsif line.match(/^(\w+?)\:.*?(\w+)$/)
               # <service>: whatever <state>
               res[$1] = $2
+            elsif line.match(/^(\w+?)\is\snot\srunning\.$/)
+              # ip6tables: Firewall is not running.
+              res[$1] = 'stopped'
+            elsif line.match(/^(\w+?).*?\s(.*)$/)
+              # netconsole module not loaded
+              state = $2
+              res[$1] = $2.match(/not/) ? 'stopped' : 'running'
             elsif line.match(/^(\w+)\s(\w+).*$/)
               # <process> <state> whatever
               res[$1] = $2
