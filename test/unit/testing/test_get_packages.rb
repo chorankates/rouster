@@ -5,14 +5,14 @@ require 'rouster/puppet'
 require 'rouster/testing'
 require 'test/unit'
 
-class TestFunctionalGetPackages < Test::Unit::TestCase
+class TestUnitGetPackages < Test::Unit::TestCase
 
   def setup
     # expose private methods
     Rouster.send(:public, *Rouster.private_instance_methods)
     Rouster.send(:public, *Rouster.protected_instance_methods)
 
-    @app = Rouster.new(:name => 'app', :unittest => true)
+    @app = Rouster.new(:name => 'app', :unittest => true, :verbosity => 4)
 
   end
 
@@ -60,6 +60,34 @@ class TestFunctionalGetPackages < Test::Unit::TestCase
     expected.each_pair do |service,state|
       assert(services.has_key?(service), "service[#{service}]")
       assert_equal(services[service], state, "service[#{service}] state[#{state}]")
+    end
+
+  end
+
+  def test_rhel_both
+    @app.instance_variable_set(:@ostype, :redhat)
+    services = {}
+
+    initd_contents  = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-default', File.dirname(File.expand_path(__FILE__))))
+    upstart_contents = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-upstart', File.dirname(File.expand_path(__FILE__))))
+
+    raw = initd_contents
+    raw << upstart_contents
+
+    assert_nothing_raised do
+      services = @app.get_services(:false, :true, [:upstart, :default], raw)
+    end
+
+    expected = {
+      'acpid' => 'running', # initd
+      'named' => 'running', # upstart
+
+      #'rc'    => 'stopped', # upstart -- but broken currently -- shouldn't be
+    }
+
+    expected.each_pair do |service,state|
+      assert(services.has_key?(service), "service[#{service}]")
+      assert_equal(services[service], state, "service[#{service}] state[#{state}]}")
     end
 
   end
