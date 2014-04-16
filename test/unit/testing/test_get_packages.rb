@@ -20,7 +20,7 @@ class TestFunctionalGetPackages < Test::Unit::TestCase
     @app.instance_variable_set(:@ostype, :redhat)
     services = {}
 
-    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-service_status-all', File.dirname(File.expand_path(__FILE__))))
+    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-default', File.dirname(File.expand_path(__FILE__))))
 
     assert_nothing_raised do
       services = @app.get_services(:false, :true, :default, raw)
@@ -45,7 +45,7 @@ class TestFunctionalGetPackages < Test::Unit::TestCase
     @app.instance_variable_set(:@ostype, :redhat)
     services = {}
 
-    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-initctl_list', File.dirname(File.expand_path(__FILE__))))
+    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-upstart', File.dirname(File.expand_path(__FILE__))))
 
     assert_nothing_raised do
       services = @app.get_services(:false, :true, :upstart, raw)
@@ -68,7 +68,7 @@ class TestFunctionalGetPackages < Test::Unit::TestCase
     @app.instance_variable_set(:@ostype, :osx)
     services = {}
 
-    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/osx-launchctl_list', File.dirname(File.expand_path(__FILE__))))
+    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/osx-default', File.dirname(File.expand_path(__FILE__))))
 
     assert_nothing_raised do
       services = @app.get_services(:false, :true, :default, raw)
@@ -85,6 +85,8 @@ class TestFunctionalGetPackages < Test::Unit::TestCase
     end
 
   end
+
+
 
   def teardown
     # noop
