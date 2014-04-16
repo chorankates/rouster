@@ -35,8 +35,8 @@ class TestFunctionalGetPackages < Test::Unit::TestCase
     }
 
     expected.each_pair do |service,state|
-      assert(services.has_key?(service))
-      assert_equal(services[service], state)
+      assert(services.has_key?(service), "service[#{service}]")
+      assert_equal(services[service], state, "service[#{service}] state[#{state}]")
     end
 
   end
@@ -58,8 +58,8 @@ class TestFunctionalGetPackages < Test::Unit::TestCase
     }
 
     expected.each_pair do |service,state|
-      assert(services.has_key?(service))
-      assert_equal(services[service], state)
+      assert(services.has_key?(service), "service[#{service}]")
+      assert_equal(services[service], state, "service[#{service}] state[#{state}]")
     end
 
   end
@@ -80,8 +80,8 @@ class TestFunctionalGetPackages < Test::Unit::TestCase
     }
 
     expected.each_pair do |service,state|
-      assert(services.has_key?(service))
-      assert_equal(services[service], state)
+      assert(services.has_key?(service), "service[#{service}]")
+      assert_equal(services[service], state, "service[#{service}] state[#{state}]")
     end
 
   end
