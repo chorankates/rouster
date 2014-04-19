@@ -439,9 +439,6 @@ class Rouster
       },
     }
 
-    allowed_modes = %w(exists installed operational running stopped unsure)
-    failover_mode = 'unsure'
-
     type = type.class.eql?(Array) ? type : [ type ]
 
     type.each do |provider|
@@ -449,10 +446,10 @@ class Rouster
       raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os)) unless commands.has_key?(os)
       raise ArgumentError.new(sprintf('unable to find command provider[%s] for [%s]', provider, os))  if commands[os][provider].nil?
 
-      # TODO while this is true, what if self.user is 'root'..
+      @logger.info(sprintf('get_services using provider [%s] on [%s]', provider, os))
+
+      # TODO while this is true, what if self.user is 'root'.. -- the problem is we don't have self.user, and we store this data differently depending on self.passthrough?
       @logger.warn('gathering service information typically works better with sudo, which is currently not being used') unless self.uses_sudo?
-
-
 
       # TODO come up with a better test hook
       raw = raw.nil? ? self.run(commands[os][provider]) : raw
@@ -551,7 +548,6 @@ class Rouster
       elsif os.eql?(:redhat)
 
         raw.split("\n").each do |line|
-
           if provider.eql?(:default)
             if humanize
 
@@ -632,6 +628,10 @@ class Rouster
     end
 
     # issue #63 handling
+    # TODO should we consider using symbols here instead?
+    allowed_modes = %w(exists installed operational running stopped unsure)
+    failover_mode = 'unsure'
+
     if humanize
       res.each_pair do |k,v|
         next if allowed_modes.member?(v)

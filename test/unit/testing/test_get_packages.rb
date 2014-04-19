@@ -23,7 +23,7 @@ class TestUnitGetPackages < Test::Unit::TestCase
     raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-default', File.dirname(File.expand_path(__FILE__))))
 
     assert_nothing_raised do
-      services = @app.get_services(:false, :true, :default, raw)
+      services = @app.get_services(false, true, :default, raw)
     end
 
     expected = {
@@ -48,7 +48,7 @@ class TestUnitGetPackages < Test::Unit::TestCase
     raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-upstart', File.dirname(File.expand_path(__FILE__))))
 
     assert_nothing_raised do
-      services = @app.get_services(:false, :true, :upstart, raw)
+      services = @app.get_services(false, true, :upstart, raw)
     end
 
     expected = {
@@ -71,24 +71,54 @@ class TestUnitGetPackages < Test::Unit::TestCase
     initd_contents  = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-default', File.dirname(File.expand_path(__FILE__))))
     upstart_contents = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-upstart', File.dirname(File.expand_path(__FILE__))))
 
+    # TODO this isn't a great test, because the implementation will never have both outputs in the same control loop
     raw = initd_contents
     raw << upstart_contents
 
     assert_nothing_raised do
-      services = @app.get_services(:false, :true, [:upstart, :default], raw)
+      services = @app.get_services(false, true, [:upstart, :default], raw)
     end
 
     expected = {
       'acpid' => 'running', # initd
+      'cgred' => 'stopped', # initd
       'named' => 'running', # upstart
-
-      #'rc'    => 'stopped', # upstart -- but broken currently -- shouldn't be
+      # 'rc'    => 'stopped', # upstart -- this is getting mishandled, see comment on line #74 and test_rhel_both_real for reasons this doesn't matter
     }
 
     expected.each_pair do |service,state|
       assert(services.has_key?(service), "service[#{service}]")
       assert_equal(services[service], state, "service[#{service}] state[#{state}]}")
     end
+
+  end
+
+  def test_rhel_both_real
+    @app.instance_variable_set(:@ostype, :redhat)
+    services = {}
+
+    initd_contents  = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-default', File.dirname(File.expand_path(__FILE__))))
+    upstart_contents = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-upstart', File.dirname(File.expand_path(__FILE__))))
+
+    expected = {
+        'acpid' => 'running', # initd
+        'cgred' => 'stopped', # initd
+        'named' => 'running', # upstart
+        'rc'    => 'stopped', # upstart
+    }
+
+    assert_nothing_raised do
+      initd   = @app.get_services(false, true, :default, initd_contents)
+      upstart = @app.get_services(false, true, :upstart, upstart_contents)
+
+      services = initd.merge(upstart) # TODO how do we ensure merge order doesn't mislead us?
+    end
+
+    expected.each_pair do |service,state|
+      assert(services.has_key?(service), "service[#{service}]")
+      assert_equal(services[service], state, "service[#{service}] state[#{state}]}")
+    end
+
 
   end
 
@@ -99,7 +129,7 @@ class TestUnitGetPackages < Test::Unit::TestCase
     raw = File.read(sprintf('%s/../../../test/unit/testing/resources/osx-default', File.dirname(File.expand_path(__FILE__))))
 
     assert_nothing_raised do
-      services = @app.get_services(:false, :true, :default, raw)
+      services = @app.get_services(false, true, :default, raw)
     end
 
     expected = {
