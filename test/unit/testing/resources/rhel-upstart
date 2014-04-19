@@ -1,0 +1,20 @@
+rc stop/waiting
+tty (/dev/tty3) start/running, process 1601
+tty (/dev/tty2) start/running, process 1597
+tty (/dev/tty1) start/running, process 1595
+tty (/dev/tty6) start/running, process 1609
+tty (/dev/tty5) start/running, process 1607
+tty (/dev/tty4) start/running, process 1603
+plymouth-shutdown stop/waiting
+control-alt-delete stop/waiting
+rcS-emergency stop/waiting
+kexec-disable stop/waiting
+quit-plymouth stop/waiting
+rcS stop/waiting
+prefdm stop/waiting
+named start/running, process 8959
+init-system-dbus stop/waiting
+splash-manager stop/waiting
+start-ttys stop/waiting
+rcS-sulogin stop/waiting
+serial stop/waiting

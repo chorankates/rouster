@@ -393,13 +393,14 @@ class Rouster
   # supported OS
   # * OSX - runs `launchctl list`
   # * RedHat - runs `/sbin/service --status-all`
-  # * Solaris - runs `svcs`
+  # * Solaris - runs `svcs -a`
   # * Ubuntu - runs `service --status-all`
   #
   # notes
   # * raises InternalError if unsupported operating system
   # * OSX, Solaris and Ubuntu/Debian will only return running|stopped|unsure, the exists|installed|operational modes are RHEL/CentOS only
-  def get_services(cache=true, humanize=true)
+
+  def get_services(cache=true, humanize=true, type=:default, raw=nil)
     if cache and ! self.deltas[:services].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:services]) > self.cache_timeout
@@ -415,132 +416,228 @@ class Rouster
     res = Hash.new()
     os  = self.os_type
 
+    commands = {
+      :osx => {
+        :default => 'launchctl list',
+      },
+      :solaris => {
+        :default => 'svcs -a',
+      },
+
+      # TODO we really need to implement something like osfamily
+      :ubuntu => {
+        :default => 'service --status-all 2>&1', #
+        :upstart => 'initctl list',
+      },
+      :debian => {
+        :default => 'service --status-all 2>&1', #
+        :upstart => 'initctl list',
+      },
+      :redhat => {
+        :default => '/sbin/service --status-all',
+        :upstart => 'initctl list',
+      },
+    }
+
+    type = type.class.eql?(Array) ? type : [ type ]
+
+    type.each do |provider|
+
+      raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os)) unless commands.has_key?(os)
+      raise ArgumentError.new(sprintf('unable to find command provider[%s] for [%s]', provider, os))  if commands[os][provider].nil?
+
+      @logger.info(sprintf('get_services using provider [%s] on [%s]', provider, os))
+
+      # TODO while this is true, what if self.user is 'root'.. -- the problem is we don't have self.user, and we store this data differently depending on self.passthrough?
+      @logger.warn('gathering service information typically works better with sudo, which is currently not being used') unless self.uses_sudo?
+
+      # TODO come up with a better test hook
+      raw = raw.nil? ? self.run(commands[os][provider]) : raw
+
+      if os.eql?(:osx)
+
+        raw.split("\n").each do |line|
+          next if line.match(/(?:\S*?)\s+(\S*?)\s+(\S+)$/).nil?
+          tokens = line.split("\s")
+          service = tokens[-1]
+          mode    = tokens[0]
+
+          if humanize # should we do this with a .freeze instead?
+            if mode.match(/^\d/)
+              mode = 'running'
+            elsif mode.match(/-/)
+              mode = 'stopped'
+            else
+              next # this should handle the banner "PID     Status  Label"
+            end
+          end
+
+          res[service] = mode
+        end
+
+      elsif os.eql?(:solaris)
+
+        raw.split("\n").each do |line|
+          next if line.match(/(.*?)\s+(?:.*?)\s+(.*?)$/).nil?
+
+          service = $2
+          mode    = $1
+
+          if humanize
+            if mode.match(/^online/)
+              mode = 'running'
+            elsif mode.match(/^legacy_run/)
+              mode = 'running'
+            elsif mode.match(/^disabled/)
+              mode = 'stopped'
+            end
+
+            if service.match(/^svc:\/.*\/(.*?):.*/)
+              # turning 'svc:/network/cswpuppetd:default' into 'cswpuppetd'
+              service = $1
+            elsif service.match(/^lrc:\/.*?\/.*\/(.*)/)
+              # turning 'lrc:/etc/rcS_d/S50sk98Sol' into 'S50sk98Sol'
+              service = $1
+            end
+          end
+
+          res[service] = mode
+
+        end
+
+      elsif os.eql?(:ubuntu) or os.eql?(:debian)
+
+        raw.split("\n").each do |line|
+          if provider.eql?(:default)
+              next if line.match(/\[(.*?)\]\s+(.*)$/).nil?
+              mode    = $1
+              service = $2
+
+              if humanize
+                mode = 'stopped' if mode.match('-')
+                mode = 'running' if mode.match('\+')
+                mode = 'unsure'  if mode.match('\?')
+              end
+
+              res[service] = mode
+          elsif provider.eql?(:upstart)
+              if line.match(/(.*?)\s.*?(.*?),/)
+                # tty (/dev/tty3) start/running, process 1601
+                # named start/running, process 8959
+                service = $1
+                mode    = $2
+              elsif line.match(/(.*?)\s(.*)/)
+                # rcS stop/waiting
+                service = $1
+                mode    = $2
+              else
+                @logger.warn("unable to process upstart line[#{line}], skipping")
+                next
+              end
+
+              if humanize
+                mode = 'stopped' if mode.match('stop/waiting')
+                mode = 'running' if mode.match('start/running')
+                mode = 'unsure'  unless mode.eql?('stopped') or mode.eql?('running')
+              end
+
+              res[service] = mode
+          end
+        end
+
+      elsif os.eql?(:redhat)
+
+        raw.split("\n").each do |line|
+          if provider.eql?(:default)
+            if humanize
+
+              if line.match(/^(\w+?)\sis\s(.*)$/)
+                # <service> is <state>
+                name = $1
+                state = $2
+                res[name] = state
+
+                if state.match(/^not/)
+                  # this catches 'Kdump is not operational'
+                  res[name] = 'stopped'
+                end
+
+              elsif line.match(/^(\w+?)\s\(pid.*?\)\sis\s(\w+)$/)
+                # <service> (pid <pid> [pid]) is <state>...
+                res[$1] = $2
+              elsif line.match(/^(\w+?)\sis\s(\w+)\.*$/) # not sure this is actually needed
+                @logger.debug('triggered supposedly unnecessary regex')
+                # <service> is <state>. whatever
+                res[$1] = $2
+              elsif line.match(/^(\w+?)\:.*?(\w+)$/)
+                # <service>: whatever <state>
+                res[$1] = $2
+              elsif line.match(/^(\w+?):.*?\sis\snot\srunning\.$/)
+                # ip6tables: Firewall is not running.
+                res[$1] = 'stopped'
+              elsif line.match(/^(\w+?)\s.*?\s(.*)$/)
+                # netconsole module not loaded
+                state = $2
+                res[$1] = $2.match(/not/) ? 'stopped' : 'running'
+              elsif line.match(/^(\w+)\s(\w+).*$/)
+                # <process> <state> whatever
+                res[$1] = $2
+              else
+                # original regex implementation, if we didn't match anything else, failover to this
+                next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
+                res[$1] = $2
+              end
+
+            else
+              next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
+              res[$1] = $2
+            end
+          elsif provider.eql?(:upstart)
+
+            if line.match(/(.*?)\s.*?(.*?),/)
+              # tty (/dev/tty3) start/running, process 1601
+              # named start/running, process 8959
+              service = $1
+              mode    = $2
+            elsif line.match(/(.*?)\s(.*)/)
+              # rcS stop/waiting
+              service = $1
+              mode    = $2
+            else
+              @logger.warn("unable to process upstart line[#{line}], skipping")
+              next
+            end
+
+            if humanize
+              mode = 'stopped' if mode.match('stop/waiting')
+              mode = 'running' if mode.match('start/running')
+              mode = 'unsure'  unless mode.eql?('stopped') or mode.eql?('running')
+            end
+
+            res[service] = mode
+
+
+          end
+
+        end
+
+        # end of os casing
+      end
+
+      # end of provider processing
+    end
+
+    # issue #63 handling
+    # TODO should we consider using symbols here instead?
     allowed_modes = %w(exists installed operational running stopped unsure)
     failover_mode = 'unsure'
 
-    if os.eql?(:osx)
-
-      raw = self.run('launchctl list')
-      raw.split("\n").each do |line|
-        next if line.match(/(?:\S*?)\s+(\S*?)\s+(\S*)$/).nil?
-
-        service = $2
-        mode    = $1
-
-        if humanize # should we do this with a .freeze instead?
-          if mode.match(/^\d/)
-            mode = 'running'
-          else
-            mode = 'stopped'
-          end
-        end
-
-        res[service] = mode
+    if humanize
+      res.each_pair do |k,v|
+        next if allowed_modes.member?(v)
+        @logger.debug(sprintf('replacing service[%s] status of [%s] with [%s] for uniformity', k, v, failover_mode))
+        res[k] = failover_mode
       end
-
-    elsif os.eql?(:solaris)
-
-      raw = self.run('svcs -a')
-      raw.split("\n").each do |line|
-        next if line.match(/(.*?)\s+(?:.*?)\s+(.*?)$/).nil?
-
-        service = $2
-        mode    = $1
-
-        if humanize
-          if mode.match(/^online/)
-            mode = 'running'
-          elsif mode.match(/^legacy_run/)
-            mode = 'running'
-          elsif mode.match(/^disabled/)
-            mode = 'stopped'
-          end
-
-          if service.match(/^svc:\/.*\/(.*?):.*/)
-            # turning 'svc:/network/cswpuppetd:default' into 'cswpuppetd'
-            service = $1
-          elsif service.match(/^lrc:\/.*?\/.*\/(.*)/)
-            # turning 'lrc:/etc/rcS_d/S50sk98Sol' into 'S50sk98Sol'
-            service = $1
-          end
-        end
-
-        res[service] = mode
-
-      end
-
-    elsif os.eql?(:ubuntu) or os.eql?(:debian)
-
-      raw = self.run('service --status-all 2>&1')
-      raw.split("\n").each do |line|
-        next if line.match(/\[(.*?)\]\s+(.*)$/).nil?
-        mode    = $1
-        service = $2
-
-        if humanize
-          mode = 'stopped' if mode.match('-')
-          mode = 'running' if mode.match('\+')
-          mode = 'unsure'  if mode.match('\?')
-        end
-
-        res[service] = mode
-      end
-
-    elsif os.eql?(:redhat)
-
-      raw = self.run('/sbin/service --status-all')
-      raw.split("\n").each do |line|
-
-        if humanize
-
-          if line.match(/^(\w+?)\sis\s(.*)$/)
-            # <service> is <state>
-            name = $1
-            state = $2
-            res[name] = state
-
-            if state.match(/^not/)
-              # this catches 'Kdump is not operational'
-              res[name] = 'stopped'
-            end
-
-          elsif line.match(/^(\w+?)\s\(pid.*?\)\sis\s(\w+)$/)
-            # <service> (pid <pid> [pid]) is <state>...
-            res[$1] = $2
-          elsif line.match(/^(\w+?)\sis\s(\w+)\.*$/) # not sure this is actually needed
-            @logger.debug('triggered supposedly unnecessary regex')
-            # <service> is <state>. whatever
-            res[$1] = $2
-          elsif line.match(/^(\w+?)\:.*?(\w+)$/)
-            # <service>: whatever <state>
-            res[$1] = $2
-          elsif line.match(/^(\w+)\s(\w+).*$/)
-            # <process> <state> whatever
-            res[$1] = $2
-          else
-            # original regex implementation, if we didn't match anything else, failover to this
-            next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
-            res[$1] = $2
-          end
-
-        else
-          next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
-          res[$1] = $2
-        end
-
-      end
-
-      # issue #63 handling
-      if humanize
-        res.each_pair do |k,v|
-          next if allowed_modes.member?(v)
-          @logger.debug(sprintf('replacing service[%s] status of [%s] with [%s] for uniformity', k, v, failover_mode))
-          res[k] = failover_mode
-        end
-      end
-
-    else
-      raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os))
     end
 
     if cache
