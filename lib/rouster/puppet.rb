@@ -5,12 +5,13 @@ require 'net/https'
 require 'socket'
 require 'uri'
 
-# TODO better
-$LOAD_PATH << '/opt/puppet/lib/site_ruby/1.8/' # for puppet/external/pson/version <-- this is pretty ridiculous
-$LOAD_PATH << '/opt/puppet/lib/site_ruby/1.8/puppet/external/' # for pson/common
-require 'pson/common'
-require 'pson/version'
-require 'pson/pure'
+begin
+  require 'puppet' # Puppet::Util::from_pson()
+rescue
+  # TODO warn that get_catalog() won't be functional
+end
+
+
 
 class Rouster
 
@@ -77,8 +78,7 @@ class Rouster
     end
 
     # TODO finish the psonification
-    raise InternalError.new('need to finish conversion of facts to PSON')
-    facts.to_pson
+    facts = Puppet::Util::to_pson(facts) # i think we need to specify a type in facts here.. maybe some reversing here
 
     json = nil
     url  = sprintf('https://%s:%s/catalog/%s?facts_format=pson&facts=%s', puppetmaster, puppetmaster_port, certname, facts)
@@ -86,8 +86,11 @@ class Rouster
 
     begin
       res  = Net::HTTP.get(uri)
-      json = res.to_json
+
+      pson = Puppet::Util::from_pson(res)
+      json = pson.to_json
     rescue => e
+      # TODO should we handle parsing errors different from transport ones?
       raise ExternalError.new("calling[#{url}] led to exception[#{e}")
     end
 
