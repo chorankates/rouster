@@ -16,14 +16,14 @@ class TestUnitGetPackages < Test::Unit::TestCase
 
   end
 
-  def test_rhel_default
+  def test_rhel_systemv
     @app.instance_variable_set(:@ostype, :redhat)
     services = {}
 
-    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-default', File.dirname(File.expand_path(__FILE__))))
+    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-systemv', File.dirname(File.expand_path(__FILE__))))
 
     assert_nothing_raised do
-      services = @app.get_services(false, true, :default, raw)
+      services = @app.get_services(false, true, :systemv, raw)
     end
 
     expected = {
@@ -68,15 +68,15 @@ class TestUnitGetPackages < Test::Unit::TestCase
     @app.instance_variable_set(:@ostype, :redhat)
     services = {}
 
-    initd_contents  = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-default', File.dirname(File.expand_path(__FILE__))))
+    systemv_contents  = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-systemv', File.dirname(File.expand_path(__FILE__))))
     upstart_contents = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-upstart', File.dirname(File.expand_path(__FILE__))))
 
     # TODO this isn't a great test, because the implementation will never have both outputs in the same control loop
-    raw = initd_contents
+    raw = systemv_contents
     raw << upstart_contents
 
     assert_nothing_raised do
-      services = @app.get_services(false, true, [:upstart, :default], raw)
+      services = @app.get_services(false, true, :all, raw)
     end
 
     expected = {
@@ -97,7 +97,7 @@ class TestUnitGetPackages < Test::Unit::TestCase
     @app.instance_variable_set(:@ostype, :redhat)
     services = {}
 
-    initd_contents  = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-default', File.dirname(File.expand_path(__FILE__))))
+    systemv_contents  = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-systemv', File.dirname(File.expand_path(__FILE__))))
     upstart_contents = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-upstart', File.dirname(File.expand_path(__FILE__))))
 
     expected = {
@@ -108,10 +108,10 @@ class TestUnitGetPackages < Test::Unit::TestCase
     }
 
     assert_nothing_raised do
-      initd   = @app.get_services(false, true, :default, initd_contents)
+      systemv = @app.get_services(false, true, :systemv, systemv_contents)
       upstart = @app.get_services(false, true, :upstart, upstart_contents)
 
-      services = initd.merge(upstart) # TODO how do we ensure merge order doesn't mislead us?
+      services = systemv.merge(upstart) # TODO how do we ensure merge order doesn't mislead us?
     end
 
     expected.each_pair do |service,state|
@@ -122,14 +122,14 @@ class TestUnitGetPackages < Test::Unit::TestCase
 
   end
 
-  def test_osx_default
+  def test_osx_launchd
     @app.instance_variable_set(:@ostype, :osx)
     services = {}
 
-    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/osx-default', File.dirname(File.expand_path(__FILE__))))
+    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/osx-launchd', File.dirname(File.expand_path(__FILE__))))
 
     assert_nothing_raised do
-      services = @app.get_services(false, true, :default, raw)
+      services = @app.get_services(false, true, :launchd, raw)
     end
 
     expected = {
@@ -143,8 +143,6 @@ class TestUnitGetPackages < Test::Unit::TestCase
     end
 
   end
-
-
 
   def teardown
     # noop

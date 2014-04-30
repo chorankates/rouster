@@ -389,18 +389,20 @@ class Rouster
   # parameters
   # * [cache]    - boolean controlling whether data retrieved/parsed is cached, defaults to true
   # * [humanize] - boolean controlling whether data retrieved is massaged into simplified names or returned mostly as retrieved
+  # * [type]     - symbol indicating which service controller to query, defaults to :all
+  # * [raw]      - test hook to seed the output of service commands
   #
-  # supported OS
-  # * OSX - runs `launchctl list`
-  # * RedHat - runs `/sbin/service --status-all`
-  # * Solaris - runs `svcs -a`
-  # * Ubuntu - runs `service --status-all`
+  # supported OS and types
+  # * OSX     - :launchd
+  # * RedHat  - :systemv or :upstart
+  # * Solaris - :smf
+  # * Ubuntu  - :systemv or :upstart
   #
   # notes
   # * raises InternalError if unsupported operating system
   # * OSX, Solaris and Ubuntu/Debian will only return running|stopped|unsure, the exists|installed|operational modes are RHEL/CentOS only
 
-  def get_services(cache=true, humanize=true, type=:default, raw=nil)
+  def get_services(cache=true, humanize=true, type=:all, raw=nil)
     if cache and ! self.deltas[:services].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:services]) > self.cache_timeout
@@ -418,26 +420,33 @@ class Rouster
 
     commands = {
       :osx => {
-        :default => 'launchctl list',
+        :launchd => 'launchctl list',
       },
       :solaris => {
-        :default => 'svcs -a',
+        :smf => 'svcs -a',
       },
 
       # TODO we really need to implement something like osfamily
       :ubuntu => {
-        :default => 'service --status-all 2>&1', #
+        :systemv => 'service --status-all 2>&1',
         :upstart => 'initctl list',
       },
       :debian => {
-        :default => 'service --status-all 2>&1', #
+        :systemv => 'service --status-all 2>&1',
         :upstart => 'initctl list',
       },
       :redhat => {
-        :default => '/sbin/service --status-all',
+        :systemv => '/sbin/service --status-all',
         :upstart => 'initctl list',
       },
     }
+
+    if type.eql?(:all)
+      type = commands[os].keys
+    end
+
+    allowed_modes = %w(exists installed operational running stopped unsure)
+    failover_mode = 'unsure'
 
     type = type.class.eql?(Array) ? type : [ type ]
 
@@ -451,7 +460,7 @@ class Rouster
       # TODO while this is true, what if self.user is 'root'.. -- the problem is we don't have self.user, and we store this data differently depending on self.passthrough?
       @logger.warn('gathering service information typically works better with sudo, which is currently not being used') unless self.uses_sudo?
 
-      # TODO come up with a better test hook
+      # TODO come up with a better test hook -- real problem is that we can't seed 'raw' with different values per iteration
       raw = raw.nil? ? self.run(commands[os][provider]) : raw
 
       if os.eql?(:osx)
@@ -508,7 +517,7 @@ class Rouster
       elsif os.eql?(:ubuntu) or os.eql?(:debian)
 
         raw.split("\n").each do |line|
-          if provider.eql?(:default)
+          if provider.eql?(:systemv)
               next if line.match(/\[(.*?)\]\s+(.*)$/).nil?
               mode    = $1
               service = $2
@@ -548,7 +557,7 @@ class Rouster
       elsif os.eql?(:redhat)
 
         raw.split("\n").each do |line|
-          if provider.eql?(:default)
+          if provider.eql?(:systemv)
             if humanize
 
               if line.match(/^(\w+?)\sis\s(.*)$/)
@@ -614,7 +623,7 @@ class Rouster
               mode = 'unsure'  unless mode.eql?('stopped') or mode.eql?('running')
             end
 
-            res[service] = mode
+            res[service] = mode unless res.has_key?(service)
 
 
           end
