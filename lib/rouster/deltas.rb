@@ -390,7 +390,7 @@ class Rouster
   # * [cache]    - boolean controlling whether data retrieved/parsed is cached, defaults to true
   # * [humanize] - boolean controlling whether data retrieved is massaged into simplified names or returned mostly as retrieved
   # * [type]     - symbol indicating which service controller to query, defaults to :all
-  # * [raw]      - test hook to seed the output of service commands
+  # * [seed]     - test hook to seed the output of service commands
   #
   # supported OS and types
   # * OSX     - :launchd
@@ -402,7 +402,7 @@ class Rouster
   # * raises InternalError if unsupported operating system
   # * OSX, Solaris and Ubuntu/Debian will only return running|stopped|unsure, the exists|installed|operational modes are RHEL/CentOS only
 
-  def get_services(cache=true, humanize=true, type=:all, raw=nil)
+  def get_services(cache=true, humanize=true, type=:all, seed=nil)
     if cache and ! self.deltas[:services].nil?
 
       if self.cache_timeout and self.cache_timeout.is_a?(Integer) and (Time.now.to_i - self.cache[:services]) > self.cache_timeout
@@ -445,9 +445,6 @@ class Rouster
       type = commands[os].keys
     end
 
-    allowed_modes = %w(exists installed operational running stopped unsure)
-    failover_mode = 'unsure'
-
     type = type.class.eql?(Array) ? type : [ type ]
 
     type.each do |provider|
@@ -461,7 +458,7 @@ class Rouster
       @logger.warn('gathering service information typically works better with sudo, which is currently not being used') unless self.uses_sudo?
 
       # TODO come up with a better test hook -- real problem is that we can't seed 'raw' with different values per iteration
-      raw = raw.nil? ? self.run(commands[os][provider]) : raw
+      raw = seed.nil? ? self.run(commands[os][provider]) : seed
 
       if os.eql?(:osx)
 
