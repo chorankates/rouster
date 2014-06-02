@@ -459,7 +459,7 @@ class Rouster
         opts[:manifest_file].each do |file|
           raise InternalError.new(sprintf('invalid manifest file specified[%s]', file)) unless self.is_file?(file)
 
-          cmd = 'puppet apply'
+          cmd = 'puppet apply --detailed-exitcodes'
           cmd << sprintf(' --modulepath=%s', opts[:module_dir]) unless opts[:module_dir].nil?
           cmd << sprintf(' --hiera_config=%s', opts[:hiera_config]) unless opts[:hiera_config].nil? or puppet_version < '3.0'
           cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
@@ -481,7 +481,7 @@ class Rouster
 
           manifests.each do |m|
 
-            cmd = 'puppet apply'
+            cmd = 'puppet apply --detailed-exitcodes'
             cmd << sprintf(' --modulepath=%s', opts[:module_dir]) unless opts[:module_dir].nil?
             cmd << sprintf(' --hiera_config=%s', opts[:hiera_config]) unless opts[:hiera_config].nil? or puppet_version < '3.0'
             cmd << sprintf(' --environment %s', opts[:environment]) unless opts[:environment].nil?
