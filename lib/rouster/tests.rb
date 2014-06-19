@@ -608,6 +608,7 @@ class Rouster
     res[:executable?] = [ tokens[0][3].chr.eql?('x'), tokens[0][6].chr.eql?('x'), tokens[0][9].chr.eql?('x') || tokens[0][9].chr.eql?('t') ]
     res[:writeable?]  = [ tokens[0][2].chr.eql?('w'), tokens[0][5].chr.eql?('w'), tokens[0][8].chr.eql?('w') ]
     res[:readable?]   = [ tokens[0][1].chr.eql?('r'), tokens[0][4].chr.eql?('r'), tokens[0][7].chr.eql?('r') ]
+    res[:sticky?]     = false # until we actually implement
 
     # TODO better here: this does not support files/dirs with spaces
     if res[:symlink?]
