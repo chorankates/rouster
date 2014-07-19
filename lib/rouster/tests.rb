@@ -48,6 +48,11 @@ class Rouster
       res = nil
     else
       res = parse_ls_string(raw)
+
+      ## experimental permission gathering with 'stat'
+      raw = self.run(sprintf('stat -c "%a" %s', dir)) # no rescue since we know the file exists and we have perms on it
+      res[:mode] = raw.match(/(\d+)/) ? $1 : 'unknown'
+
     end
 
     if cache
@@ -126,6 +131,10 @@ class Rouster
       res = nil
     else
       res = parse_ls_string(raw)
+
+      ## experimental permission gathering with 'stat'
+      raw = self.run(sprintf('stat -c "%a" %s', dir)) # no rescue since we know the file exists and we have perms on it
+      res[:mode] = raw.match(/(\d+)/) ? $1 : 'unknown'
     end
 
     if cache
@@ -597,7 +606,6 @@ class Rouster
       mode = sprintf('%s%s', mode, value)
     end
 
-    res[:mode]  = mode
     res[:owner] = tokens[2]
     res[:group] = tokens[3]
     res[:size]  = tokens[4]

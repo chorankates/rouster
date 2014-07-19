@@ -7,7 +7,13 @@ require 'rouster/tests'
 
 #a = Rouster.new(:name => 'app', :verbosity => 1, :vagrantfile => '../piab/Vagrantfile', :retries => 3)
 #p = Rouster.new(:name => 'ppm', :verbosity => 1, :vagrantfile => '../piab/Vagrantfile')
-#r = Rouster.new(:name => 'app', :verbosity => 1, :vagrantfile => 'Vagrantfile')
+r = Rouster.new(:name => 'app', :verbosity => 1, :vagrantfile => 'Vagrantfile')
 l = Rouster.new(:name => 'local', :passthrough => { :type => :local }, :verbosity => 3)
 
 p 'DBGZ' if nil?
+
+r.dir('/tmp')
+l.dir('/tmp')
+
+r.file('/etc/hosts')
+l.file('/etc/hosts')

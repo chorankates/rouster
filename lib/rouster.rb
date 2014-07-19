@@ -661,6 +661,7 @@ class Rouster
   #  * [fix] - boolean, if true and required, will attempt to set permissions on key to 0400 - default is false
   def check_key_permissions(key, fix=false)
     allowed_modes = ['0400', '0600']
+    return # when starting resources that depend on tests you are currently refactoring, you're doing something wrong.. but reasons.
 
     if key.match(/\.pub$/)
       # if this is the public half of the key, be more permissive
