@@ -42,7 +42,7 @@ class Rouster
 
   ##
   # up
-  # runs `vagrant up` from the Vagrantfile path
+  # runs `vagrant up <name>` from the Vagrantfile path
   # if :sshtunnel is passed to the object during instantiation, the tunnel is created here as well
   def up
     @logger.info('up()')
@@ -50,6 +50,22 @@ class Rouster
 
     @ssh_info = nil # in case the ssh-info has changed, a la destroy/rebuild
     self.connect_ssh_tunnel() if @sshtunnel
+  end
+
+  ##
+  # halt
+  # runs `vagrant halt <name>` from the Vagrantfile path
+  def halt
+    @logger.info('halt()')
+    self.vagrant(sprintf('halt %s', @name))
+  end
+
+  ##
+  # package -- though vagrant docs still refer to 'repackage'
+  # runs `vagrant package <name> <provider>`
+  def package(provider='virtualbox') # TODO get the provider as a first class citizen on the rouster object
+    @logger.info(sprintf('package(%s)', provider))
+    self.vagrant(sprintf('package %s %s', @name, provider))
   end
 
   ##
