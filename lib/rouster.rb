@@ -126,8 +126,30 @@ class Rouster
         raise ArgumentError.new('remote passthrough requires valid :key specification, should be path to private half') unless File.file?(@passthrough[:key])
         @sshkey = @passthrough[:key] # TODO refactor so that you don't have to do this..
         @logger.debug('instantiating a remote passthrough worker')
+      elsif @passthrough[:type].eql?(:aws)
+
+        defaults = {
+          :endpoint  => ENV['EC2_URL'],
+          :key       => ENV['AWS_ACCESS_KEY_ID'],
+          :secret    => ENV['AWS_SECRET_ACCESS_KEY'],
+          :region    => 'us-west2',
+          :size      => 't1.micro',
+          :user      => 'cloud-user',
+          :min_count => 1,
+          :max_count => 1,
+        }
+
+        @passthrough = defaults.merge(@passthrough)
+
+        [:ami, :size, :user, :region, :sshkey, :keypair, :key, :secret, :endpoint].each do |r|
+          raise ArgumentError.new(sprintf('AWS passthrough requires %s specification', r)) if @passthrough[r].nil?
+        end
+
+        raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:sshkey])
+        @sshkey = @passthrough[:key]
+
       else
-        raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :local, :remote', @passthrough[:type]))
+        raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :aws, :local, :remote', @passthrough[:type]))
       end
     else
 

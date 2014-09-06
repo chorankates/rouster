@@ -46,7 +46,13 @@ class Rouster
   # if :sshtunnel is passed to the object during instantiation, the tunnel is created here as well
   def up
     @logger.info('up()')
-    self.vagrant(sprintf('up %s', @name))
+
+    # don't like putting this here, may be refactored
+    if self.passthrough? and self.passthrough[:type].equal?(:aws)
+      self.aws_setup_vm()
+    else
+      self.vagrant(sprintf('up %s', @name))
+    end
 
     @ssh_info = nil # in case the ssh-info has changed, a la destroy/rebuild
     self.connect_ssh_tunnel() if @sshtunnel

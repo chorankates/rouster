@@ -2,14 +2,11 @@
 
 # this gets us Rouster, still need to figure out how to find vagrant
 $LOAD_PATH << File.join([File.dirname(__FILE__), 'lib'])
+$LOAD_PATH << File.join([File.dirname(__FILE__), 'plugins'])
 
 require 'rubygems'
 
 # debugging help
-begin
-  require 'debugger'
-rescue LoadError
-end
 
 class Object
   def my_methods
