@@ -48,7 +48,7 @@ class Rouster
     @logger.info('up()')
 
     # don't like putting this here, may be refactored
-    if self.passthrough? and self.passthrough[:type].equal?(:aws)
+    if self.is_passthrough? and self.passthrough[:type].equal?(:aws)
       self.aws_setup_vm()
     else
       self.vagrant(sprintf('up %s', @name))

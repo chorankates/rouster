@@ -127,7 +127,7 @@ class Rouster
         @sshkey = @passthrough[:key] # TODO refactor so that you don't have to do this..
         @logger.debug('instantiating a remote passthrough worker')
       elsif @passthrough[:type].eql?(:aws)
-
+        # TODO add tests to ensure that user specs are overriding defaults / defaults are used when user specs DNE
         defaults = {
           :endpoint  => ENV['EC2_URL'],
           :key       => ENV['AWS_ACCESS_KEY_ID'],
@@ -137,6 +137,8 @@ class Rouster
           :user      => 'cloud-user',
           :min_count => 1,
           :max_count => 1,
+
+          :sshtunnel => false,
         }
 
         @passthrough = defaults.merge(@passthrough)
@@ -146,7 +148,8 @@ class Rouster
         end
 
         raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:sshkey])
-        @sshkey = @passthrough[:key]
+        @sshkey    = @passthrough[:sshkey]
+        @sshtunnel = @passthrough[:sshtunnel] # technically this is supposed to be a top level attribute
 
       else
         raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :aws, :local, :remote', @passthrough[:type]))

@@ -10,13 +10,13 @@ aws = Rouster.new(
         # all required settings
         :type    => :aws,
 
-        :ami     => 'ami-e1397cd1', # TODO default this to some RHEL image?
+        :ami     => 'ami-e1397cd1', # TODO default this to some RHEL image, also should support specifying an existing instance
         :user    => 'cloud-user',
         :sshkey  => sprintf('%s/.ssh/id_rsa-aws', ENV['HOME']),
         :keypair => 'conor@aws',
 
         # optional, setting to be explicit
-        :size      => 't1.micro', # could probably default this one.. right?
+        :size      => 't1.micro',
         :region    => 'us-west2',
         :min_count => 1, # TODO don't know how to actually handle multiple machines..
         :max_count => 1,
