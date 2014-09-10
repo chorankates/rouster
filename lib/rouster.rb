@@ -129,14 +129,15 @@ class Rouster
       elsif @passthrough[:type].eql?(:aws)
         # TODO add tests to ensure that user specs are overriding defaults / defaults are used when user specs DNE
         defaults = {
-          :endpoint  => ENV['EC2_URL'],
-          :key       => ENV['AWS_ACCESS_KEY_ID'],
-          :secret    => ENV['AWS_SECRET_ACCESS_KEY'],
-          :region    => 'us-west2',
-          :size      => 't1.micro',
-          :user      => 'cloud-user',
-          :min_count => 1,
-          :max_count => 1,
+          :ec2_endpoint => sprintf('%sec2/', ENV['EC2_URL']),
+          :elb_endpoint => sprintf('%selb/', ENV['ELB_URL']), # is this right?
+          :key          => ENV['AWS_ACCESS_KEY_ID'],
+          :secret       => ENV['AWS_SECRET_ACCESS_KEY'],
+          :region       => 'us-west2',
+          :size         => 't1.micro',
+          :user         => 'cloud-user',
+          :min_count    => 1,
+          :max_count    => 1,
 
           :sshtunnel => false,
         }

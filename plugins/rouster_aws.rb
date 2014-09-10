@@ -40,27 +40,39 @@ class Rouster
 
     p 'DBGZ'
 
-    server = @ec2.servers.create(
-        # this instantiation is wrong
-        :image_id      => self.passthrough[:ami],
-        :image_keypair => self.passthrough[:keypair],
-        :image_size    => self.passthrough[:size],
-        :region        => self.passthrough[:region],
-        :min_count     => self.passthrough[:min_count],
-        :max_count     => self.passthrough[:max_count],
+    server = @ec2.(
+        self.passthrough[:ami],
+        self.passthrough[:min_count],
+        self.passthrough[:max_count],
+        {
+          'InstanceType' => self.passthrough[:size],
+          'KeyPair'      => self.passthrough[:keypair],
+        },
     )
 
     # TODO not sure i like this model
-    server.wait_for { ready? }
+    #server.wait_for { ready? }
 
     @instance_data = nil
     p 'DBGZ'
   end
 
-  def aws_connect_to_elb (id, elbname, listeners = { 'InstancePort' => 22, 'LoadbalancerPort' => 22, 'InstanceProtocol' => 'TCP' })
+  def aws_connect_to_elb (id, elbname, listeners = [{ 'InstancePort' => 22, 'LoadbalancerPort' => 22, 'InstanceProtocol' => 'TCP' }])
     self.elb_connect
 
-    p 'DBGZ'
+    # allow either hash or array of hash specification for listeners
+    listeners       = [ listeners ] unless listeners.is_a?(Array)
+    required_params = [ 'InstancePort', 'LoadbalancerPort', 'InstanceProtocol' ]
+
+    listeners.each do |l|
+      required_params.each do |r|
+        raise sprintf('listener[%s] does not include required parameter[%s]', l, r) unless l[r]
+      end
+
+    end
+
+    ## ok, everything is validated, lets do this
+
   end
 
   def aws_bootstap (commands)
@@ -73,13 +85,12 @@ class Rouster
 
   end
 
-  private
-
   def aws_connect
     return @ec2 unless @ec2.nil?
 
     @ec2 = Fog::Compute.new({
       :provider              => 'AWS',
+      :endpoint              => self.passthrough[:ec2_endpoint],
       :aws_access_key_id     => self.passthrough[:key],
       :aws_secret_access_key => self.passthrough[:secret],
     })
@@ -88,7 +99,13 @@ class Rouster
   def elb_connect
     return @elb unless @elb.nil?
 
+    endpoint = URI.parse(self.passthrough[:elb_endpoint])
+
     @elb = Fog::AWS::ELB.new({
+      :host   => endpoint.host,
+      :path   => endpoint.path,
+      :port   => endpoint.port,
+      :scheme => endpoint.scheme,
       :aws_access_key_id     => self.passthrough[:key],
       :aws_secret_access_key => self.passthrough[:secret],
     })
