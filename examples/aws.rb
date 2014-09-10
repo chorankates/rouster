@@ -28,9 +28,10 @@ aws = Rouster.new(
     :verbosity => 3,
 )
 
-aws.up()
-
-p aws.status()
+aws.up
+p aws.status
+p aws.aws_get_ip
+p aws.aws_get_id
 
 p aws.run('uptime')
 

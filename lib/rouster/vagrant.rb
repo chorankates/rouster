@@ -49,7 +49,7 @@ class Rouster
 
     # don't like putting this here, may be refactored
     if self.is_passthrough? and self.passthrough[:type].equal?(:aws)
-      self.aws_setup_vm()
+      self.aws_up()
     else
       self.vagrant(sprintf('up %s', @name))
     end
