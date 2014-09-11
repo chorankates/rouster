@@ -1,60 +1,101 @@
 #!/usr/bin/ruby
 ## rouster_aws.rb - provide helper functions for Rouster objects running on AWS/EC2
 
+# TODO implement some caching of AWS data?
+
 require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 require 'fog'
 require 'uri'
+
+require 'pry'
 
 class Rouster
 
   attr_reader :ec2, :elb     # expose AWS workers
   attr_reader :instance_data # the result of the runInstances request
 
+  # TODO should this be 'aws_ip'?
   def aws_get_ip (method = :internal, type = :public)
     # allowed methods: :internal (check meta-data inside VM), :aws (ask API)
     # allowed types:   :public, :private
+    self.describe_instance
+
     result = nil
 
     if method.equal?(:internal)
-      murl = sprintf('http://169.254.169.254/latest/meta-data/%s', type.to_s) # TODO probably should have some validation that the type is public|private
-
-      result = get_url(murl)
+      key    = type.equal?(:public) ? 'public-ipv4' : 'local-ipv4'
+      murl   = sprintf('http://169.254.169.254/latest/meta-data/%s', key)
+      result = self.run(sprintf('curl %s', murl))
     else
-      # TODO pull this from @instance_data
-      #return @instance_data[]
-      p 'DBGZ'
+      key    = type.equal?(:public) ? 'ipAddress' : 'privateIpAddress'
+      result = @instance_data[key]
     end
 
     result
   end
 
   def aws_get_id ()
-    # TODO return this from @instance_data
-    p 'DBGZ'
-    #return @instance_data[]
+    @instance_data['instanceId']
   end
 
   def aws_up
     # wait for machine to transition to running state
     self.aws_connect
 
-    server = @ec2.run_instances(
+    ceiling    = 9
+    sleep_time = 20
+    server  = @ec2.run_instances(
         self.passthrough[:ami],
         self.passthrough[:min_count],
         self.passthrough[:max_count],
         {
-          'InstanceType' => self.passthrough[:size],
-          'KeyPair'      => self.passthrough[:keypair],
-          'UserData'     => self.passthrough[:userdata],
+          'InstanceType'   => self.passthrough[:size],
+          'KeyName'        => self.passthrough[:keypair],
+          'SecurityGroup'  => self.passthrough[:security_groups],
+          'UserData'       => self.passthrough[:userdata],
+
         },
     )
 
-    # TODO not sure i like this model
-    #server.wait_for { ready? }
+    # TODO don't be this hacky
+    @instance_data = server.data[:body]['instancesSet'][0]
+    @passthrough[:host] = @instance_data['dnsName']
+    @passthrough[:port] = "22"
 
-    @instance_data = nil
-    p 'DBGZ'
+    0.upto(ceiling) do |try|
+      status = self.aws_status
+
+      @logger.debug(sprintf('describeInstances[%s]: [%s] [#%s]', self.aws_get_id, status, try))
+
+      if status.eql?('running') or status.eql?('16')
+        @logger.info(sprintf('[%s] transitioned to state[%s]', self.aws_get_id, self.aws_status))
+        break
+      end
+
+      sleep sleep_time
+    end
+
+    self.aws_get_id
+  end
+
+  def aws_destroy
+    self.aws_connect
+
+    server = @ec2.terminate_instances(self.aws_get_id)
+
+    self.aws_status
+  end
+
+  def describe_instance
+    self.aws_connect
+    server         = @ec2.describe_instances('instance-id' => [ @instance_data['instanceId'] ])
+    @instance_data = server.data[:body]['reservationSet'][0]['instancesSet'][0]
+  end
+
+  def aws_status
+    self.describe_instance
+    @instance_data['instanceState']['name'].nil? ? @instance_data['instanceState']['code'] : @instance_data['instanceState']['name']
   end
 
   def aws_connect_to_elb (id, elbname, listeners = [{ 'InstancePort' => 22, 'LoadbalancerPort' => 22, 'InstanceProtocol' => 'TCP' }])
@@ -88,9 +129,9 @@ class Rouster
   def aws_connect
     return @ec2 unless @ec2.nil?
 
+    # TODO only use self.passthrough[:ec2_endpoint] if it isn't null
     @ec2 = Fog::Compute.new({
       :provider              => 'AWS',
-      :endpoint              => self.passthrough[:ec2_endpoint],
       :region                => self.passthrough[:region],
       :aws_access_key_id     => self.passthrough[:key],
       :aws_secret_access_key => self.passthrough[:secret],

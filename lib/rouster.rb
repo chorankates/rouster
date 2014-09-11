@@ -129,23 +129,22 @@ class Rouster
       elsif @passthrough[:type].eql?(:aws)
         # TODO add tests to ensure that user specs are overriding defaults / defaults are used when user specs DNE
         defaults = {
-          :ec2_endpoint => sprintf('%s/ec2/', ENV['EC2_URL']),
-          :elb_endpoint => sprintf('%s/elb/', ENV['EC2_URL']),
-          :key          => ENV['AWS_ACCESS_KEY_ID'],
-          :secret       => ENV['AWS_SECRET_ACCESS_KEY'],
           :ami          => 'ami-7bdaa84b', # RHEL 6.5 x64
-          :region       => 'us-west-2',
-          :size         => 't1.micro',
-          :user         => 'cloud-user',
+          :key          => ENV['AWS_ACCESS_KEY_ID'],
           :min_count    => 1,
           :max_count    => 1,
-
+          :region       => 'us-west-2',
+          :secret       => ENV['AWS_SECRET_ACCESS_KEY'],
+          :size         => 't1.micro',
           :sshtunnel => false,
+          :user         => 'cloud-user',
         }
+
+        @passthrough[:security_groups] = @passthrough[:security_groups].is_a?(Array) ? @passthrough[:security_groups] : [ @passthrough[:security_groups] ]
 
         @passthrough = defaults.merge(@passthrough)
 
-        [:ami, :size, :user, :region, :sshkey, :keypair, :key, :secret, :ec2_endpoint, :elb_endpoint].each do |r|
+        [:ami, :size, :user, :region, :sshkey, :keypair, :key, :secret, :security_groups].each do |r|
           raise ArgumentError.new(sprintf('AWS passthrough requires %s specification', r)) if @passthrough[r].nil?
         end
 
