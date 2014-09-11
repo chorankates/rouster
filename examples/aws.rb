@@ -8,22 +8,23 @@ aws = Rouster.new(
     :sudo      => true,
     :passthrough => {
         # all required settings
-        :type    => :aws,
-
-        :ami     => 'ami-e1397cd1', # TODO default this to some RHEL image, also should support specifying an existing instance
-        :user    => 'cloud-user',
-        :sshkey  => sprintf('%s/.ssh/id_rsa-aws', ENV['HOME']),
-        :keypair => 'conor@aws',
+        :type     => :aws,
+        :sshkey   => sprintf('%s/.ssh/id_rsa-aws', ENV['HOME']),
+        :keypair  => 'conor@aws',
+        :userdata => 'foo',
 
         # optional, setting to be explicit
+        :ami       => 'ami-e1397cd1', # TODO should support specifying an existing instance (either :ami or :instance)
+        :user      => 'cloud-user',
         :size      => 't1.micro',
-        :region    => 'us-west2',
-        :min_count => 1, # TODO don't know how to actually handle multiple machines..
+        :region    => 'us-west-2',
+        :min_count => 1, # TODO don't know how to actually handle multiple machines.. just do the same thing on all of the hosts?
         :max_count => 1,
 
-        :key      => ENV['AWS_ACCESS_KEY_ID'],
-        :secret   => ENV['AWS_SECRET_ACCESS_KEY'],
-        :endpoint => ENV['EC2_URL'],
+        :key          => ENV['AWS_ACCESS_KEY_ID'],
+        :secret       => ENV['AWS_SECRET_ACCESS_KEY'],
+        :ec2_endpoint => ENV['EC2_URL'],
+        :elb_endpoint => ENV['EC2_URL'],
     },
     :verbosity => 3,
 )

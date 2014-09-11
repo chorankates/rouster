@@ -4,6 +4,7 @@
 require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 require 'fog'
+require 'uri'
 
 class Rouster
 
@@ -38,15 +39,14 @@ class Rouster
     # wait for machine to transition to running state
     self.aws_connect
 
-    p 'DBGZ'
-
-    server = @ec2.(
+    server = @ec2.run_instances(
         self.passthrough[:ami],
         self.passthrough[:min_count],
         self.passthrough[:max_count],
         {
           'InstanceType' => self.passthrough[:size],
           'KeyPair'      => self.passthrough[:keypair],
+          'UserData'     => self.passthrough[:userdata],
         },
     )
 
@@ -91,6 +91,7 @@ class Rouster
     @ec2 = Fog::Compute.new({
       :provider              => 'AWS',
       :endpoint              => self.passthrough[:ec2_endpoint],
+      :region                => self.passthrough[:region],
       :aws_access_key_id     => self.passthrough[:key],
       :aws_secret_access_key => self.passthrough[:secret],
     })
