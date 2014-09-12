@@ -115,19 +115,25 @@ class Rouster
       if @passthrough.class != Hash
         raise ArgumentError.new('passthrough specification should be hash')
       elsif @passthrough[:type].nil?
-        raise ArgumentError.new('passthrough :type must be specified, :local or :remote allowed')
+        raise ArgumentError.new('passthrough :type must be specified, :local, :remote or :aws allowed')
       elsif @passthrough[:type].eql?(:local)
-        @sshtunnel = false
         @logger.debug('instantiating a local passthrough worker')
+        @sshtunnel = false
       elsif @passthrough[:type].eql?(:remote)
-        raise ArgumentError.new('remote passthrough requires :host specification') if @passthrough[:host].nil?
-        raise ArgumentError.new('remote passthrough requires :user specification') if @passthrough[:user].nil?
-        raise ArgumentError.new('remote passthrough requires :key specification')  if @passthrough[:key].nil?
+        @logger.debug('instantiating a remote passthrough worker')
+
+        [:host, :user, :key].each do |r|
+          raise ArgumentError.new(sprintf('remote passthrough requires[%s] specification', r)) if @passthrough[r].nil?
+        end
+
         raise ArgumentError.new('remote passthrough requires valid :key specification, should be path to private half') unless File.file?(@passthrough[:key])
         @sshkey = @passthrough[:key] # TODO refactor so that you don't have to do this..
-        @logger.debug('instantiating a remote passthrough worker')
+
       elsif @passthrough[:type].eql?(:aws)
+        @logger.debug('instantiating an AWS passthrough worker')
+
         # TODO add tests to ensure that user specs are overriding defaults / defaults are used when user specs DNE
+
         defaults = {
           :ami          => 'ami-7bdaa84b', # RHEL 6.5 x64
           :key_id       => ENV['AWS_ACCESS_KEY_ID'],
@@ -136,17 +142,38 @@ class Rouster
           :region       => 'us-west-2',
           :secret_key   => ENV['AWS_SECRET_ACCESS_KEY'],
           :size         => 't1.micro',
+          :sshport      => 22,
           :sshtunnel    => false,
-          :user         => 'cloud-user',
+          :sudo         => false,
+          :user         => 'ec2-user',
         }
 
-        @passthrough[:security_groups] = @passthrough[:security_groups].is_a?(Array) ? @passthrough[:security_groups] : [ @passthrough[:security_groups] ]
+        if @passthrough.has_key?(:ami)
+          @logger.debug(':ami specified, will start new EC2 instance')
 
-        @passthrough = defaults.merge(@passthrough)
+          @passthrough[:security_groups] = @passthrough[:security_groups].is_a?(Array) ? @passthrough[:security_groups] : [ @passthrough[:security_groups] ]
 
-        [:ami, :size, :user, :region, :key, :keypair, :key_id, :secret_key, :security_groups].each do |r|
-          raise ArgumentError.new(sprintf('AWS passthrough requires %s specification', r)) if @passthrough[r].nil?
+          @passthrough = defaults.merge(@passthrough)
+
+          [:ami, :size, :user, :region, :key, :keypair, :key_id, :secret_key, :security_groups].each do |r|
+            raise ArgumentError.new(sprintf('AWS passthrough requires %s specification', r)) if @passthrough[r].nil?
+          end
+
+        elsif @passthrough.has_key?(:instance)
+          @logger.debug(':instance specified, will connect to existing EC2 instance')
+
+          # TODO this isn't ideal
+          @passthrough        = defaults.merge(@passthrough)
+          @passthrough[:host] = self.aws_describe_instance(@passthrough[:instance])['dnsName']
+
+          [:instance, :key, :user, :host].each do |r|
+            raise ArgumentError.new(sprintf('AWS passthrough requires [%s] specification', r)) if @passthrough[r].nil?
+          end
+
+        else
+          raise ArgumentError.new('AWS passthrough requires either :ami or :instance specification')
         end
+
 
         raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:key])
         @sshkey    = @passthrough[:key]
@@ -519,6 +546,7 @@ class Rouster
       raise FileTransferError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
     end
 
+    return true
   end
 
   ##

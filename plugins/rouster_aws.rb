@@ -15,18 +15,21 @@ class Rouster
   attr_reader :ec2, :elb     # expose AWS workers
   attr_reader :instance_data # the result of the runInstances request
 
+  def aws_get_url(url)
+    # convenience method to run curls from inside the VM
+    self.run(sprintf('curl -s %s', url))
+  end
+
   # TODO should this be 'aws_ip'?
   def aws_get_ip (method = :internal, type = :public)
     # allowed methods: :internal (check meta-data inside VM), :aws (ask API)
     # allowed types:   :public, :private
-    self.describe_instance
-
-    result = nil
+    self.aws_describe_instance
 
     if method.equal?(:internal)
       key    = type.equal?(:public) ? 'public-ipv4' : 'local-ipv4'
       murl   = sprintf('http://169.254.169.254/latest/meta-data/%s', key)
-      result = self.run(sprintf('wget %s', murl))
+      result = self.aws_get_url(murl)
     else
       key    = type.equal?(:public) ? 'ipAddress' : 'privateIpAddress'
       result = @instance_data[key]
@@ -35,20 +38,56 @@ class Rouster
     result
   end
 
-  def aws_get_hostname (method = :internal)
+  def aws_get_userdata
+    murl     = 'http://169.254.169.254/latest/user-data/'
+    result   = self.aws_get_url(murl)
+
+    if result.match(/\S=\S/)
+      # TODO should we really be doing this?
+      userdata = Hash.new()
+      result.split("\n").each do |line|
+        if line.match(/^(.*?)=(.*)/)
+          userdata[$1] = $2
+        end
+      end
+    else
+      userdata = result
+    end
+
+    userdata
+  end
+
+  # return a hash containing meta-data items
+  def aws_get_metadata
+    murl   = 'http://169.254.169.254/latest/meta-data/'
+    result = self.aws_get_url(murl)
+    metadata = Hash.new()
+
+    # TODO this isn't entirely right.. if the element ends in '/', it's actually another level of hash..
+    result.split("\n").each do |element|
+      metadata[element] = self.aws_get_url(sprintf('%s%s', murl, element))
+    end
+
+    metadata
+  end
+
+  def aws_get_hostname (method = :internal, type = :public)
     # allowed methods: :internal (check meta-data inside VM), :aws (ask API)
-    self.describe_instance
+    # allowed types:   :public, :private
+    self.aws_describe_instance
 
     result = nil
 
     if method.equal?(:internal)
       key    = type.equal?(:public) ? 'public-hostname' : 'local-hostname'
       murl   = sprintf('http://169.254.169.254/latest/meta-data/%s', key)
-      result = self.run(sprintf('wget %s', murl))
+      result = self.aws_get_url(murl)
     else
       key    = type.equal?(:public) ? 'dnsName' : 'privateDnsName'
       result = @instance_data[key]
     end
+
+    result
   end
 
   def aws_get_id ()
@@ -56,11 +95,11 @@ class Rouster
   end
 
   def aws_up
-    # wait for machine to transition to running state
+    # wait for machine to transition to running state and become sshable (TODO maybe make the second half optional)
     self.aws_connect
 
-    ceiling    = 9
-    sleep_time = 20
+    # TODO need to do something here so that we can call up() on an already running worker and not get a new VM
+
     server  = @ec2.run_instances(
         self.passthrough[:ami],
         self.passthrough[:min_count],
@@ -76,6 +115,9 @@ class Rouster
 
     @instance_data = server.data[:body]['instancesSet'][0]
 
+    # wait until the machine starts
+    ceiling    = 9
+    sleep_time = 20
     0.upto(ceiling) do |try|
       status = self.aws_status
 
@@ -89,12 +131,25 @@ class Rouster
       sleep sleep_time
     end
 
+    # TODO raise if we're still not in running
+
     # TODO don't be this hacky
-    self.describe_instance # the server.data response doesn't include public hostname/ip
+    self.aws_describe_instance # the server.data response doesn't include public hostname/ip
     @passthrough[:host] = @instance_data['dnsName']
     @passthrough[:port] = "22"
 
-    sleep 30 # to let ssh connectivity wake up - TODO this better
+    # wait until ssh is available
+    0.upto(ceiling) do |try|
+      @logger.info(sprintf('connecting via SSH[%s]: [#%s]', self.aws_get_id, try))
+      begin
+        self.connect_ssh_tunnel
+        break
+      rescue Errno::ECONNREFUSED => e
+        @logger.debug(sprintf('failed to open tunnel[%s], trying again in[%ss]', e.message, sleep_time))
+      end
+      sleep sleep_time
+    end
+
     self.aws_get_id
   end
 
@@ -106,14 +161,20 @@ class Rouster
     self.aws_status
   end
 
-  def describe_instance
+  def aws_describe_instance(instance = @instance_data['instanceId'])
     self.aws_connect
-    server         = @ec2.describe_instances('instance-id' => [ @instance_data['instanceId'] ])
-    @instance_data = server.data[:body]['reservationSet'][0]['instancesSet'][0]
+    server   = @ec2.describe_instances('instance-id' => [ instance ])
+    response = server.data[:body]['reservationSet'][0]['instancesSet'][0]
+
+    if ! @instance_data.nil? and instance.eql?(@instance_data['instanceId'])
+      @instance_data = response
+    end
+
+    response
   end
 
   def aws_status
-    self.describe_instance
+    self.aws_describe_instance
     @instance_data['instanceState']['name'].nil? ? @instance_data['instanceState']['code'] : @instance_data['instanceState']['name']
   end
 
