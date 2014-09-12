@@ -5,13 +5,13 @@ require 'rouster_aws' # brings in fog and some helpers
 
 aws = Rouster.new(
     :name      => 'aws-testing',
-    :sudo      => true,
+    :sudo      => false,
     :passthrough => {
         # all required settings
         :type            => :aws,
         :keypair         => 'conor@aws',
         :security_groups => 'integration-testing',
-        :sshkey          => sprintf('%s/.ssh/id_rsa-aws', ENV['HOME']),
+        :key             => sprintf('%s/.ssh/id_rsa-aws', ENV['HOME']),
         :userdata        => 'foo',
 
         # optional, setting to be explicit
@@ -20,10 +20,10 @@ aws = Rouster.new(
         :max_count => 1,
         :region    => 'us-west-2',
         :size      => 't1.micro',
-        :user      => 'cloud-user',
+        :user      => 'ec2-user',
 
-        :key          => ENV['AWS_ACCESS_KEY_ID'],
-        :secret       => ENV['AWS_SECRET_ACCESS_KEY'],
+        :key_id       => ENV['AWS_ACCESS_KEY_ID'],
+        :secret_key   => ENV['AWS_SECRET_ACCESS_KEY'],
     },
     :verbosity => 1,
 )

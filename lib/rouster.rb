@@ -130,13 +130,13 @@ class Rouster
         # TODO add tests to ensure that user specs are overriding defaults / defaults are used when user specs DNE
         defaults = {
           :ami          => 'ami-7bdaa84b', # RHEL 6.5 x64
-          :key          => ENV['AWS_ACCESS_KEY_ID'],
+          :key_id       => ENV['AWS_ACCESS_KEY_ID'],
           :min_count    => 1,
           :max_count    => 1,
           :region       => 'us-west-2',
-          :secret       => ENV['AWS_SECRET_ACCESS_KEY'],
+          :secret_key   => ENV['AWS_SECRET_ACCESS_KEY'],
           :size         => 't1.micro',
-          :sshtunnel => false,
+          :sshtunnel    => false,
           :user         => 'cloud-user',
         }
 
@@ -144,12 +144,12 @@ class Rouster
 
         @passthrough = defaults.merge(@passthrough)
 
-        [:ami, :size, :user, :region, :sshkey, :keypair, :key, :secret, :security_groups].each do |r|
+        [:ami, :size, :user, :region, :key, :keypair, :key_id, :secret_key, :security_groups].each do |r|
           raise ArgumentError.new(sprintf('AWS passthrough requires %s specification', r)) if @passthrough[r].nil?
         end
 
-        raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:sshkey])
-        @sshkey    = @passthrough[:sshkey]
+        raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:key])
+        @sshkey    = @passthrough[:key]
         @sshtunnel = @passthrough[:sshtunnel] # technically this is supposed to be a top level attribute
 
       else
@@ -394,7 +394,7 @@ class Rouster
           @passthrough[:host],
           @passthrough[:user],
           :port => @passthrough[:port],
-          :keys => [ @passthrough[:key] ],
+          :keys => [ @passthrough[:key] ], # TODO this should be @sshkey
           :paranoid => false
         )
       end

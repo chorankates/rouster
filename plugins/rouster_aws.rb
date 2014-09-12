@@ -26,13 +26,29 @@ class Rouster
     if method.equal?(:internal)
       key    = type.equal?(:public) ? 'public-ipv4' : 'local-ipv4'
       murl   = sprintf('http://169.254.169.254/latest/meta-data/%s', key)
-      result = self.run(sprintf('curl %s', murl))
+      result = self.run(sprintf('wget %s', murl))
     else
       key    = type.equal?(:public) ? 'ipAddress' : 'privateIpAddress'
       result = @instance_data[key]
     end
 
     result
+  end
+
+  def aws_get_hostname (method = :internal)
+    # allowed methods: :internal (check meta-data inside VM), :aws (ask API)
+    self.describe_instance
+
+    result = nil
+
+    if method.equal?(:internal)
+      key    = type.equal?(:public) ? 'public-hostname' : 'local-hostname'
+      murl   = sprintf('http://169.254.169.254/latest/meta-data/%s', key)
+      result = self.run(sprintf('wget %s', murl))
+    else
+      key    = type.equal?(:public) ? 'dnsName' : 'privateDnsName'
+      result = @instance_data[key]
+    end
   end
 
   def aws_get_id ()
@@ -58,10 +74,7 @@ class Rouster
         },
     )
 
-    # TODO don't be this hacky
     @instance_data = server.data[:body]['instancesSet'][0]
-    @passthrough[:host] = @instance_data['dnsName']
-    @passthrough[:port] = "22"
 
     0.upto(ceiling) do |try|
       status = self.aws_status
@@ -76,6 +89,12 @@ class Rouster
       sleep sleep_time
     end
 
+    # TODO don't be this hacky
+    self.describe_instance # the server.data response doesn't include public hostname/ip
+    @passthrough[:host] = @instance_data['dnsName']
+    @passthrough[:port] = "22"
+
+    sleep 30 # to let ssh connectivity wake up - TODO this better
     self.aws_get_id
   end
 
@@ -133,8 +152,8 @@ class Rouster
     @ec2 = Fog::Compute.new({
       :provider              => 'AWS',
       :region                => self.passthrough[:region],
-      :aws_access_key_id     => self.passthrough[:key],
-      :aws_secret_access_key => self.passthrough[:secret],
+      :aws_access_key_id     => self.passthrough[:key_id],
+      :aws_secret_access_key => self.passthrough[:secret_key],
     })
   end
 
@@ -148,8 +167,8 @@ class Rouster
       :path   => endpoint.path,
       :port   => endpoint.port,
       :scheme => endpoint.scheme,
-      :aws_access_key_id     => self.passthrough[:key],
-      :aws_secret_access_key => self.passthrough[:secret],
+      :aws_access_key_id     => self.passthrough[:key_id],
+      :aws_secret_access_key => self.passthrough[:secret_key],
     })
   end
 
