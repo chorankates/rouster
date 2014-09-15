@@ -420,7 +420,7 @@ class Rouster
         @ssh = Net::SSH.start(
           @passthrough[:host],
           @passthrough[:user],
-          :port => @passthrough[:port],
+          :port => @passthrough[:sshport],
           :keys => [ @passthrough[:key] ], # TODO this should be @sshkey
           :paranoid => false
         )

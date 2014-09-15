@@ -1,14 +1,12 @@
 #!/usr/bin/ruby
 ## rouster_aws.rb - provide helper functions for Rouster objects running on AWS/EC2
 
-# TODO implement some caching of AWS data?
+# TODO implement some caching of AWS data? allow control in instantiation of worker
 
 require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 require 'fog'
 require 'uri'
-
-require 'pry'
 
 class Rouster
 
@@ -90,8 +88,20 @@ class Rouster
     result
   end
 
-  def aws_get_id ()
-    @instance_data['instanceId']
+  def aws_get_instance ()
+    if ! @instance_data.nil? and @instance_data.has_key?('instanceId')
+      return @instance_data['instanceId']
+    else
+      return @passthrough[:instance]
+    end
+  end
+
+  def aws_get_ami ()
+    if ! @instance_data.nil? and @instance_data.has_key?('ami')
+      return @instance_data['ami']
+    else
+      return @passthrough[:ami]
+    end
   end
 
   def aws_up
@@ -121,10 +131,10 @@ class Rouster
     0.upto(ceiling) do |try|
       status = self.aws_status
 
-      @logger.debug(sprintf('describeInstances[%s]: [%s] [#%s]', self.aws_get_id, status, try))
+      @logger.debug(sprintf('describeInstances[%s]: [%s] [#%s]', self.aws_get_instance, status, try))
 
       if status.eql?('running') or status.eql?('16')
-        @logger.info(sprintf('[%s] transitioned to state[%s]', self.aws_get_id, self.aws_status))
+        @logger.info(sprintf('[%s] transitioned to state[%s]', self.aws_get_instance, self.aws_status))
         break
       end
 
@@ -136,37 +146,37 @@ class Rouster
     # TODO don't be this hacky
     self.aws_describe_instance # the server.data response doesn't include public hostname/ip
     @passthrough[:host] = @instance_data['dnsName']
-    @passthrough[:port] = "22"
 
     # wait until ssh is available
     0.upto(ceiling) do |try|
-      @logger.info(sprintf('connecting via SSH[%s]: [#%s]', self.aws_get_id, try))
+      @logger.info(sprintf('connecting via SSH[%s]: [#%s]', @passthrough[:host], try))
       begin
         self.connect_ssh_tunnel
         break
       rescue Errno::ECONNREFUSED => e
-        @logger.debug(sprintf('failed to open tunnel[%s], trying again in[%ss]', e.message, sleep_time))
+        @logger.debug(sprintf('failed to open tunnel[%s], trying again in %ss', e.message, sleep_time))
       end
       sleep sleep_time
     end
 
-    self.aws_get_id
+    self.aws_get_instance
   end
 
   def aws_destroy
     self.aws_connect
 
-    server = @ec2.terminate_instances(self.aws_get_id)
+    server = @ec2.terminate_instances(self.aws_get_instance)
 
     self.aws_status
   end
 
-  def aws_describe_instance(instance = @instance_data['instanceId'])
+  def aws_describe_instance(instance = aws_get_instance)
+
     self.aws_connect
     server   = @ec2.describe_instances('instance-id' => [ instance ])
     response = server.data[:body]['reservationSet'][0]['instancesSet'][0]
 
-    if ! @instance_data.nil? and instance.eql?(@instance_data['instanceId'])
+    if instance.eql?(self.aws_get_instance)
       @instance_data = response
     end
 
@@ -193,7 +203,7 @@ class Rouster
     end
 
     ## ok, everything is validated, lets do this
-
+    raise 'not implemented'
   end
 
   def aws_bootstap (commands)
@@ -202,8 +212,10 @@ class Rouster
 
     commands.each do |command|
       @logger.debug(sprintf('about to run[%s]', command))
+
     end
 
+    raise 'not implemented'
   end
 
   def aws_connect

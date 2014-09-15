@@ -48,12 +48,15 @@ aws_clone = Rouster.new(
   :passthrough => {
     :type     => :aws,
     :key      => sprintf('%s/.ssh/id_rsa-aws', ENV['HOME']),
-    :instance => aws.aws_get_id,
+    :instance => aws.aws_get_instance,
   },
   :verbosity => 1,
 )
 
 [ aws, aws_already_running, aws_clone ].each do |a|
+  p "aws_get_ami: #{a.aws_get_ami}"
+  p "aws_get_instance: #{a.aws_get_instance}"
+
   p "status: #{a.status}"
   p "aws_status: #{a.aws_status}" # TODO merge this into status
 
@@ -67,14 +70,12 @@ aws_clone = Rouster.new(
   p "aws_get_hostname(:aws, :public): #{a.aws_get_hostname(:aws, :public)}"
   p "aws_get_hostname(:aws, :private): #{a.aws_get_hostname(:aws, :private)}"
 
-  p "aws_get_id: #{a.aws_get_id}"
-
   p "run(uptime): #{a.run('uptime')}"
   p "get(/etc/hosts): #{a.get('/etc/hosts')}"
   p "put(/etc/hosts, /tmp): #{a.put('/etc/hosts', '/tmp')}"
 
-  p "aws_get_user_data: #{a.aws_get_userdata}"
-  p "aws_get_meta_data: #{a.aws_get_metadata}"
+  p "aws_get_userdata: #{a.aws_get_userdata}"
+  p "aws_get_metadata: #{a.aws_get_metadata}"
 
   p 'DBGZ' if nil?
 end
