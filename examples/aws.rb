@@ -1,7 +1,7 @@
 require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 require 'rouster'
-require 'rouster_aws' # brings in fog and some helpers
+require 'plugins/aws' # brings in fog and some helpers
 
 aws_already_running = Rouster.new(
   :name        => 'aws-already-running',
@@ -38,6 +38,7 @@ aws = Rouster.new(
     :key_id       => ENV['AWS_ACCESS_KEY_ID'],
     :secret_key   => ENV['AWS_SECRET_ACCESS_KEY'],
   },
+  :sshtunnel => false,
   :verbosity => 1,
 )
 

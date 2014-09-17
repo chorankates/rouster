@@ -2,7 +2,8 @@
 
 # this gets us Rouster, still need to figure out how to find vagrant
 $LOAD_PATH << File.join([File.dirname(__FILE__), 'lib'])
-$LOAD_PATH << File.join([File.dirname(__FILE__), 'plugins'])
+$LOAD_PATH << File.dirname(__FILE__)
+#$LOAD_PATH << File.join([File.dirname(__FILE__), 'plugins']) # this
 
 require 'rubygems'
 

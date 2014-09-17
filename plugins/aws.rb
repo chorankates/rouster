@@ -221,28 +221,32 @@ class Rouster
   def aws_connect
     return @ec2 unless @ec2.nil?
 
-    # TODO only use self.passthrough[:ec2_endpoint] if it isn't null
-    @ec2 = Fog::Compute.new({
+    config = {
       :provider              => 'AWS',
       :region                => self.passthrough[:region],
       :aws_access_key_id     => self.passthrough[:key_id],
       :aws_secret_access_key => self.passthrough[:secret_key],
-    })
+    }
+
+    config[:endpoint] = self.passthrough[:ec2_endpoint] unless self.passthrough[:ec2_endpoint].nil?
+    @ec2 = Fog::Compute.new(config)
   end
 
   def elb_connect
     return @elb unless @elb.nil?
 
-    endpoint = URI.parse(self.passthrough[:elb_endpoint])
-
-    @elb = Fog::AWS::ELB.new({
-      :host   => endpoint.host,
-      :path   => endpoint.path,
-      :port   => endpoint.port,
-      :scheme => endpoint.scheme,
+    config = {
       :aws_access_key_id     => self.passthrough[:key_id],
       :aws_secret_access_key => self.passthrough[:secret_key],
-    })
+    }
+
+    if self.passthrough[:elb_endpoint]
+      config[:endpoint] = self.passthrough[:elb_endpoint]
+    elsif self.passthrough[:ec2_endpoint]
+      config[:endpoint] = self.passthrough[:ec2_endpoint]
+    end
+
+    @elb = Fog::AWS::ELB.new(config)
   end
 
 end
