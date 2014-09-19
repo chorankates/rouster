@@ -76,15 +76,6 @@ class Rouster
       @verbosity_logfile = 2 # this is kind of arbitrary, but won't actually be created unless opts[:logfile] is also passed
     end
 
-    if opts.has_key?(:sudo)
-      @sudo = opts[:sudo]
-    elsif @passthrough.class.eql?(Hash)
-      # TODO say something here.. or maybe check to see if our user has passwordless sudo?
-      @sudo = false
-    else
-      @sudo = true
-    end
-
     @ostype = nil
     @output = Array.new
     @cache  = Hash.new
@@ -109,16 +100,26 @@ class Rouster
 
     @logger.outputters[0].level = @verbosity_console # can't set this when instantiating a .std* logger, and want the FileOutputter at a different level
 
+    if opts.has_key?(:sudo)
+      @sudo = opts[:sudo]
+    elsif @passthrough.class.eql?(Hash)
+      @logger.debug(sprintf('passthrough without sudo specification, defaulting to false'))
+      @sudo = false
+    else
+      @sudo = true
+    end
+
     if @passthrough
       # TODO do better about informing of required specifications, maybe point them to an URL?
       @vagrantbinary = 'vagrant' # hacky fix to is_vagrant_running?() grepping, doesn't need to actually be in $PATH
+      @sshtunnel     = opts[:sshtunnel].nil? ? false : @sshtunnel # unless user has specified it, passthroughs default to not open tunnel
+
       if @passthrough.class != Hash
         raise ArgumentError.new('passthrough specification should be hash')
       elsif @passthrough[:type].nil?
         raise ArgumentError.new('passthrough :type must be specified, :local, :remote or :aws allowed')
       elsif @passthrough[:type].eql?(:local)
         @logger.debug('instantiating a local passthrough worker')
-        @sshtunnel = false
       elsif @passthrough[:type].eql?(:remote)
         @logger.debug('instantiating a remote passthrough worker')
 
@@ -143,8 +144,6 @@ class Rouster
           :secret_key   => ENV['AWS_SECRET_ACCESS_KEY'],
           :size         => 't1.micro',
           :sshport      => 22,
-          :sshtunnel    => false,
-          :sudo         => false,
           :user         => 'ec2-user',
         }
 
@@ -162,7 +161,6 @@ class Rouster
         elsif @passthrough.has_key?(:instance)
           @logger.debug(':instance specified, will connect to existing EC2 instance')
 
-          # TODO this isn't ideal
           @passthrough        = defaults.merge(@passthrough)
 
           if @passthrough.eql?(:aws)
@@ -182,7 +180,6 @@ class Rouster
 
         raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:key])
         @sshkey    = @passthrough[:key]
-        @sshtunnel = @passthrough[:sshtunnel] # technically this is supposed to be a top level attribute
 
       else
         raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :aws, :local, :remote', @passthrough[:type]))
