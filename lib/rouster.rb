@@ -129,13 +129,13 @@ class Rouster
         raise ArgumentError.new('remote passthrough requires valid :key specification, should be path to private half') unless File.file?(@passthrough[:key])
         @sshkey = @passthrough[:key] # TODO refactor so that you don't have to do this..
 
-      elsif @passthrough[:type].eql?(:aws)
-        @logger.debug('instantiating an AWS passthrough worker')
+      elsif @passthrough[:type].eql?(:aws) or @passthrough[:type].eql?(:raiden)
+        @logger.debug(sprintf('instantiating an %s passthrough worker', @passthrough[:type]))
 
         # TODO add tests to ensure that user specs are overriding defaults / defaults are used when user specs DNE
 
         defaults = {
-          :ami          => 'ami-7bdaa84b', # RHEL 6.5 x64
+          :ami          => 'ami-7bdaa84b', # RHEL 6.5 x64 in us-west-2
           :key_id       => ENV['AWS_ACCESS_KEY_ID'],
           :min_count    => 1,
           :max_count    => 1,
@@ -164,7 +164,12 @@ class Rouster
 
           # TODO this isn't ideal
           @passthrough        = defaults.merge(@passthrough)
-          @passthrough[:host] = self.aws_describe_instance(@passthrough[:instance])['dnsName']
+
+          if @passthrough.eql?(:aws)
+            @passthrough[:host] = self.aws_describe_instance(@passthrough[:instance])['dnsName']
+          else
+            @passthrough[:host] = self.find_ssh_elb(true)
+          end
 
           [:instance, :key, :user, :host].each do |r|
             raise ArgumentError.new(sprintf('AWS passthrough requires [%s] specification', r)) if @passthrough[r].nil?

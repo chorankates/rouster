@@ -202,8 +202,17 @@ class Rouster
 
     end
 
-    ## ok, everything is validated, lets do this
-    raise 'not implemented'
+    binding.pry
+
+    response = @elb.create_load_balancer(
+      [], # availability zones not needed on raiden
+      name,
+      listeners
+    )
+
+    ## return DNSName
+    binding.pry
+
   end
 
   def aws_bootstap (commands)
@@ -235,16 +244,22 @@ class Rouster
   def elb_connect
     return @elb unless @elb.nil?
 
+    if self.passthrough[:elb_endpoint]
+      endpoint = URI.parse(self.passthrough[:elb_endpoint])
+    elsif self.passthrough[:ec2_endpoint]
+      endpoint = URI.parse(self.passthrough[:ec2_endpoint])
+    end
+
     config = {
+      :host   => endpoint.host,
+      :path   => endpoint.path,
+      :port   => endpoint.port,
+      :scheme => endpoint.scheme,
+
+      :region                => self.passthrough[:region],
       :aws_access_key_id     => self.passthrough[:key_id],
       :aws_secret_access_key => self.passthrough[:secret_key],
     }
-
-    if self.passthrough[:elb_endpoint]
-      config[:endpoint] = self.passthrough[:elb_endpoint]
-    elsif self.passthrough[:ec2_endpoint]
-      config[:endpoint] = self.passthrough[:ec2_endpoint]
-    end
 
     @elb = Fog::AWS::ELB.new(config)
   end
