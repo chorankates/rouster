@@ -68,7 +68,7 @@ class TestDeltasGetPackages < Test::Unit::TestCase
     end
 
     # RHEL processing doesn't do anything different in deep/not-deep calls
-    if ! @app.os_type.eql?(:redhat)
+    if ! (@app.os_type.eql?(:redhat) or @app.os_type.eql?(:ubuntu))
       res.each_key do |k|
         assert_not_nil(res[k])
         assert_match(/\?/, res[k])
@@ -103,14 +103,19 @@ class TestDeltasGetPackages < Test::Unit::TestCase
   def test_arch_determination
     after, install = nil, nil
 
-    packages = [ 'glibc-2.12-1.132.el6_5.4.x86_64', 'glibc-2.12-1.132.el6_5.4.i686' ]
-    install  = @app.run(sprintf('yum install -y %s', packages.join(' '))) # TODO these are already in the base, but just to be safe
-    after    = @app.get_packages(false, true)
+    if @app.os_type.eql?(:redhat)
+      packages = [ 'glibc-2.12-1.132.el6_5.4.x86_64', 'glibc-2.12-1.132.el6_5.4.i686' ]
+      install  = @app.run(sprintf('yum install -y %s', packages.join(' '))) # TODO these are already in the base, but just to be safe
+      after    = @app.get_packages(false, true)
 
-    assert(after.has_key?('glibc'))
-    assert(after['glibc'].is_a?(Array))
-    assert_equal(after['glibc'].length, 2)
-    assert_not_equal(after['glibc'][0][:arch], after['glibc'][1][:arch])
+      assert(after.has_key?('glibc'))
+      assert(after['glibc'].is_a?(Array))
+      assert_equal(after['glibc'].length, 2)
+      assert_not_equal(after['glibc'][0][:arch], after['glibc'][1][:arch])
+    else
+      # TODO should throw a flag here..
+    end
+
   end
 
   def teardown

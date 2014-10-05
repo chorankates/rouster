@@ -215,7 +215,7 @@ class Rouster
   # * OSX - runs `pkgutil --pkgs` and `pkgutil --pkg-info=<package>` (if deep)
   # * RedHat - runs `rpm -qa --qf "%{n}@%{v}@%{arch}\n"` (does not support deep)
   # * Solaris - runs `pkginfo` and `pkginfo -l <package>` (if deep)
-  # * Ubuntu - runs `dpkg --get-selections` and `dpkg -s <package>` (if deep)
+  # * Ubuntu - runs `dpkg-query -W -f='${Package}\@${Version}\@${Architecture}\n'` (does not support deep)
   #
   # raises InternalError if unsupported operating system
   def get_packages(cache=true, deep=true)
@@ -266,18 +266,22 @@ class Rouster
       end
 
     elsif os.eql?(:ubuntu) or os.eql?(:debian)
-      raw = self.run('dpkg --get-selections')
+      raw = self.run("dpkg-query -W -f='${Package}\@${Version}\@${Architecture}\n'")
       raw.split("\n").each do |line|
-        next if line.match(/^(.*?)\s/).nil?
+        next if line.match(/(.*?)\@(.*?)\@(.*)/).nil?
         name    = $1
-        version = '?'
+        version = $2
+        arch    = $3
 
-        if deep
-          local_res = self.run(sprintf('dpkg -s %s', name))
-          version   = $1 if local_res.match(/Version\:\s(.*?)$/)
+        if res.has_key?(name)
+          # different architecture of an already known package
+          @logger.debug(sprintf('found package with already known name[%s], value[%s], new line[%s], turning into array', name, res[name], line))
+          new_element = { :version => version, :arch => arch }
+          res[name]   = [ res[name], new_element ]
+        else
+          res[name] = { :version => version, :arch => arch }
         end
 
-        res[name] = version
       end
 
     elsif os.eql?(:redhat)
