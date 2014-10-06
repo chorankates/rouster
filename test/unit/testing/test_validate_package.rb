@@ -68,7 +68,11 @@ class TestValidatePackage < Test::Unit::TestCase
     # determine whether a package is installed with a particular arch, while remaining flexible
     assert(@app.validate_package('glibc', { :ensure => true, :arch => 'x86_64' } ))
     assert(@app.validate_package('glibc', { :ensure => true, :arch => 'i686' } ))
+    assert(@app.validate_package('glibc', { :ensure => true, :arch => [ 'i686', 'x86_64' ] } ))
     assert(@app.validate_package('glibc', { :ensure => true } ))
+
+    assert_equal(false, @app.validate_package('glibc', { :ensure => true, :arch => [ 'noarch' ] } ))
+    assert_equal(false, @app.validate_package('glibc', { :ensure => true, :arch => 'review' } ))
   end
 
   def test_negative_basic

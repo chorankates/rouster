@@ -35,12 +35,12 @@ class TestDeltasGetPackages < Test::Unit::TestCase
         res[k].each do |l|
           assert(l.has_key?(:arch))
           assert(l.has_key?(:version))
-          assert_match(/^\d+/, res[k][l][:version]) unless @app.os_type.eql?(:rhel) # see gpg-pubkey
+          assert_match(/^\d+/, res[k][l][:version]) unless @app.os_type.eql?(:redhat) # see gpg-pubkey
         end
       else
         assert(res[k].has_key?(:arch))
         assert(res[k].has_key?(:version))
-        assert_match(/^\d+/, res[k][:version]) unless @app.os_type.eql?(:rhel) # start with a number
+        assert_match(/^\d+/, res[k][:version]) unless @app.os_type.eql?(:redhat) # start with a number
       end
 
     end

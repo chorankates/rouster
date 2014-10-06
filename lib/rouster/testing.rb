@@ -476,7 +476,14 @@ class Rouster
             archs = []
             lps   = packages[name].is_a?(Array) ? packages[name] : [ packages[name] ]
             lps.each { |p| archs << p[:arch] }
-            local = archs.member?(v)
+            if v.is_a?(Array)
+              v.each do |arch|
+                local = archs.member?(arch)
+                break unless local.eql?(true) # fail fast - if we are looking for an arch that DNE, bail out
+              end
+            else
+              local = archs.member?(v)
+            end
           end
         when :type
           # noop allowing parse_catalog() output to be passed directly
