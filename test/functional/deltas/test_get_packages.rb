@@ -35,7 +35,7 @@ class TestDeltasGetPackages < Test::Unit::TestCase
         res[k].each do |l|
           assert(l.has_key?(:arch))
           assert(l.has_key?(:version))
-          assert_match(/^\d+/, res[k][l][:version]) unless @app.os_type.eql?(:redhat) # see gpg-pubkey
+          assert_match(/^\d+/, l[:version]) unless @app.os_type.eql?(:redhat) # see gpg-pubkey
         end
       else
         assert(res[k].has_key?(:arch))
@@ -106,14 +106,29 @@ class TestDeltasGetPackages < Test::Unit::TestCase
     if @app.os_type.eql?(:redhat)
       packages = [ 'glibc-2.12-1.132.el6_5.4.x86_64', 'glibc-2.12-1.132.el6_5.4.i686' ]
       install  = @app.run(sprintf('yum install -y %s', packages.join(' '))) # TODO these are already in the base, but just to be safe
-      after    = @app.get_packages(false, true)
+      after    = @app.get_packages(false, false)
 
       assert(after.has_key?('glibc'))
       assert(after['glibc'].is_a?(Array))
       assert_equal(after['glibc'].length, 2)
       assert_not_equal(after['glibc'][0][:arch], after['glibc'][1][:arch])
+    elsif @app.os_type.eql?(:ubuntu)
+      packages = @app.get_packages(false, false)
+
+      assert(packages.has_key?('xml-core'))
+      assert(packages.has_key?('whiptail'))
+      assert(packages['xml-core'].has_key?(:version))
+      assert(packages['whiptail'].has_key?(:version))
+
+      assert_equal(packages['xml-core'][:arch], 'all')
+      assert_equal(packages['whiptail'][:arch], 'amd64')
+
     else
       # TODO should throw a flag here..
+      assert_nothing_raised do
+        @app.get_packages(false, true)
+        @app.get_packages(false, false)
+      end
     end
 
   end
