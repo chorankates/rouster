@@ -10,10 +10,16 @@ boxes = {
     :box_url  => 'http://puppet-vagrant-boxes.puppetlabs.com/centos-64-x64-vbox4210.box',
   },
 
-  :ubuntu     => {
+  :ubuntu12  => {
+      :box_name => 'ubuntu12',
+      :box_url => 'http://puppet-vagrant-boxes.puppetlabs.com/ubuntu-server-12042-x64-vbox4210.box',
+  },
+
+  :ubuntu13     => {
     :box_name => 'ubuntu13',
     :box_url  => 'http://puppet-vagrant-boxes.puppetlabs.com/ubuntu-1310-x64-virtualbox-puppet.box',
   },
+
 }
 
 Vagrant::Config.run do |config|
@@ -22,7 +28,7 @@ Vagrant::Config.run do |config|
 
       worker.vm.box            = hash[:box_name]
       worker.vm.box_url        = hash[:box_url]
-      worker.vm.host_name      = box.to_s
+      worker.vm.host_name      = hash[:box_name]
       worker.vm.network        :hostonly, sprintf('10.0.1.%s', rand(253).to_i + 2)
       worker.ssh.forward_agent = true
 
