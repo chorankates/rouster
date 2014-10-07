@@ -263,15 +263,21 @@ class Rouster
     elsif os.eql?(:solaris)
       raw = self.run('pkginfo')
       raw.split("\n").each do |line|
-        next if line.match(/(.*?)\s+(.*?)\s(.*)$/).empty?
+        next if line.match(/(.*?)\s+(.*?)\s(.*)$/).nil?
         name    = $2
         arch    = '?'
         version = '?'
 
         if deep
-          local_res = self.run(sprintf('pkginfo -l %s', name))
-          arch      = $1 if local_res.match(/ARCH\:\s+(.*?)$/)
-          version   = $1 if local_res.match(/VERSION\:\s+(.*?)$/)
+          begin
+            # who throws non-0 exit codes when querying for legit package information? solaris does.
+            local_res = self.run(sprintf('pkginfo -l %s', name))
+            arch      = $1 if local_res.match(/ARCH\:\s+(.*?)$/)
+            version   = $1 if local_res.match(/VERSION\:\s+(.*?)$/)
+          rescue
+            arch    = '?' if arch.nil?
+            version = '?' if arch.nil?
+          end
         end
 
         if res.has_key?(name)
