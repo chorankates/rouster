@@ -266,7 +266,7 @@ class Rouster
       end
 
     elsif os.eql?(:ubuntu) or os.eql?(:debian)
-      raw = self.run("dpkg-query -W -f='${Package}\@${Version}\@${Architecture}\n'")
+      raw = self.run("dpkg-query -W -f='${Package}@${Version}@${Architecture}\n'")
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\@(.*?)\@(.*)/).nil?
         name    = $1
