@@ -35,12 +35,10 @@ class TestDeltasGetPackages < Test::Unit::TestCase
         res[k].each do |l|
           assert(l.has_key?(:arch))
           assert(l.has_key?(:version))
-          assert_match(/^\d+/, l[:version]) unless @app.os_type.eql?(:redhat) # see gpg-pubkey
         end
       else
         assert(res[k].has_key?(:arch))
         assert(res[k].has_key?(:version))
-        assert_match(/^\d+/, res[k][:version]) unless @app.os_type.eql?(:redhat) # start with a number
       end
 
     end
@@ -71,7 +69,7 @@ class TestDeltasGetPackages < Test::Unit::TestCase
     if ! (@app.os_type.eql?(:redhat) or @app.os_type.eql?(:ubuntu))
       res.each_key do |k|
         assert_not_nil(res[k])
-        assert_match(/\?/, res[k])
+        assert_match(/\?/, res[k][:arch])
       end
     end
 
