@@ -375,7 +375,7 @@ class Rouster
           @passthrough[:user],
           :port => @passthrough[:port],
           :keys => [ @passthrough[:key] ],
-          :paranoid => @passthrough[:paranoiad]
+          :paranoid => @passthrough[:paranoid]
         )
       end
     else
