@@ -129,6 +129,12 @@ class Rouster
       else
         raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :local, :remote', @passthrough[:type]))
       end
+
+      # defaulting this, valid overrides are: false, true, :very, or :secure
+      if @passthrough[:paranoid].nil?
+        @passthrough[:paranoid] = false
+      end
+
     else
 
       @logger.debug('Vagrantfile and VM name validation..')
@@ -369,7 +375,7 @@ class Rouster
           @passthrough[:user],
           :port => @passthrough[:port],
           :keys => [ @passthrough[:key] ],
-          :paranoid => false
+          :paranoid => @passthrough[:paranoid]
         )
       end
     else
