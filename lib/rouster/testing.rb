@@ -461,12 +461,19 @@ class Rouster
         when :version
           # TODO support determination based on multiple versions of the same package installed (?)
           if packages.has_key?(name)
-            if v.split("\s").size > 1
-              ## generic comparator functionality
-              comp, expectation = v.split("\s")
-              local = generic_comparator(packages[name][:version], comp, expectation)
-            else
-              local = ! v.to_s.match(/#{packages[name][:version]}/).nil?
+
+            lps = packages[name].is_a?(Array) ? packages[name] : [ packages[name] ]
+
+            lps.each do |lp|
+              if v.split("\s").size > 1
+                ## generic comparator functionality
+                comp, expectation = v.split("\s")
+                local = generic_comparator(lp[:version], comp, expectation)
+                break unless local.eql?(true)
+              else
+                local = ! v.to_s.match(/#{lp[:version]}/).nil?
+                break unless local.eql?(true)
+              end
             end
           else
             local = false
