@@ -88,7 +88,7 @@ class TestPuppetApply < Test::Unit::TestCase
 
     app_expected_files = {
       '/etc/hosts' => {
-        :contains => [ 'localhost', 'app' ],
+        :contains => [ 'localhost', '127.0.0.1' ],
         :ensure   => 'present',
         :group    => 'root',
         :owner    => 'root',
