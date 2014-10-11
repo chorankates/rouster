@@ -37,7 +37,7 @@ class TestValidatePackage < Test::Unit::TestCase
       ]
     }
 
-    @app = Rouster.new(:name => 'app', :unittest => true)
+    @app = Rouster.new(:name => 'default', :unittest => true)
     @app.deltas[:packages] = fake_packages
     @app.facts = fake_facts
   end

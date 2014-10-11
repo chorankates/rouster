@@ -3,7 +3,7 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 require 'rouster'
 require 'rouster/tests'
 
-@app = Rouster.new(:name => 'app', :sudo => true, :verbosity => 3)
+@app = Rouster.new(:name => 'default', :sudo => true, :verbosity => 3)
 @app.up()
 
 # get list of packages

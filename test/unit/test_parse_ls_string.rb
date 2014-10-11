@@ -10,7 +10,7 @@ class TestParseLsString < Test::Unit::TestCase
 
   def setup
 
-    @app = Rouster.new(:name => 'app', :unittest => true)
+    @app = Rouster.new(:name => 'default', :unittest => true)
 
     def @app.exposed_parse_ls_string(*args)
       parse_ls_string(*args)

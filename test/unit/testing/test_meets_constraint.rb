@@ -14,7 +14,7 @@ class TestMeetsConstraint < Test::Unit::TestCase
 
     fake_facts = { 'is_virtual' => 'true', 'timezone' => 'PDT', 'uptime_days' => 42 }
 
-    @app = Rouster.new(:name => 'app', :unittest => true)
+    @app = Rouster.new(:name => 'default', :unittest => true)
     @app.facts = fake_facts
   end
 

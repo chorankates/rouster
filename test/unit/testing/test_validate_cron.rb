@@ -35,7 +35,7 @@ class TestValidateCron < Test::Unit::TestCase
       }, 'cronless_user' => {}
     }
 
-    @app = Rouster.new(:name => 'app', :unittest => true)
+    @app = Rouster.new(:name => 'default', :unittest => true)
     @app.deltas[:crontab] = fake_crons
     @app.facts = fake_facts
   end

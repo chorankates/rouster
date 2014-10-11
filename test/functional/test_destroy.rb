@@ -7,7 +7,7 @@ class TestDestroy < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app')
+      @app = Rouster.new(:name => 'default')
     end
 
     @app.up()

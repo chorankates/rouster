@@ -41,7 +41,7 @@ class TestValidateFile < Test::Unit::TestCase
       }
     }
 
-    @app = Rouster.new(:name => 'app', :unittest => true)
+    @app = Rouster.new(:name => 'default', :unittest => true)
     @app.deltas[:files] = fake_files
     @app.facts = fake_facts
   end

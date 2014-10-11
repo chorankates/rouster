@@ -9,7 +9,7 @@ class TestIsDir < Test::Unit::TestCase
   def setup
     assert_nothing_raised do
       # no reason not to do this as a passthrough once we can
-      @app = Rouster.new(:name => 'app', :sudo => false)
+      @app = Rouster.new(:name => 'default', :sudo => false)
       @app.up()
     end
 

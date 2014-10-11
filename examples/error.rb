@@ -22,7 +22,7 @@ end
 p badvagrantfile
 
 begin
-  good = Rouster.new(:name => 'app', verbosity => 4)
+  good = Rouster.new(:name => 'default', verbosity => 4)
 rescue => e
   p "caught unexpected exception #{e.class}: #{e.message}"
 end

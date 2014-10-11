@@ -9,7 +9,7 @@ require 'test/unit'
 class TestPuppetApply < Test::Unit::TestCase
 
   def setup
-    @app = Rouster.new(:name => 'app', :verbose => 1)
+    @app = Rouster.new(:name => 'default', :verbose => 1)
 
     ## TODO teach put() how to use -R (directories)
     required_files = {

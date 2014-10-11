@@ -8,7 +8,7 @@
 
     def setup
       assert_nothing_raised do
-        @app = Rouster.new(:name => 'app', :verbosity => 4)
+        @app = Rouster.new(:name => 'default', :verbosity => 4)
       end
     end
 

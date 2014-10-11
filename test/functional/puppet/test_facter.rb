@@ -8,7 +8,7 @@ class TestFacter < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app', :cache_timeout => 10)
+      @app = Rouster.new(:name => 'default', :cache_timeout => 10)
     end
 
     @app.up()

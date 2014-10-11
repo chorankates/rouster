@@ -12,7 +12,7 @@ class TestValidateFileFunctional < Test::Unit::TestCase
     Rouster.send(:public, *Rouster.private_instance_methods)
     Rouster.send(:public, *Rouster.protected_instance_methods)
 
-    @app = Rouster.new(:name => 'app')
+    @app = Rouster.new(:name => 'default')
   end
 
   def test_negative_functional_fallthrough

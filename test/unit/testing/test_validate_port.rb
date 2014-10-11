@@ -38,7 +38,7 @@ class TestValidatePort < Test::Unit::TestCase
       }
     }
 
-    @app = Rouster.new(:name => 'app', :unittest => true)
+    @app = Rouster.new(:name => 'default', :unittest => true)
     @app.deltas[:ports] = fake_ports
     @app.facts = fake_facts
   end

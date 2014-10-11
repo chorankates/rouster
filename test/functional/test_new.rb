@@ -11,7 +11,7 @@ class TestNew < Test::Unit::TestCase
   # TestNew namespace (does not matter if running directly). since setup() really
   # only needed to be run once anyway, this isn't a huge problem
   def test_0_setup
-    @app = Rouster.new(:name => 'app', :sshtunnel => false)
+    @app = Rouster.new(:name => 'default', :sshtunnel => false)
     @app.destroy() if @app.status().eql?('running') # TODO do we really need to do this?
     @app = nil
 
@@ -28,7 +28,7 @@ class TestNew < Test::Unit::TestCase
   def test_able_to_instantiate
 
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app')
+      @app = Rouster.new(:name => 'default')
     end
 
   end
@@ -36,7 +36,7 @@ class TestNew < Test::Unit::TestCase
   def test_defaults
 
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app')
+      @app = Rouster.new(:name => 'default')
     end
 
     assert_equal('app', @app.name)
@@ -53,7 +53,7 @@ class TestNew < Test::Unit::TestCase
   end
 
   def test_good_openssh_tunnel
-    @app = Rouster.new(:name => 'app', :sshtunnel => true)
+    @app = Rouster.new(:name => 'default', :sshtunnel => true)
 
     # TODO how do we properly test this? we really need the rspec should_call mechanism...
     assert_equal(true, @app.is_available_via_ssh?)
@@ -122,7 +122,7 @@ class TestNew < Test::Unit::TestCase
   def test_bad_sshkey_instantiation
 
     assert_raise Rouster::InternalError do
-      @app = Rouster.new(:name => 'app', :sshkey => '/this/file/dne')
+      @app = Rouster.new(:name => 'default', :sshkey => '/this/file/dne')
     end
 
   end

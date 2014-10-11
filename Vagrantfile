@@ -1,11 +1,12 @@
-# stripped down example piab Vagrantfile for rouster
+# basic Vagrantfile for rouster
 
 boxes = {
-  :ppm   => {
-    :box_name => 'centos6',
-    :box_url  => 'http://puppet-vagrant-boxes.puppetlabs.com/centos-64-x64-vbox4210.box',
+  :default   => {
+      :box_name => 'centos6',
+      :box_url  => 'http://puppet-vagrant-boxes.puppetlabs.com/centos-64-x64-vbox4210.box',
   },
-  :app   => {
+
+  :centos64   => {
     :box_name => 'centos6',
     :box_url  => 'http://puppet-vagrant-boxes.puppetlabs.com/centos-64-x64-vbox4210.box',
   },
@@ -31,10 +32,6 @@ Vagrant::Config.run do |config|
       worker.vm.host_name      = hash[:box_name]
       worker.vm.network        :hostonly, sprintf('10.0.1.%s', rand(253).to_i + 2)
       worker.ssh.forward_agent = true
-
-      if box.to_s.eql?('ppm') and File.directory?('../puppet')
-        worker.vm.share_folder('puppet', '/etc/puppet/', '../puppet/')
-      end
 
     end
   end

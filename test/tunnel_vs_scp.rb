@@ -5,7 +5,7 @@ require 'rouster/tests'
 # 'performance' test to determine if we should implement the scp option
 # in is_in_file()? -- first run says yes, probably make it off by default
 
-w = Rouster.new(:name => 'app', :verbose => 3)
+w = Rouster.new(:name => 'default', :verbose => 3)
 w.up()
 
 file     = '/etc/hosts'

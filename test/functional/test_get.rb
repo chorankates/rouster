@@ -7,7 +7,7 @@ require 'test/unit'
 class TestGet < Test::Unit::TestCase
 
   def setup
-    @app = Rouster.new(:name => 'app')
+    @app = Rouster.new(:name => 'default')
 
     @app.up()
 

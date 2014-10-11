@@ -6,8 +6,8 @@ require 'test/unit'
 class TestRun < Test::Unit::TestCase
 
   def setup
-    @app         = Rouster.new({:name => 'app', :verbose => 4})
-    @app_no_sudo = Rouster.new({:name => 'app', :verbose => 4, :sudo => false})
+    @app         = Rouster.new({:name => 'default', :verbose => 4})
+    @app_no_sudo = Rouster.new({:name => 'default', :verbose => 4, :sudo => false})
 
     @app.up()
     @app_no_sudo.up()

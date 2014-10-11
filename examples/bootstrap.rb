@@ -4,7 +4,7 @@ require 'rouster'
 require 'rouster/puppet'
 require 'rouster/tests'
 
-app = Rouster.new(:name => 'app', :verbosity => 4, :sudo => true)
+app = Rouster.new(:name => 'default', :verbosity => 4, :sudo => true)
 ppm = Rouster.new(:name => 'ppm', :verbosity => 1, :sudo => true)
 
 # passthrough boxes do not need to specify a name

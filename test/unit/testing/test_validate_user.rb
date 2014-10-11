@@ -31,7 +31,7 @@ class TestValidateUser < Test::Unit::TestCase
       },
     }
 
-    @app = Rouster.new(:name => 'app', :unittest => true)
+    @app = Rouster.new(:name => 'default', :unittest => true)
     @app.deltas[:users] = fake_users
     @app.facts = fake_facts
   end

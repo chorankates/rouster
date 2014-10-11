@@ -7,7 +7,7 @@ class TestTraverseUp < Test::Unit::TestCase
 
   def setup
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app', :unittest => true)
+      @app = Rouster.new(:name => 'default', :unittest => true)
     end
 
     def @app.exposed_traverse_up(*args)

@@ -20,7 +20,7 @@ class TestValidateService < Test::Unit::TestCase
       'puppet'         => 'stopped'
     }
 
-    @app = Rouster.new(:name => 'app', :unittest => true)
+    @app = Rouster.new(:name => 'default', :unittest => true)
     @app.deltas[:services] = fake_services
     @app.facts = fake_facts
   end

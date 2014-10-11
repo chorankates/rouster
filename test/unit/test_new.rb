@@ -18,7 +18,7 @@ class TestNew < Test::Unit::TestCase
   def test_1_good_basic_instantiation
 
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'app', :unittest => true)
+      @app = Rouster.new(:name => 'default', :unittest => true)
     end
 
     assert_equal('app', @app.name)

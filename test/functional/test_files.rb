@@ -7,7 +7,7 @@ require 'test/unit'
 class TestFiles < Test::Unit::TestCase
 
   def setup
-    @app = Rouster.new(:name => 'app')
+    @app = Rouster.new(:name => 'default')
     @app.up()
 
     @dir = sprintf('/tmp/rouster.files.%s/', Time.now.to_i)

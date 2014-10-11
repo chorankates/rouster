@@ -12,7 +12,7 @@ class TestCaching < Test::Unit::TestCase
 
   def test_status_caching
     timeout = 5
-    app     = Rouster.new(:name => 'app', :cache_timeout => timeout)
+    app     = Rouster.new(:name => 'default', :cache_timeout => timeout)
 
     assert_equal(app.cache_timeout, timeout)
 
@@ -42,7 +42,7 @@ class TestCaching < Test::Unit::TestCase
 
   def test_status_caching_functional
     timeout = 5
-    app     = Rouster.new(:name => 'app', :cache_timeout => timeout)
+    app     = Rouster.new(:name => 'default', :cache_timeout => timeout)
 
     status_orig = app.status()
     status_orig_time = app.cache[:status][:time]
@@ -67,7 +67,7 @@ class TestCaching < Test::Unit::TestCase
   end
 
   def test_status_caching_negative
-    app = Rouster.new(:name => 'app')
+    app = Rouster.new(:name => 'default')
 
     app.status()
     assert_nil(app.cache[:status])
@@ -78,7 +78,7 @@ class TestCaching < Test::Unit::TestCase
     skip('see comments in rouster.rb line ~84')
 
     timeout = 100
-    app     = Rouster.new(:name => 'app', :sshtunnel => true, :cache_timeout => timeout)
+    app     = Rouster.new(:name => 'default', :sshtunnel => true, :cache_timeout => timeout)
     app.up()
 
     assert_equal(app.cache_timeout, timeout)
@@ -111,7 +111,7 @@ class TestCaching < Test::Unit::TestCase
   end
 
   def test_ssh_caching_negative
-    app = Rouster.new(:name => 'app')
+    app = Rouster.new(:name => 'default')
 
     app.is_available_via_ssh?()
     assert_nil(app.cache[:is_available_via_ssh?])
