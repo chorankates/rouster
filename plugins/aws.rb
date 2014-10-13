@@ -145,7 +145,11 @@ class Rouster
 
     # TODO don't be this hacky
     self.aws_describe_instance # the server.data response doesn't include public hostname/ip
-    @passthrough[:host] = @instance_data['dnsName']
+    if @passthrough[:type].eql?(:aws)
+      @passthrough[:host] = @instance_data['dnsName']
+    else
+      @passthrough[:host] = self.find_ssh_elb(true)
+    end
 
     # wait until ssh is available
     0.upto(ceiling) do |try|
