@@ -606,6 +606,7 @@ class Rouster
       mode = sprintf('%s%s', mode, value)
     end
 
+    res[:mode]  = mode
     res[:owner] = tokens[2]
     res[:group] = tokens[3]
     res[:size]  = tokens[4]
