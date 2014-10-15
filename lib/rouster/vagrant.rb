@@ -48,7 +48,7 @@ class Rouster
     @logger.info('up()')
 
     # don't like putting this here, may be refactored
-    if self.is_passthrough? and self.passthrough[:type].equal?(:aws)
+    if self.is_passthrough? and (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
       self.aws_up()
     else
       self.vagrant(sprintf('up %s', @name))
@@ -100,21 +100,28 @@ class Rouster
       end
     end
 
+    # don't like putting this here, may be refactored
     @logger.info('status()')
-    self.vagrant(sprintf('status %s', @name))
+    if self.is_passthrough? and (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
+      status = self.aws_status()
+    else
+      self.vagrant(sprintf('up %s', @name))
 
-    # else case here (both for nil/non-matching output) is handled by non-0 exit code
-    output = self.get_output()
-    if output.nil?
-      if self.is_passthrough?()
-        status = 'running'
+      # else case here (both for nil/non-matching output) is handled by non-0 exit code
+      output = self.get_output()
+      if output.nil?
+        if self.is_passthrough?() and self.passthrough[:type].eql?(:local)
+          status = 'running'
+        else
+          status = 'unknown' # TODO this is not right, we know the machine isn't started
+        end
+      elsif output.match(/^#{@name}\s*(.*\s?\w+)\s\((.+)\)$/)
+        # vagrant 1.2+, $1 = status, $2 = provider
+        status = $1
+      elsif output.match(/^#{@name}\s+(.+)$/)
+        # vagrant 1.2-, $1 = status
+        status = $1
       end
-    elsif output.match(/^#{@name}\s*(.*\s?\w+)\s\((.+)\)$/)
-      # vagrant 1.2+, $1 = status, $2 = provider
-      status = $1
-    elsif output.match(/^#{@name}\s+(.+)$/)
-      # vagrant 1.2-, $1 = status
-      status = $1
     end
 
     if @cache_timeout

@@ -108,7 +108,19 @@ class Rouster
     # wait for machine to transition to running state and become sshable (TODO maybe make the second half optional)
     self.aws_connect
 
-    # TODO need to do something here so that we can call up() on an already running worker and not get a new VM
+    require 'pry'
+
+    status = self.status()
+    if status.eql?('running')
+      return self.aws_get_instance
+    elsif status.eql?('terminated')
+      # on Raiden, this means the instance isn't running
+      binding.pry
+    #elsif status.nil?
+    else
+      # not sure what this response is actually going to look like
+      binding.pry
+    end
 
     server  = @ec2.run_instances(
         self.passthrough[:ami],
@@ -184,6 +196,8 @@ class Rouster
   end
 
   def aws_status
+    require 'pry'
+    binding.pry
     self.aws_describe_instance
     @instance_data['instanceState']['name'].nil? ? @instance_data['instanceState']['code'] : @instance_data['instanceState']['name']
   end

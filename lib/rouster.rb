@@ -163,7 +163,7 @@ class Rouster
 
           @passthrough        = defaults.merge(@passthrough)
 
-          if @passthrough.eql?(:aws)
+          if @passthrough[:type].eql?(:aws)
             @passthrough[:host] = self.aws_describe_instance(@passthrough[:instance])['dnsName']
           else
             @passthrough[:host] = self.find_ssh_elb(true)
@@ -209,6 +209,7 @@ class Rouster
       end
     end
 
+    # TODO revisit below comments
     # this is breaking test/functional/test_caching.rb test_ssh_caching (if the VM was not running when the test started)
     # it slows down object instantiation, but is a good test to ensure the machine name is valid..
     begin
@@ -337,7 +338,7 @@ class Rouster
 
     if @ssh.nil? or @ssh.closed?
       begin
-        self.connect_ssh_tunnel()
+        res = self.connect_ssh_tunnel()
       rescue Rouster::InternalError, Net::SSH::Disconnect => e
         res = false
       end
@@ -416,6 +417,9 @@ class Rouster
 
     if self.is_passthrough?
       if self.passthrough[:type].eql?(:local)
+        return false
+      elsif @passthrough[:host].nil?
+        # this is likely an EC2 node that hasn't been started yet
         return false
       else
         @logger.debug('opening remote SSH tunnel..')
