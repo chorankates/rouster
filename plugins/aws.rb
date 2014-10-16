@@ -168,6 +168,13 @@ class Rouster
 
     server = @ec2.terminate_instances(self.aws_get_instance)
 
+    if @passthrough.has_key?(:created_elb)
+      elb = @passthrough[:created_elb]
+
+      @logger.info(sprintf('deleting ELB[%s]', elb))
+      @elb.delete_load_balancer(elb)
+    end
+
     self.aws_status
   end
 
@@ -220,8 +227,8 @@ class Rouster
     response = @elb.register_instances_with_load_balancer(id, elbname)
 
     # i hate this so much.
-    @logger.info('sleeping to allow DNS propagation')
-    sleep 15
+    @logger.debug('sleeping to allow DNS propagation')
+    sleep 10
 
     return dnsname
   end
