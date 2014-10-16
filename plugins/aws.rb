@@ -90,9 +90,11 @@ class Rouster
 
   def aws_get_instance ()
     if ! @instance_data.nil? and @instance_data.has_key?('instanceId')
-      return @instance_data['instanceId']
+      return @instance_data['instanceId'] # we already know the id
+    elsif @passthrough.has_key?(:instance)
+      return @passthrough[:instance] # we know the id we want
     else
-      return @passthrough[:instance]
+      return nil # we don't have an id yet, likely a up() call
     end
   end
 
@@ -108,18 +110,10 @@ class Rouster
     # wait for machine to transition to running state and become sshable (TODO maybe make the second half optional)
     self.aws_connect
 
-    require 'pry'
-
     status = self.status()
+
     if status.eql?('running')
       return self.aws_get_instance
-    elsif status.eql?('terminated')
-      # on Raiden, this means the instance isn't running
-      binding.pry
-    #elsif status.nil?
-    else
-      # not sure what this response is actually going to look like
-      binding.pry
     end
 
     server  = @ec2.run_instances(
@@ -140,6 +134,7 @@ class Rouster
     # wait until the machine starts
     ceiling    = 9
     sleep_time = 20
+    status     = nil
     0.upto(ceiling) do |try|
       status = self.aws_status
 
@@ -153,7 +148,7 @@ class Rouster
       sleep sleep_time
     end
 
-    # TODO raise if we're still not in running
+    raise sprintf('instance[%s] did not transition to running state, stopped trying at[%s]', self.aws_get_instance, status) unless status.eql?('running') or status.eql?('16')
 
     # TODO don't be this hacky
     self.aws_describe_instance # the server.data response doesn't include public hostname/ip
@@ -163,17 +158,7 @@ class Rouster
       @passthrough[:host] = self.find_ssh_elb(true)
     end
 
-    # wait until ssh is available
-    0.upto(ceiling) do |try|
-      @logger.info(sprintf('connecting via SSH[%s]: [#%s]', @passthrough[:host], try))
-      begin
-        self.connect_ssh_tunnel
-        break
-      rescue Errno::ECONNREFUSED => e
-        @logger.debug(sprintf('failed to open tunnel[%s], trying again in %ss', e.message, sleep_time))
-      end
-      sleep sleep_time
-    end
+    self.connect_ssh_tunnel
 
     self.aws_get_instance
   end
@@ -188,6 +173,8 @@ class Rouster
 
   def aws_describe_instance(instance = aws_get_instance)
 
+    return nil if instance.nil?
+
     self.aws_connect
     server   = @ec2.describe_instances('instance-id' => [ instance ])
     response = server.data[:body]['reservationSet'][0]['instancesSet'][0]
@@ -200,18 +187,17 @@ class Rouster
   end
 
   def aws_status
-    require 'pry'
-    binding.pry
     self.aws_describe_instance
+    return 'not-created' if @instance_data.nil?
     @instance_data['instanceState']['name'].nil? ? @instance_data['instanceState']['code'] : @instance_data['instanceState']['name']
   end
 
-  def aws_connect_to_elb (id, elbname, listeners = [{ 'InstancePort' => 22, 'LoadbalancerPort' => 22, 'InstanceProtocol' => 'TCP' }])
+  def aws_connect_to_elb (id, elbname, listeners = [{ 'InstancePort' => 22, 'LoadBalancerPort' => 22, 'Protocol' => 'TCP' }])
     self.elb_connect
 
     # allow either hash or array of hash specification for listeners
     listeners       = [ listeners ] unless listeners.is_a?(Array)
-    required_params = [ 'InstancePort', 'LoadbalancerPort', 'InstanceProtocol' ]
+    required_params = [ 'InstancePort', 'LoadBalancerPort', 'Protocol' ] # figure out plan re: InstanceProtocol/LoadbalancerProtocol vs. Protocol
 
     listeners.each do |l|
       required_params.each do |r|
@@ -220,17 +206,24 @@ class Rouster
 
     end
 
-    binding.pry
-
+    # TODO need to confirm the name is unique
+    # create the ELB/VIP
     response = @elb.create_load_balancer(
       [], # availability zones not needed on raiden
-      name,
+      elbname,
       listeners
     )
 
-    ## return DNSName
-    binding.pry
+    dnsname = response.body['CreateLoadBalancerResult']['DNSName']
 
+    # string it up to the id passed
+    response = @elb.register_instances_with_load_balancer(id, elbname)
+
+    # i hate this so much.
+    @logger.info('sleeping to allow DNS propagation')
+    sleep 15
+
+    return dnsname
   end
 
   def aws_bootstap (commands)

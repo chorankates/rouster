@@ -213,7 +213,7 @@ class Rouster
     # this is breaking test/functional/test_caching.rb test_ssh_caching (if the VM was not running when the test started)
     # it slows down object instantiation, but is a good test to ensure the machine name is valid..
     begin
-      self.status()
+      self.status() unless self.is_passthrough?
     rescue Rouster::LocalExecutionError => e
       raise InternalError.new(sprintf('caught non-0 exitcode from status(): %s', e.message))
     end
@@ -422,14 +422,25 @@ class Rouster
         # this is likely an EC2 node that hasn't been started yet
         return false
       else
-        @logger.debug('opening remote SSH tunnel..')
-        @ssh = Net::SSH.start(
-          @passthrough[:host],
-          @passthrough[:user],
-          :port => @passthrough[:sshport],
-          :keys => [ @passthrough[:key] ], # TODO this should be @sshkey
-          :paranoid => false
-        )
+        ceiling    = 9
+        sleep_time = 10
+
+        0.upto(ceiling) do |try|
+          @logger.debug(sprintf('opening remote SSH tunnel[%s]..', @passthrough[:host]))
+          begin
+            @ssh = Net::SSH.start(
+              @passthrough[:host],
+              @passthrough[:user],
+              :port => @passthrough[:sshport],
+              :keys => [ @passthrough[:key] ], # TODO this should be @sshkey
+              :paranoid => false
+            )
+            break
+          rescue => e
+            @logger.debug(sprintf('failed to open tunnel[%s], trying again in %ss', e.message, sleep_time))
+            sleep sleep_time
+          end
+        end
       end
     else
       # not a passthrough, normal connection
