@@ -113,6 +113,8 @@ class Rouster
     status = self.status()
 
     if status.eql?('running')
+      self.connect_ssh_tunnel
+      self.passthrough[:instance] = self.aws_get_instance
       return self.aws_get_instance
     end
 
@@ -160,6 +162,7 @@ class Rouster
 
     self.connect_ssh_tunnel
 
+    self.passthrough[:instance] = self.aws_get_instance
     self.aws_get_instance
   end
 
@@ -228,7 +231,7 @@ class Rouster
 
     # i hate this so much.
     @logger.debug('sleeping to allow DNS propagation')
-    sleep 10
+    sleep 15
 
     return dnsname
   end
