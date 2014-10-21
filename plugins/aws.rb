@@ -275,4 +275,27 @@ class Rouster
     @elb = Fog::AWS::ELB.new(config)
   end
 
+  def find_ssh_elb (create_if_not_found = false, instance = aws_get_instance)
+    # given an instance, see if there is already an ELB that it is connected to - and potentially create one
+    self.elb_connect
+    result = nil
+
+    response = @elb.describe_load_balancers
+    elbs     = response.body['DescribeLoadBalancersResult']['LoadBalancerDescriptions']
+
+    elbs.each do |elb|
+      if elb['Instances'].member?(instance)
+        result = elb['DNSName']
+        break
+      end
+    end
+
+    if create_if_not_found and result.nil?
+      result = self.aws_connect_to_elb(instance, sprintf('%s-ssh', self.name))
+    end
+
+    result
+
+  end
+
 end
