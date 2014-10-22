@@ -112,7 +112,15 @@ class Rouster
     if @passthrough
       # TODO do better about informing of required specifications, maybe point them to an URL?
       @vagrantbinary = 'vagrant' # hacky fix to is_vagrant_running?() grepping, doesn't need to actually be in $PATH
-      @sshtunnel     = opts[:sshtunnel].nil? ? false : @sshtunnel # unless user has specified it, passthroughs default to not open tunnel
+      @sshtunnel     = opts[:sshtunnel].nil? ? false : @sshtunnel # unless user has specified it, non-local passthroughs default to not open tunnel
+
+      defaults = {
+        :paranoid          => false, # valid overrides are: false, true, :very, or :secure
+        :ssh_sleep_ceiling => 9,
+        :ssh_sleep_time    => 10,
+      }
+
+      @passthrough = defaults.merge(@passthrough)
 
       if @passthrough.class != Hash
         raise ArgumentError.new('passthrough specification should be hash')
@@ -120,6 +128,8 @@ class Rouster
         raise ArgumentError.new('passthrough :type must be specified, :local, :remote or :aws allowed')
       elsif @passthrough[:type].eql?(:local)
         @logger.debug('instantiating a local passthrough worker')
+        @sshtunnel = opts[:sshtunnel].nil? ? true : opts[:sshtunnel] # override default, if local, open immediately
+
       elsif @passthrough[:type].eql?(:remote)
         @logger.debug('instantiating a remote passthrough worker')
 
@@ -135,7 +145,7 @@ class Rouster
 
         # TODO add tests to ensure that user specs are overriding defaults / defaults are used when user specs DNE
 
-        defaults = {
+        aws_defaults = {
           :ami          => 'ami-7bdaa84b', # RHEL 6.5 x64 in us-west-2
           :key_id       => ENV['AWS_ACCESS_KEY_ID'],
           :min_count    => 1,
@@ -143,7 +153,7 @@ class Rouster
           :region       => 'us-west-2',
           :secret_key   => ENV['AWS_SECRET_ACCESS_KEY'],
           :size         => 't1.micro',
-          :sshport      => 22,
+          :ssh_port      => 22,
           :user         => 'ec2-user',
         }
 
@@ -152,7 +162,7 @@ class Rouster
 
           @passthrough[:security_groups] = @passthrough[:security_groups].is_a?(Array) ? @passthrough[:security_groups] : [ @passthrough[:security_groups] ]
 
-          @passthrough = defaults.merge(@passthrough)
+          @passthrough = aws_defaults.merge(@passthrough)
 
           [:ami, :size, :user, :region, :key, :keypair, :key_id, :secret_key, :security_groups].each do |r|
             raise ArgumentError.new(sprintf('AWS passthrough requires %s specification', r)) if @passthrough[r].nil?
@@ -161,7 +171,7 @@ class Rouster
         elsif @passthrough.has_key?(:instance)
           @logger.debug(':instance specified, will connect to existing EC2 instance')
 
-          @passthrough        = defaults.merge(@passthrough)
+          @passthrough        = aws_defaults.merge(@passthrough)
 
           if @passthrough[:type].eql?(:aws)
             @passthrough[:host] = self.aws_describe_instance(@passthrough[:instance])['dnsName']
@@ -179,15 +189,10 @@ class Rouster
 
 
         raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:key])
-        @sshkey    = @passthrough[:key]
+        @sshkey = @passthrough[:key]
 
       else
         raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :aws, :local, :remote', @passthrough[:type]))
-      end
-
-      # defaulting this, valid overrides are: false, true, :very, or :secure
-      if @passthrough[:paranoid].nil?
-        @passthrough[:paranoid] = false
       end
 
     else
@@ -351,15 +356,14 @@ class Rouster
 
     end
 
-    if res.nil?
+    if res.nil? or res.is_a?(Net::SSH::Connection::Session)
       begin
         self.run('echo functional test of SSH tunnel')
+          res = true
       rescue
         res = false
       end
     end
-
-    res = true if res.nil?
 
     if @cache_timeout
       @cache[:is_available_via_ssh?] = Hash.new unless @cache[:is_available_via_ssh?].class.eql?(Hash)
@@ -422,14 +426,14 @@ class Rouster
   def connect_ssh_tunnel
 
     if self.is_passthrough?
-      if self.passthrough[:type].eql?(:local)
+      if @passthrough[:type].eql?(:local)
         return false
       elsif @passthrough[:host].nil?
         # this is likely an EC2 node that hasn't been started yet
         return false
       else
-        ceiling    = 9
-        sleep_time = 10
+        ceiling    = @passthrough[:ssh_sleep_ceiling]
+        sleep_time = @passthrough[:ssh_sleep_time]
 
         0.upto(ceiling) do |try|
           @logger.debug(sprintf('opening remote SSH tunnel[%s]..', @passthrough[:host]))
@@ -437,12 +441,13 @@ class Rouster
             @ssh = Net::SSH.start(
               @passthrough[:host],
               @passthrough[:user],
-              :port => @passthrough[:sshport],
+              :port => @passthrough[:ssh_port],
               :keys => [ @passthrough[:key] ], # TODO this should be @sshkey
               :paranoid => false
             )
             break
           rescue => e
+            raise e if try.eql?(ceiling) # eventually want to throw a SocketError
             @logger.debug(sprintf('failed to open tunnel[%s], trying again in %ss', e.message, sleep_time))
             sleep sleep_time
           end
