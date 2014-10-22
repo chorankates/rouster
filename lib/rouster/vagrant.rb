@@ -112,7 +112,7 @@ class Rouster
     if self.is_passthrough? and (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
       status = self.aws_status()
     else
-      self.vagrant(sprintf('up %s', @name))
+      self.vagrant(sprintf('status %s', @name))
 
       # else case here (both for nil/non-matching output) is handled by non-0 exit code
       output = self.get_output()
