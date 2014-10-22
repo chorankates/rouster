@@ -32,7 +32,7 @@ aws = Rouster.new(
     :max_count => 1,
     :region    => 'us-west-2',
     :size      => 't1.micro',
-    :sshport   => 22,
+    :ssh_port  => 22,
     :user      => 'ec2-user',
 
     :key_id       => ENV['AWS_ACCESS_KEY_ID'],
