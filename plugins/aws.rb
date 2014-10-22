@@ -231,7 +231,7 @@ class Rouster
 
     # i hate this so much.
     @logger.debug('sleeping to allow DNS propagation')
-    sleep 30
+    sleep 30 # TODO make this a property
 
     return dnsname
   end
