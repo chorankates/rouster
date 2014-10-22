@@ -1,0 +1,21 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    json (1.8.1)
+    log4r (1.1.10)
+    net-scp (1.2.1)
+      net-ssh (>= 2.6.5)
+    net-ssh (2.9.1)
+    power_assert (0.1.4)
+    test-unit (3.0.2)
+      power_assert
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  json
+  log4r (~> 1.1.9)
+  net-scp
+  net-ssh
+  test-unit (~> 3.0.0)
