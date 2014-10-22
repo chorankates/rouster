@@ -113,6 +113,8 @@ class Rouster
     status = self.status()
 
     if status.eql?('running')
+      self.connect_ssh_tunnel
+      self.passthrough[:instance] = self.aws_get_instance
       return self.aws_get_instance
     end
 
@@ -160,6 +162,7 @@ class Rouster
 
     self.connect_ssh_tunnel
 
+    self.passthrough[:instance] = self.aws_get_instance
     self.aws_get_instance
   end
 
@@ -167,6 +170,13 @@ class Rouster
     self.aws_connect
 
     server = @ec2.terminate_instances(self.aws_get_instance)
+
+    if @passthrough.has_key?(:created_elb)
+      elb = @passthrough[:created_elb]
+
+      @logger.info(sprintf('deleting ELB[%s]', elb))
+      @elb.delete_load_balancer(elb)
+    end
 
     self.aws_status
   end
@@ -220,8 +230,8 @@ class Rouster
     response = @elb.register_instances_with_load_balancer(id, elbname)
 
     # i hate this so much.
-    @logger.info('sleeping to allow DNS propagation')
-    sleep 15
+    @logger.debug('sleeping to allow DNS propagation')
+    sleep 30
 
     return dnsname
   end

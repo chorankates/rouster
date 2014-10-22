@@ -79,8 +79,15 @@ class Rouster
   # runs `vagrant destroy <name>` from the Vagrantfile path
   def destroy
     @logger.info('destroy()')
+
+    # don't like putting this here, may be refactored
+    if self.is_passthrough? and (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
+      self.aws_destroy()
+    else
+      self.vagrant(sprintf('destroy -f %s', @name))
+    end
+
     disconnect_ssh_tunnel
-    self.vagrant(sprintf('destroy -f %s', @name))
   end
 
   ##
