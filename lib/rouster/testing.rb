@@ -459,16 +459,38 @@ class Rouster
             local = v.to_s.match(/absent|false/).nil? ? false : true
           end
         when :version
+          # TODO support determination based on multiple versions of the same package installed (?)
           if packages.has_key?(name)
-            if v.split("\s").size > 1
-              ## generic comparator functionality
-              comp, expectation = v.split("\s")
-              local = generic_comparator(packages[name], comp, expectation)
-            else
-              local = ! v.to_s.match(/#{packages[name]}/).nil?
+
+            lps = packages[name].is_a?(Array) ? packages[name] : [ packages[name] ]
+
+            lps.each do |lp|
+              if v.split("\s").size > 1
+                ## generic comparator functionality
+                comp, expectation = v.split("\s")
+                local = generic_comparator(lp[:version], comp, expectation)
+                break unless local.eql?(true)
+              else
+                local = ! v.to_s.match(/#{lp[:version]}/).nil?
+                break unless local.eql?(true)
+              end
             end
           else
             local = false
+          end
+        when :arch, :architecture
+          if packages.has_key?(name)
+            archs = []
+            lps   = packages[name].is_a?(Array) ? packages[name] : [ packages[name] ]
+            lps.each { |p| archs << p[:arch] }
+            if v.is_a?(Array)
+              v.each do |arch|
+                local = archs.member?(arch)
+                break unless local.eql?(true) # fail fast - if we are looking for an arch that DNE, bail out
+              end
+            else
+              local = archs.member?(v)
+            end
           end
         when :type
           # noop allowing parse_catalog() output to be passed directly
