@@ -236,16 +236,18 @@ class Rouster
     return dnsname
   end
 
-  def aws_bootstap (commands)
+  # TODO this will throw at the first error - should we catch?
+  # run some commands, return an array of the output
+  def aws_bootstrap (commands)
     self.aws_connect
     commands = (commands.is_a?(Array)) ? commands : [ commands ]
+    output   = Array.new
 
     commands.each do |command|
-      @logger.debug(sprintf('about to run[%s]', command))
-
+      output << self.run(command)
     end
 
-    raise 'not implemented'
+    return output
   end
 
   def aws_connect
