@@ -24,7 +24,7 @@ The first implementation of Rouster was in Perl, called [Salesforce::Vagrant](ht
 
 * [Ruby](http://rubylang.org), version 2.0+ (best attempt made to support 1.8.7 and 1.9.3 as well)
 * [Vagrant](http://vagrantup.com), version 1.0.5+
-* Gems (can install automatically with ```bundle install```)
+* Gems
   * json
   * log4r
   * net-scp
@@ -33,6 +33,19 @@ The first implementation of Rouster was in Perl, called [Salesforce::Vagrant](ht
 Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX (minus rouster/deltas.rb functionality, at least currently),
 but no real testing has been done to confirm this. Please file issues as appropriate.
 
+### From-source local usage (latest)
+
+```sh
+git clone https://github.com/chorankates/rouster.git
+cd rouster
+bundle install
+...
+irb(main):001:0> require './path_helper.rb'
+=> true
+irb(main):002:0> require 'rouster'
+=> true
+```
+
 ### From-source installation (latest)
 
 ```sh
@@ -40,6 +53,9 @@ git clone https://github.com/chorankates/rouster.git
 cd rouster
 rake buildgem
 gem install rouster-<version>.gem
+...
+irb(main):001:0> require 'rouster'
+=> true
 ```
 
 ### pre-built gem installation (stable)
