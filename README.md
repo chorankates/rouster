@@ -29,6 +29,7 @@ The first implementation of Rouster was in Perl, called [Salesforce::Vagrant](ht
   * log4r
   * net-scp
   * net-ssh
+  * fog (only if using AWS)
 
 Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX (minus rouster/deltas.rb functionality, at least currently),
 but no real testing has been done to confirm this. Please file issues as appropriate.
@@ -38,7 +39,7 @@ but no real testing has been done to confirm this. Please file issues as appropr
 ```sh
 git clone https://github.com/chorankates/rouster.git
 cd rouster
-bundle install
+bundle install # use :aws to pull in fog
 ...
 irb(main):001:0> require './path_helper.rb'
 => true

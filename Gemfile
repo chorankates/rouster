@@ -10,3 +10,7 @@ gem 'net-ssh'
 group :development do
   gem 'test-unit', '~> 3.0.0'
 end
+
+group :aws do
+  gem 'fog'
+end
