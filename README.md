@@ -130,6 +130,54 @@ app.get('/tmp/foo')
 app.destroy()
 ```
 
+### advanced instantiation (passthroughs!)
+
+detailed options in ```examples/passthrough.rb``` and ```examples/aws.rb```
+
+since Rouster only requires an SSH connection to control a machine, why stop at Vagrant?
+
+```
+require 'rouster'
+require 'rouster/aws'
+
+# control the machine rouster itself is running on
+local = Rouster.new(:name => 'local', :passthrough => { :type => :local } }
+
+# control a remote machine
+remote = Rouster.new(
+  :name => 'remote',
+  :passthrough => {
+    :type => :remote,
+    :host => 'foo.bar.com',
+    :user => 'keanu',
+    :key  => '/path/to/private/key',
+  }
+
+  :sudo => true, # false by default, enabling requires that sshd is not enforcing 'requiretty'
+)
+
+# control a running EC2 instance
+aws_already_running = Rouster.new(
+  :name => 'cloudy',
+  :passthrough => {
+    :type     => :aws,
+    :instance => 'i-yourinstance',
+    :keypair  => 'your-keypair',
+  }
+)
+
+# start and control an EC2 instance
+aws_start_me_up = Rouster.new(
+  :name        => 'bgates',
+  :passthrough => {
+    :type            => :aws,
+    :ami             => 'ami-yourami',
+    :security_groups => 'your-security-groups',
+  }
+)
+
+```
+
 ### functional puppet test
 
 ```rb
