@@ -143,15 +143,16 @@ class Rouster
         @logger.debug(sprintf('instantiating an %s passthrough worker', @passthrough[:type]))
 
         aws_defaults = {
-          :ami          => 'ami-7bdaa84b', # RHEL 6.5 x64 in us-west-2
-          :key_id       => ENV['AWS_ACCESS_KEY_ID'],
-          :min_count    => 1,
-          :max_count    => 1,
-          :region       => 'us-west-2',
-          :secret_key   => ENV['AWS_SECRET_ACCESS_KEY'],
-          :size         => 't1.micro',
-          :ssh_port     => 22,
-          :user         => 'ec2-user',
+          :ami                   => 'ami-7bdaa84b', # RHEL 6.5 x64 in us-west-2
+          :dns_propagation_sleep => 30, # how much time to wait after
+          :key_id                => ENV['AWS_ACCESS_KEY_ID'],
+          :min_count             => 1,
+          :max_count             => 1,
+          :region                => 'us-west-2',
+          :secret_key            => ENV['AWS_SECRET_ACCESS_KEY'],
+          :size                  => 't1.micro',
+          :ssh_port              => 22,
+          :user                  => 'ec2-user',
         }
 
         if @passthrough.has_key?(:ami)

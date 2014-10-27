@@ -1,8 +1,6 @@
 #!/usr/bin/ruby
 ## rouster_aws.rb - provide helper functions for Rouster objects running on AWS/EC2
 
-# TODO implement some caching of AWS data? allow control in instantiation of worker
-
 require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 
 require 'fog'
@@ -163,7 +161,7 @@ class Rouster
     self.connect_ssh_tunnel
 
     self.passthrough[:instance] = self.aws_get_instance
-    self.aws_get_instance
+    self.passthrough[:instance]
   end
 
   def aws_destroy
@@ -183,6 +181,15 @@ class Rouster
 
   def aws_describe_instance(instance = aws_get_instance)
 
+    if @cache_timeout
+      if @cache.has_key?(:aws_describe_instance)
+        if (Time.now.to_i - @cache[:aws_describe_instance][:time]) < @cache_timeout
+          @logger.debug(sprintf('using cached aws_describe_instance?[%s] from [%s]', @cache[:aws_describe_instance][:instance], @cache[:aws_describe_instance][:time]))
+          return @cache[:aws_describe_instance][:instance]
+        end
+      end
+    end
+
     return nil if instance.nil?
 
     self.aws_connect
@@ -191,6 +198,13 @@ class Rouster
 
     if instance.eql?(self.aws_get_instance)
       @instance_data = response
+    end
+
+    if @cache_timeout
+      @cache[:aws_describe_instance] = Hash.new unless @cache[:aws_describe_instance].class.eql?(Hash)
+      @cache[:aws_describe_instance][:time] = Time.now.to_i
+      @cache[:aws_describe_instance][:instance] = response
+      @logger.debug(sprintf('caching is_available_via_ssh?[%s] at [%s]', @cache[:aws_describe_instance][:instance], @cache[:aws_decribe_instance][:time]))
     end
 
     response
@@ -231,7 +245,7 @@ class Rouster
 
     # i hate this so much.
     @logger.debug('sleeping to allow DNS propagation')
-    sleep 30 # TODO make this a property
+    sleep self.passthrough[:dns_propagation_sleep]
 
     return dnsname
   end

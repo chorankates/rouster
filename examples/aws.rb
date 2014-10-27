@@ -27,13 +27,14 @@ aws = Rouster.new(
     :userdata        => 'foo',
 
     # optional, setting to be explicit
-    :ami       => '<ami-id>>',
-    :min_count => 1, # TODO don't know how to actually handle multiple machines.. just do the same thing on all of the hosts?
-    :max_count => 1,
-    :region    => 'us-west-2',
-    :size      => 't1.micro',
-    :ssh_port  => 22,
-    :user      => 'ec2-user',
+    :ami                   => '<ami-id>>',
+    :dns_propagation_sleep => 20,
+    :min_count             => 1, # TODO don't know how to actually handle multiple machines.. just do the same thing on all of the hosts?
+    :max_count             => 1,
+    :region                => 'us-west-2',
+    :size                  => 't1.micro',
+    :ssh_port              => 22,
+    :user                  => 'ec2-user',
 
     :key_id       => ENV['AWS_ACCESS_KEY_ID'],
     :secret_key   => ENV['AWS_SECRET_ACCESS_KEY'],

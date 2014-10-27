@@ -120,7 +120,7 @@ class Rouster
         if self.is_passthrough?() and self.passthrough[:type].eql?(:local)
           status = 'running'
         else
-          status = 'unknown' # TODO this is not right, we know the machine isn't started
+          status = 'not-created'
         end
       elsif output.match(/^#{@name}\s*(.*\s?\w+)\s\((.+)\)$/)
         # vagrant 1.2+, $1 = status, $2 = provider
