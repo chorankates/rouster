@@ -110,7 +110,6 @@ class Rouster
     end
 
     if @passthrough
-      # TODO do better about informing of required specifications, maybe point them to an URL?
       @vagrantbinary = 'vagrant' # hacky fix to is_vagrant_running?() grepping, doesn't need to actually be in $PATH
       @sshtunnel     = opts[:sshtunnel].nil? ? false : @sshtunnel # unless user has specified it, non-local passthroughs default to not open tunnel
 
@@ -143,8 +142,6 @@ class Rouster
       elsif @passthrough[:type].eql?(:aws) or @passthrough[:type].eql?(:raiden)
         @logger.debug(sprintf('instantiating an %s passthrough worker', @passthrough[:type]))
 
-        # TODO add tests to ensure that user specs are overriding defaults / defaults are used when user specs DNE
-
         aws_defaults = {
           :ami          => 'ami-7bdaa84b', # RHEL 6.5 x64 in us-west-2
           :key_id       => ENV['AWS_ACCESS_KEY_ID'],
@@ -153,7 +150,7 @@ class Rouster
           :region       => 'us-west-2',
           :secret_key   => ENV['AWS_SECRET_ACCESS_KEY'],
           :size         => 't1.micro',
-          :ssh_port      => 22,
+          :ssh_port     => 22,
           :user         => 'ec2-user',
         }
 
