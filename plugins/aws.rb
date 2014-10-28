@@ -230,8 +230,18 @@ class Rouster
 
     end
 
-    # TODO need to confirm the name is unique
+    @logger.debug(sprintf('confirming ELB name uniqueness[%s]', elbname))
+    response = @elb.describe_load_balancers()
+    response.body['DescribeLoadBalancersResult']['LoadBalancerDescriptions'].each do |elb|
+      if elb['LoadBalancerName'].eql?(elbname)
+        # terminate
+        @logger.debug(sprintf('terminating ELB[%s]', elbname))
+        @elb.delete_load_balancer(elbname)
+      end
+    end
+
     # create the ELB/VIP
+    @logger.debug(sprintf('creating a load balancer[%s] with listeners[%s]', elbname, listeners))
     response = @elb.create_load_balancer(
       [], # availability zones not needed on raiden
       elbname,
@@ -288,15 +298,18 @@ class Rouster
     end
 
     config = {
-      :host   => endpoint.host,
-      :path   => endpoint.path,
-      :port   => endpoint.port,
-      :scheme => endpoint.scheme,
-
       :region                => self.passthrough[:region],
       :aws_access_key_id     => self.passthrough[:key_id],
       :aws_secret_access_key => self.passthrough[:secret_key],
     }
+
+    unless endpoint.nil?
+      # if not specifying an endpoint, don't add to the config
+      config[:host]   = endpoint.host
+      config[:path]   = endpoint.path
+      config[:port]   = endpoint.port
+      config[:scheme] = endpoint.scheme
+    end
 
     @elb = Fog::AWS::ELB.new(config)
   end
