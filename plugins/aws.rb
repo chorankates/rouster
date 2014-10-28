@@ -1,5 +1,5 @@
 #!/usr/bin/ruby
-## rouster_aws.rb - provide helper functions for Rouster objects running on AWS/EC2
+## plugins/aws.rb - provide helper functions for Rouster objects running on AWS/EC2
 
 require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 

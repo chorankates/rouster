@@ -155,7 +155,7 @@ since Rouster only requires an SSH connection to control a machine, why stop at 
 
 ```rb
 require 'rouster'
-require 'rouster/aws'
+require 'rouster/plugins/aws'
 
 # control the machine rouster itself is running on
 local = Rouster.new(:name => 'local', :passthrough => { :type => :local } }
