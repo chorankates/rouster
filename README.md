@@ -190,6 +190,8 @@ aws_start_me_up = Rouster.new(
     :type            => :aws,
     :ami             => 'ami-yourami',
     :security_groups => 'your-security-groups',
+    :key_id          => 'your-aws-key-id',     # defaults to ${AWS_ACCESS_KEY_ID}
+    :secret_key      => 'your-aws-secret-key', # defaults to ${AWS_SECRET_ACCESS_KEY}
   }
 )
 

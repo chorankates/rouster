@@ -60,6 +60,8 @@ class TestNew < Test::Unit::TestCase
         :ami        => 'ami-1234',
         :keypair    => 'you@aws',
         :key        => key,
+        :key_id     => 'key',
+        :secret_key => 'secret_access_key',
 
         # aws specific overrides
         :region => 'us-east-2',
