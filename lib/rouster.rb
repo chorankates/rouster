@@ -185,7 +185,6 @@ class Rouster
           raise ArgumentError.new('AWS passthrough requires either :ami or :instance specification')
         end
 
-
         raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:key])
         @sshkey = @passthrough[:key]
 
@@ -216,15 +215,6 @@ class Rouster
         @sshkey = sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']) if ENV['VAGRANT_HOME']
         @sshkey = sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) unless ENV['VAGRANT_HOME']
       end
-    end
-
-    # TODO revisit below comments
-    # this is breaking test/functional/test_caching.rb test_ssh_caching (if the VM was not running when the test started)
-    # it slows down object instantiation, but is a good test to ensure the machine name is valid..
-    begin
-      self.status() unless self.is_passthrough?
-    rescue Rouster::LocalExecutionError => e
-      raise InternalError.new(sprintf('caught non-0 exitcode from status(): %s', e.message))
     end
 
     begin
