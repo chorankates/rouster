@@ -169,7 +169,7 @@ class Rouster
         elsif @passthrough.has_key?(:instance)
           @logger.debug(':instance specified, will connect to existing EC2 instance')
 
-          @passthrough        = aws_defaults.merge(@passthrough)
+          @passthrough = aws_defaults.merge(@passthrough)
 
           if @passthrough[:type].eql?(:aws)
             @passthrough[:host] = self.aws_describe_instance(@passthrough[:instance])['dnsName']
@@ -415,9 +415,10 @@ class Rouster
 
     if self.is_passthrough?
       if @passthrough[:type].eql?(:local)
+        @logger.debug("local passthroughs don't need ssh tunnel, shell execs are used")
         return false
       elsif @passthrough[:host].nil?
-        # this is likely an EC2 node that hasn't been started yet
+        @logger.info(sprintf('not attempting to connect, no known hostname for[%s]', self.passthrough))
         return false
       else
         ceiling    = @passthrough[:ssh_sleep_ceiling]
@@ -441,6 +442,8 @@ class Rouster
           end
         end
       end
+      @logger.debug(sprintf('successfully opened SSH tunnel to[%s]', passthrough[:host]))
+
     else
       # not a passthrough, normal connection
       status = self.status()
@@ -456,6 +459,7 @@ class Rouster
           :paranoid => false
         )
       else
+        # TODO will we ever hit this? or will we be thrown first?
         raise InternalError.new(sprintf('VM is not running[%s], unable open SSH tunnel', status))
       end
     end
@@ -489,27 +493,26 @@ class Rouster
     # Ubuntu - /etc/os-release
     # Solaris - /etc/release
     # RHEL/CentOS - /etc/redhat-release
-    # OSX - ?
+    # OSX - /System/Library/CoreServices/SystemVersion.plist
+
+    files = {
+      :ubuntu  => '/etc/os-release', # debian too
+      :solaris => '/etc/release',
+      :rhel    => '/etc/redhat-release', # centos too
+      :osx     => '/System/Library/CoreServices/SystemVersion.plist',
+    }
 
     res   = nil
-    uname = self.run('uname -a')
 
-    case uname
-      when /Darwin/i
-        res = :osx
-      when /SunOS|Solaris/i
-        res =:solaris
-      when /Ubuntu/i
-        res = :ubuntu
-      when /Debian/i
-        res = :debian
-      else
-        if self.is_file?('/etc/redhat-release')
-          res = :redhat
-        else
-          res = nil
-        end
+    files.each do |os,file|
+      if File.file?(file)
+        @logger.debug(sprintf('determined OS to be[%s]', os))
+        res = os
+        break
+      end
     end
+
+    @logger.error(sprintf('unable to determine OS, looking for[%s]', files))
 
     @ostype = res
     res

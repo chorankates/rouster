@@ -178,8 +178,8 @@ aws_already_running = Rouster.new(
   :name => 'cloudy',
   :passthrough => {
     :type     => :aws,
-    :instance => 'i-yourinstance',
-    :keypair  => 'your-keypair',
+    :instance => 'your-instance-id',
+    :keypair  => 'your-keypair-name',
   }
 )
 
@@ -188,7 +188,7 @@ aws_start_me_up = Rouster.new(
   :name        => 'bgates',
   :passthrough => {
     :type            => :aws,
-    :ami             => 'ami-yourami',
+    :ami             => 'your-ami-id',
     :security_groups => 'your-security-groups',
     :key_id          => 'your-aws-key-id',     # defaults to ${AWS_ACCESS_KEY_ID}
     :secret_key      => 'your-aws-secret-key', # defaults to ${AWS_SECRET_ACCESS_KEY}
@@ -246,7 +246,6 @@ irb(main):002:0> require 'rouster'
 => true
 irb(main):003:0> pp (Rouster.new(:name => 'app').methods - Object.methods).sort
 => [
-(rdb:1) pp (self.methods - Object.methods).sort
 [:_run,
  :cache,
  :cache_timeout,

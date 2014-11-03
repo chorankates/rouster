@@ -92,6 +92,7 @@ class Rouster
     elsif @passthrough.has_key?(:instance)
       return @passthrough[:instance] # we know the id we want
     else
+      @logger.debug(sprintf('unable to determine ami-id from instance_data[%s] or passthrough specification[%s]', @instance_data, @passthrough))
       return nil # we don't have an id yet, likely a up() call
     end
   end
@@ -116,6 +117,13 @@ class Rouster
       return self.aws_get_instance
     end
 
+    # TODO provide more context
+    @logger.info(sprintf('calling RunInstances ami[%s], size[%s], keypair[%s]',
+      self.passthrough[:ami],
+      self.passthrough[:size],
+      self.passthrough[:keypair]
+    ))
+
     server  = @ec2.run_instances(
         self.passthrough[:ami],
         self.passthrough[:min_count],
@@ -125,7 +133,6 @@ class Rouster
           'KeyName'        => self.passthrough[:keypair],
           'SecurityGroup'  => self.passthrough[:security_groups],
           'UserData'       => self.passthrough[:userdata],
-
         },
     )
 

@@ -7,7 +7,7 @@ aws_already_running = Rouster.new(
   :name        => 'aws-already-running',
   :passthrough => {
     :type     => :aws,
-    :instance => '<instance-id>',
+    :instance => 'your-instance-id',
     :key      => sprintf('%s/.ssh/id_rsa-aws', ENV['HOME'])
   },
   :verbosity => 1,
@@ -21,13 +21,13 @@ aws = Rouster.new(
   :passthrough => {
     # all required settings
     :type            => :aws,
-    :keypair         => '<keypair name>',
+    :keypair         => 'your-keypair-name',
     :security_groups => 'integration-testing',
     :key             => sprintf('%s/.ssh/id_rsa-aws', ENV['HOME']),
     :userdata        => 'foo',
 
     # optional, setting to be explicit
-    :ami                   => '<ami-id>>',
+    :ami                   => 'your-ami-id',
     :dns_propagation_sleep => 20,
     :min_count             => 1, # TODO don't know how to actually handle multiple machines.. just do the same thing on all of the hosts?
     :max_count             => 1,

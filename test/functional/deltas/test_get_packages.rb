@@ -102,7 +102,7 @@ class TestDeltasGetPackages < Test::Unit::TestCase
     after, install = nil, nil
 
     if @app.os_type.eql?(:redhat)
-      packages = [ 'glibc-2.12-1.132.el6_5.4.x86_64', 'glibc-2.12-1.132.el6_5.4.i686' ]
+      packages = [ 'glibc.x86_64', 'glibc.i686' ]
       install  = @app.run(sprintf('yum install -y %s', packages.join(' '))) # TODO these are already in the base, but just to be safe
       after    = @app.get_packages(false, false)
 
