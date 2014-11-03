@@ -261,7 +261,7 @@ class Rouster
     response = @elb.register_instances_with_load_balancer(id, elbname)
 
     # i hate this so much.
-    @logger.debug('sleeping to allow DNS propagation')
+    @logger.debug(sprintf('sleeping[%s] to allow DNS propagation', self.passthrough[:dns_propagation_sleep]))
     sleep self.passthrough[:dns_propagation_sleep]
 
     return dnsname
