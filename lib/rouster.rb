@@ -489,30 +489,24 @@ class Rouster
       return @ostype
     end
 
-    # TODO switch to file based detection
-    # Ubuntu - /etc/os-release
-    # Solaris - /etc/release
-    # RHEL/CentOS - /etc/redhat-release
-    # OSX - /System/Library/CoreServices/SystemVersion.plist
-
     files = {
       :ubuntu  => '/etc/os-release', # debian too
       :solaris => '/etc/release',
-      :rhel    => '/etc/redhat-release', # centos too
+      :redhat  => '/etc/redhat-release', # centos too
       :osx     => '/System/Library/CoreServices/SystemVersion.plist',
     }
 
     res   = nil
 
     files.each do |os,file|
-      if File.file?(file)
-        @logger.debug(sprintf('determined OS to be[%s]', os))
+      if self.is_file?(file)
+        @logger.debug(sprintf('determined OS to be[%s] via[%s]', os, file))
         res = os
         break
       end
     end
 
-    @logger.error(sprintf('unable to determine OS, looking for[%s]', files))
+    @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.nil?
 
     @ostype = res
     res
