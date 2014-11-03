@@ -24,12 +24,15 @@ task :examples do
 	end
 end
 
-task :reek do
-  sh "reek lib/**/*.rb"
+task :vdestroy do
+  sh 'vagrant destroy -f'
 end
 
-Rake::TestTask.new do |t|
-  t.name = 'test'
+task :reek do
+  sh 'reek lib/**/*.rb'
+end
+
+Rake::TestTask.new(:test => :vdestroy) do |t|
   t.libs << 'lib'
   t.test_files = FileList['test/**/test_*.rb']
   t.verbose = true
@@ -42,15 +45,13 @@ Rake::TestTask.new do |t|
   t.verbose = true
 end
 
-Rake::TestTask.new do |t|
-  t.name = 'functional'
+Rake::TestTask.new(:functional => :vdestroy) do |t|
   t.libs << 'lib'
   t.test_files = FileList['test/functional/**/test_*.rb']
   t.verbose = true
 end
 
-Rake::TestTask.new do |t|
-  t.name = 'deltas'
+Rake::TestTask.new(:deltas => :vdestroy) do |t|
   t.libs << 'lib'
   t.test_files = FileList['test/functional/deltas/test_*.rb']
   t.verbose = true

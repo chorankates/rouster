@@ -29,9 +29,23 @@ The first implementation of Rouster was in Perl, called [Salesforce::Vagrant](ht
   * log4r
   * net-scp
   * net-ssh
+  * fog (only if using AWS)
 
 Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX (minus rouster/deltas.rb functionality, at least currently),
 but no real testing has been done to confirm this. Please file issues as appropriate.
+
+### From-source local usage (latest)
+
+```sh
+git clone https://github.com/chorankates/rouster.git
+cd rouster
+bundle install # use :aws to pull in fog
+...
+irb(main):001:0> require './path_helper.rb'
+=> true
+irb(main):002:0> require 'rouster'
+=> true
+```
 
 ### From-source installation (latest)
 
@@ -40,6 +54,9 @@ git clone https://github.com/chorankates/rouster.git
 cd rouster
 rake buildgem
 gem install rouster-<version>.gem
+...
+irb(main):001:0> require 'rouster'
+=> true
 ```
 
 ### pre-built gem installation (stable)
@@ -130,6 +147,56 @@ app.get('/tmp/foo')
 app.destroy()
 ```
 
+### advanced instantiation (passthroughs!)
+
+detailed options in ```examples/passthrough.rb``` and ```examples/aws.rb```
+
+since Rouster only requires an SSH connection to control a machine, why stop at Vagrant?
+
+```rb
+require 'rouster'
+require 'rouster/plugins/aws'
+
+# control the machine rouster itself is running on
+local = Rouster.new(:name => 'local', :passthrough => { :type => :local } }
+
+# control a remote machine
+remote = Rouster.new(
+  :name => 'remote',
+  :passthrough => {
+    :type => :remote,
+    :host => 'foo.bar.com',
+    :user => 'keanu',
+    :key  => '/path/to/private/key',
+  }
+
+  :sudo => true, # false by default, enabling requires that sshd is not enforcing 'requiretty'
+)
+
+# control a running EC2 instance
+aws_already_running = Rouster.new(
+  :name => 'cloudy',
+  :passthrough => {
+    :type     => :aws,
+    :instance => 'your-instance-id',
+    :keypair  => 'your-keypair-name',
+  }
+)
+
+# start and control an EC2 instance
+aws_start_me_up = Rouster.new(
+  :name        => 'bgates',
+  :passthrough => {
+    :type            => :aws,
+    :ami             => 'your-ami-id',
+    :security_groups => 'your-security-groups',
+    :key_id          => 'your-aws-key-id',     # defaults to ${AWS_ACCESS_KEY_ID}
+    :secret_key      => 'your-aws-secret-key', # defaults to ${AWS_SECRET_ACCESS_KEY}
+  }
+)
+
+```
+
 ### functional puppet test
 
 ```rb
@@ -173,6 +240,116 @@ end
 ## Base Methods
 
 ```rb
-irb(main):003:0> (Rouster.new(:name => 'app').methods - Object.methods).sort
-=> [:_run, :_vm, :check_key_permissions, :connect_ssh_tunnel, :deltas, :destroy, :dir, :exitcode, :facter, :facts, :file, :generate_unique_mac, :get, :get_catalog, :get_groups, :get_output, :get_packages, :get_ports, :get_puppet_errors, :get_puppet_notices, :get_services, :get_ssh_info, :get_users, :is_available_via_ssh?, :is_dir?, :is_executable?, :is_file?, :is_group?, :is_in_file?, :is_in_path?, :is_package?, :is_passthrough?, :is_port_active?, :is_port_open?, :is_process_running?, :is_readable?, :is_service?, :is_service_running?, :is_user?, :is_user_in_group?, :is_writeable?, :log, :os_type, :output, :parse_catalog, :parse_ls_string, :passthrough, :put, :rebuild, :remove_existing_certs, :restart, :run, :run_puppet, :sshkey, :status, :sudo, :suspend, :traverse_up, :up, :uses_sudo?, :vagrantfile, :verbosity]
+irb(main):001:0> require './path_helper.rb'
+=> true
+irb(main):002:0> require 'rouster'
+=> true
+irb(main):003:0> pp (Rouster.new(:name => 'app').methods - Object.methods).sort
+=> [
+[:_run,
+ :cache,
+ :cache_timeout,
+ :check_key_permissions,
+ :connect_ssh_tunnel,
+ :deltas,
+ :destroy,
+ :dir,
+ :dirs,
+ :disconnect_ssh_tunnel,
+ :exitcode,
+ :facts,
+ :facts=,
+ :file,
+ :files,
+ :generate_unique_mac,
+ :get,
+ :get_crontab,
+ :get_groups,
+ :get_output,
+ :get_packages,
+ :get_ports,
+ :get_services,
+ :get_ssh_info,
+ :get_users,
+ :halt,
+ :is_available_via_ssh?,
+ :is_dir?,
+ :is_executable?,
+ :is_file?,
+ :is_group?,
+ :is_in_file?,
+ :is_in_path?,
+ :is_package?,
+ :is_passthrough?,
+ :is_port_active?,
+ :is_port_open?,
+ :is_process_running?,
+ :is_readable?,
+ :is_service?,
+ :is_service_running?,
+ :is_symlink?,
+ :is_user?,
+ :is_user_in_group?,
+ :is_vagrant_running?,
+ :is_writeable?,
+ :logger,
+ :os_type,
+ :output,
+ :package,
+ :parse_ls_string,
+ :passthrough,
+ :put,
+ :rebuild,
+ :restart,
+ :retries,
+ :run,
+ :sandbox_available?,
+ :sandbox_commit,
+ :sandbox_off,
+ :sandbox_on,
+ :sandbox_rollback,
+ :sshkey,
+ :status,
+ :suspend,
+ :traverse_up,
+ :unittest,
+ :up,
+ :uses_sudo?,
+ :vagrant,
+ :vagrantbinary,
+ :vagrantfile]
+]
+```
+
+## AWS methods
+```rb
+irb(main):001:0> require './path_helper.rb'
+=> true
+irb(main):002:0> require 'rouster'
+=> true
+irb(main):003:0> require 'rouster/plugins/aws'
+=> true
+irb(main):004:0> pp (Rouster.new(:name => 'aws', :passthrough => { :type => :aws }).methods - Object.methods).sort
+=> [
+...
+ :aws_bootstrap,
+ :aws_connect,
+ :aws_connect_to_elb,
+ :aws_describe_instance,
+ :aws_destroy,
+ :aws_get_ami,
+ :aws_get_hostname,
+ :aws_get_instance,
+ :aws_get_ip,
+ :aws_get_metadata,
+ :aws_get_url,
+ :aws_get_userdata,
+ :aws_status,
+ :ec2,
+ :elb,
+ :elb_connect,
+ :find_ssh_elb,
+ :instance_data,
+...
+]
 ```

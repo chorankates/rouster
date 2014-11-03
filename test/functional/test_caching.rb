@@ -75,10 +75,10 @@ class TestCaching < Test::Unit::TestCase
 
   def test_ssh_caching
 
-    skip('see comments in rouster.rb line ~84')
-
     timeout = 100
     app     = Rouster.new(:name => 'app', :sshtunnel => true, :cache_timeout => timeout)
+    app.destroy() # should be a no-op if running under rake, doing this to be safe
+
     app.up()
 
     assert_equal(app.cache_timeout, timeout)

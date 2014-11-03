@@ -47,6 +47,71 @@ class TestNew < Test::Unit::TestCase
 
   end
 
+
+  def test_default_overrides_aws_passthrough
+
+    key = sprintf('%s/.ssh/id_rsa', ENV['HOME'])
+    skip(sprintf('no suitable private key found at [%s]', key)) unless File.file?(key)
+
+    @app = Rouster.new(
+      :name => 'aws',
+      :passthrough => {
+        :type       => :aws,
+        :ami        => 'ami-1234',
+        :keypair    => 'you@aws',
+        :key        => key,
+        :key_id     => 'key',
+        :secret_key => 'secret_access_key',
+
+        # aws specific overrides
+        :region => 'us-east-2',
+        :user   => 'cloud-user',
+
+        # generic passthrough overrides
+        :ssh_sleep_ceiling => 1,
+        :ssh_sleep_time    => 1,
+      },
+
+      :unittest => true,
+    )
+
+    passthrough = @app.passthrough
+
+    assert_equal('us-east-2', passthrough[:region])
+    assert_equal('cloud-user', passthrough[:user])
+    assert_equal(1, passthrough[:ssh_sleep_ceiling])
+    assert_equal(1, passthrough[:ssh_sleep_time])
+
+    assert_not_nil(passthrough[:ami])
+    assert_not_nil(passthrough[:key_id])
+    assert_not_nil(passthrough[:min_count])
+    assert_not_nil(passthrough[:max_count])
+    assert_not_nil(passthrough[:size])
+    assert_not_nil(passthrough[:ssh_port])
+
+  end
+
+  def test_default_overrides_passthrough
+
+    @app = Rouster.new(
+      :name => 'local',
+      :passthrough => {
+        :type              => :local,
+        :paranoid          => :secure,
+        :ssh_sleep_ceiling => 100,
+      },
+
+      :unittest => true,
+    )
+
+    passthrough = @app.passthrough
+
+    assert_equal(:secure, passthrough[:paranoid])
+    assert_equal(100, passthrough[:ssh_sleep_ceiling])
+    assert_not_equal(100, passthrough[:ssh_sleep_time])
+  end
+
+
   def teardown
     # noop
   end

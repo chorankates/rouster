@@ -76,15 +76,6 @@ class Rouster
       @verbosity_logfile = 2 # this is kind of arbitrary, but won't actually be created unless opts[:logfile] is also passed
     end
 
-    if opts.has_key?(:sudo)
-      @sudo = opts[:sudo]
-    elsif @passthrough.class.eql?(Hash)
-      # TODO say something here.. or maybe check to see if our user has passwordless sudo?
-      @sudo = false
-    else
-      @sudo = true
-    end
-
     @ostype = nil
     @output = Array.new
     @cache  = Hash.new
@@ -109,30 +100,96 @@ class Rouster
 
     @logger.outputters[0].level = @verbosity_console # can't set this when instantiating a .std* logger, and want the FileOutputter at a different level
 
+    if opts.has_key?(:sudo)
+      @sudo = opts[:sudo]
+    elsif @passthrough.class.eql?(Hash)
+      @logger.debug(sprintf('passthrough without sudo specification, defaulting to false'))
+      @sudo = false
+    else
+      @sudo = true
+    end
+
     if @passthrough
-      # TODO do better about informing of required specifications, maybe point them to an URL?
       @vagrantbinary = 'vagrant' # hacky fix to is_vagrant_running?() grepping, doesn't need to actually be in $PATH
+      @sshtunnel     = opts[:sshtunnel].nil? ? false : @sshtunnel # unless user has specified it, non-local passthroughs default to not open tunnel
+
+      defaults = {
+        :paranoid          => false, # valid overrides are: false, true, :very, or :secure
+        :ssh_sleep_ceiling => 9,
+        :ssh_sleep_time    => 10,
+      }
+
+      @passthrough = defaults.merge(@passthrough)
+
       if @passthrough.class != Hash
         raise ArgumentError.new('passthrough specification should be hash')
       elsif @passthrough[:type].nil?
-        raise ArgumentError.new('passthrough :type must be specified, :local or :remote allowed')
+        raise ArgumentError.new('passthrough :type must be specified, :local, :remote or :aws allowed')
       elsif @passthrough[:type].eql?(:local)
-        @sshtunnel = false
         @logger.debug('instantiating a local passthrough worker')
+        @sshtunnel = opts[:sshtunnel].nil? ? true : opts[:sshtunnel] # override default, if local, open immediately
+
       elsif @passthrough[:type].eql?(:remote)
-        raise ArgumentError.new('remote passthrough requires :host specification') if @passthrough[:host].nil?
-        raise ArgumentError.new('remote passthrough requires :user specification') if @passthrough[:user].nil?
-        raise ArgumentError.new('remote passthrough requires :key specification')  if @passthrough[:key].nil?
+        @logger.debug('instantiating a remote passthrough worker')
+
+        [:host, :user, :key].each do |r|
+          raise ArgumentError.new(sprintf('remote passthrough requires[%s] specification', r)) if @passthrough[r].nil?
+        end
+
         raise ArgumentError.new('remote passthrough requires valid :key specification, should be path to private half') unless File.file?(@passthrough[:key])
         @sshkey = @passthrough[:key] # TODO refactor so that you don't have to do this..
-        @logger.debug('instantiating a remote passthrough worker')
-      else
-        raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :local, :remote', @passthrough[:type]))
-      end
 
-      # defaulting this, valid overrides are: false, true, :very, or :secure
-      if @passthrough[:paranoid].nil?
-        @passthrough[:paranoid] = false
+      elsif @passthrough[:type].eql?(:aws) or @passthrough[:type].eql?(:raiden)
+        @logger.debug(sprintf('instantiating an %s passthrough worker', @passthrough[:type]))
+
+        aws_defaults = {
+          :ami                   => 'ami-7bdaa84b', # RHEL 6.5 x64 in us-west-2
+          :dns_propagation_sleep => 30, # how much time to wait after ELB creation before attempting to connect
+          :key_id                => ENV['AWS_ACCESS_KEY_ID'],
+          :min_count             => 1,
+          :max_count             => 1,
+          :region                => 'us-west-2',
+          :secret_key            => ENV['AWS_SECRET_ACCESS_KEY'],
+          :size                  => 't1.micro',
+          :ssh_port              => 22,
+          :user                  => 'ec2-user',
+        }
+
+        if @passthrough.has_key?(:ami)
+          @logger.debug(':ami specified, will start new EC2 instance')
+
+          @passthrough[:security_groups] = @passthrough[:security_groups].is_a?(Array) ? @passthrough[:security_groups] : [ @passthrough[:security_groups] ]
+
+          @passthrough = aws_defaults.merge(@passthrough)
+
+          [:ami, :size, :user, :region, :key, :keypair, :key_id, :secret_key, :security_groups].each do |r|
+            raise ArgumentError.new(sprintf('AWS passthrough requires %s specification', r)) if @passthrough[r].nil?
+          end
+
+        elsif @passthrough.has_key?(:instance)
+          @logger.debug(':instance specified, will connect to existing EC2 instance')
+
+          @passthrough = aws_defaults.merge(@passthrough)
+
+          if @passthrough[:type].eql?(:aws)
+            @passthrough[:host] = self.aws_describe_instance(@passthrough[:instance])['dnsName']
+          else
+            @passthrough[:host] = self.find_ssh_elb(true)
+          end
+
+          [:instance, :key, :user, :host].each do |r|
+            raise ArgumentError.new(sprintf('AWS passthrough requires [%s] specification', r)) if @passthrough[r].nil?
+          end
+
+        else
+          raise ArgumentError.new('AWS passthrough requires either :ami or :instance specification')
+        end
+
+        raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:key])
+        @sshkey = @passthrough[:key]
+
+      else
+        raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :aws, :local, :remote', @passthrough[:type]))
       end
 
     else
@@ -158,14 +215,6 @@ class Rouster
         @sshkey = sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']) if ENV['VAGRANT_HOME']
         @sshkey = sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) unless ENV['VAGRANT_HOME']
       end
-    end
-
-    # this is breaking test/functional/test_caching.rb test_ssh_caching (if the VM was not running when the test started)
-    # it slows down object instantiation, but is a good test to ensure the machine name is valid..
-    begin
-      self.status()
-    rescue Rouster::LocalExecutionError => e
-      raise InternalError.new(sprintf('caught non-0 exitcode from status(): %s', e.message))
     end
 
     begin
@@ -288,22 +337,21 @@ class Rouster
 
     if @ssh.nil? or @ssh.closed?
       begin
-        self.connect_ssh_tunnel()
+        res = self.connect_ssh_tunnel()
       rescue Rouster::InternalError, Net::SSH::Disconnect => e
         res = false
       end
 
     end
 
-    if res.nil?
+    if res.nil? or res.is_a?(Net::SSH::Connection::Session)
       begin
         self.run('echo functional test of SSH tunnel')
+          res = true
       rescue
         res = false
       end
     end
-
-    res = true if res.nil?
 
     if @cache_timeout
       @cache[:is_available_via_ssh?] = Hash.new unless @cache[:is_available_via_ssh?].class.eql?(Hash)
@@ -366,18 +414,36 @@ class Rouster
   def connect_ssh_tunnel
 
     if self.is_passthrough?
-      if self.passthrough[:type].eql?(:local)
+      if @passthrough[:type].eql?(:local)
+        @logger.debug("local passthroughs don't need ssh tunnel, shell execs are used")
+        return false
+      elsif @passthrough[:host].nil?
+        @logger.info(sprintf('not attempting to connect, no known hostname for[%s]', self.passthrough))
         return false
       else
-        @logger.debug('opening remote SSH tunnel..')
-        @ssh = Net::SSH.start(
-          @passthrough[:host],
-          @passthrough[:user],
-          :port => @passthrough[:port],
-          :keys => [ @passthrough[:key] ],
-          :paranoid => @passthrough[:paranoid]
-        )
+        ceiling    = @passthrough[:ssh_sleep_ceiling]
+        sleep_time = @passthrough[:ssh_sleep_time]
+
+        0.upto(ceiling) do |try|
+          @logger.debug(sprintf('opening remote SSH tunnel[%s]..', @passthrough[:host]))
+          begin
+            @ssh = Net::SSH.start(
+              @passthrough[:host],
+              @passthrough[:user],
+              :port => @passthrough[:ssh_port],
+              :keys => [ @passthrough[:key] ], # TODO this should be @sshkey
+              :paranoid => false
+            )
+            break
+          rescue => e
+            raise e if try.eql?(ceiling) # eventually want to throw a SocketError
+            @logger.debug(sprintf('failed to open tunnel[%s], trying again in %ss', e.message, sleep_time))
+            sleep sleep_time
+          end
+        end
       end
+      @logger.debug(sprintf('successfully opened SSH tunnel to[%s]', passthrough[:host]))
+
     else
       # not a passthrough, normal connection
       status = self.status()
@@ -393,6 +459,7 @@ class Rouster
           :paranoid => false
         )
       else
+        # TODO will we ever hit this? or will we be thrown first?
         raise InternalError.new(sprintf('VM is not running[%s], unable open SSH tunnel', status))
       end
     end
@@ -422,31 +489,24 @@ class Rouster
       return @ostype
     end
 
-    # TODO switch to file based detection
-    # Ubuntu - /etc/os-release
-    # Solaris - /etc/release
-    # RHEL/CentOS - /etc/redhat-release
-    # OSX - ?
+    files = {
+      :ubuntu  => '/etc/os-release', # debian too
+      :solaris => '/etc/release',
+      :redhat  => '/etc/redhat-release', # centos too
+      :osx     => '/System/Library/CoreServices/SystemVersion.plist',
+    }
 
     res   = nil
-    uname = self.run('uname -a')
 
-    case uname
-      when /Darwin/i
-        res = :osx
-      when /SunOS|Solaris/i
-        res =:solaris
-      when /Ubuntu/i
-        res = :ubuntu
-      when /Debian/i
-        res = :debian
-      else
-        if self.is_file?('/etc/redhat-release')
-          res = :redhat
-        else
-          res = nil
-        end
+    files.each do |os,file|
+      if self.is_file?(file)
+        @logger.debug(sprintf('determined OS to be[%s] via[%s]', os, file))
+        res = os
+        break
+      end
     end
+
+    @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.nil?
 
     @ostype = res
     res
@@ -499,6 +559,7 @@ class Rouster
       raise FileTransferError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
     end
 
+    return true
   end
 
   ##
