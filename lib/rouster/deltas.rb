@@ -587,7 +587,6 @@ class Rouster
         raw.split("\n").each do |line|
           if provider.eql?(:systemv)
             if humanize
-
               if line.match(/^(\w+?)\sis\s(.*)$/)
                 # <service> is <state>
                 name = $1
@@ -606,6 +605,10 @@ class Rouster
                 @logger.debug('triggered supposedly unnecessary regex')
                 # <service> is <state>. whatever
                 res[$1] = $2
+              elsif line.match(/razor_daemon:\s(\w+).*$/)
+                # razor_daemon: running [pid 11325]
+                # razor_daemon: no instances running
+                res['razor_daemon'] = $1.eql?('running') ? $1 : 'stopped'
               elsif line.match(/^(\w+?)\:.*?(\w+)$/)
                 # <service>: whatever <state>
                 res[$1] = $2
@@ -624,7 +627,6 @@ class Rouster
                 next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
                 res[$1] = $2
               end
-
             else
               next if line.match(/^([^\s:]*).*\s(\w*)(?:\.?){3}$/).nil?
               res[$1] = $2
