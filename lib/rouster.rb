@@ -145,6 +145,7 @@ class Rouster
         aws_defaults = {
           :ami                   => 'ami-7bdaa84b', # RHEL 6.5 x64 in us-west-2
           :dns_propagation_sleep => 30, # how much time to wait after ELB creation before attempting to connect
+          :elb_cleanup           => false,
           :key_id                => ENV['AWS_ACCESS_KEY_ID'],
           :min_count             => 1,
           :max_count             => 1,
