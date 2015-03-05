@@ -1,0 +1,9 @@
+doc/*
+.vagrant
+*.box
+*.swp
+*tmp*
+*.gem
+.rakeTasks
+*raiden*
+.project
