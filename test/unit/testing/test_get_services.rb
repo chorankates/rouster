@@ -27,11 +27,12 @@ class TestUnitGetPackages < Test::Unit::TestCase
     end
 
     expected = {
-      'acpid'      => 'running', # acpid (pid  945) is running...
-      'ip6tables'  => 'stopped', # ip6tables: Firewall is not running.
-      'Kdump'      => 'stopped', # Kdump is not operational
-      'mdmonitor'  => 'stopped', # mdmonitor is stopped
-      'netconsole' => 'stopped', # netconsole module not loaded
+      'acpid'        => 'running', # acpid (pid  945) is running...
+      'ip6tables'    => 'stopped', # ip6tables: Firewall is not running.
+      'Kdump'        => 'stopped', # Kdump is not operational
+      'mdmonitor'    => 'stopped', # mdmonitor is stopped
+      'netconsole'   => 'stopped', # netconsole module not loaded
+      'redis-server' => 'running' # redis-server (pid  11285) is running...
     }
 
     expected.each_pair do |service,state|
