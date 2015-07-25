@@ -85,6 +85,25 @@ class TestValidateFileFunctional < Test::Unit::TestCase
 
   end
 
+  def test_not_contains_array_ordering
+    file = '/etc/hosts'
+
+
+    expectation1 = {
+      :ensure      => 'file',
+      :notcontains => [ 'localhost', 'foobar']
+    }
+
+    expectation2 = {
+      :ensure      => 'file',
+      :notcontains => [ 'foobar', 'localhost' ],
+    }
+
+    [expectation1, expectation2].each do |expectation|
+      assert_equal(false, @app.validate_file(file, expectation, false, true))
+    end
+
+  end
 
   def test_happy_symlink
     file = '/tmp/bang'
