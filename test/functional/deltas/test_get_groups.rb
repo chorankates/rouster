@@ -54,7 +54,7 @@ class TestDeltasGetGroups < Test::Unit::TestCase
     if @app.os_type.eql?(:redhat)
       @app.run(sprintf('groupadd %s', new_group))
     else
-      skip('only doing group creation on RHEL hosts')
+      omit('only doing group creation on RHEL hosts')
     end
 
     assert_nothing_raised do

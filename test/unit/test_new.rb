@@ -51,7 +51,7 @@ class TestNew < Test::Unit::TestCase
   def test_default_overrides_aws_passthrough
 
     key = sprintf('%s/.ssh/id_rsa', ENV['HOME'])
-    skip(sprintf('no suitable private key found at [%s]', key)) unless File.file?(key)
+    omit(sprintf('no suitable private key found at [%s]', key)) unless File.file?(key)
 
     @app = Rouster.new(
       :name => 'aws',
