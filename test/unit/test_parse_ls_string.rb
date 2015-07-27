@@ -353,7 +353,7 @@ class TestParseLsString < Test::Unit::TestCase
   def test_suid
     str = "drwxr-sr-x 2 root root 4096 Oct  7 17:09 /etc/nagios/objects\n"
 
-    skip('need to improve (read: implement) actual suid support')
+    omit('need to improve (read: implement) actual suid support')
 
     expectation = {
       :directory?  => true,

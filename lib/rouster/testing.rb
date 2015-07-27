@@ -234,10 +234,10 @@ class Rouster
             local = true
             begin
               self.run(sprintf("grep -c '%s' %s", regex, name))
-            rescue
+            rescue => e
               local = false
             end
-            next if local.false?
+            break if local.false?
           end
         when :notcontains, :doesntcontain # TODO determine the appropriate attribute title here
           v = v.class.eql?(Array) ? v : [v]
@@ -246,10 +246,10 @@ class Rouster
             begin
               self.run(sprintf("grep -c '%s' %s", regex, name))
               local = false
-            rescue
+            rescue => e
               local = true
             end
-            next if local.false?
+            break if local.false?
           end
         when :mode, :permissions
           if properties.nil?

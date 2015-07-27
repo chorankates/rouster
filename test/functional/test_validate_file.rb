@@ -24,8 +24,6 @@ class TestValidateFileFunctional < Test::Unit::TestCase
   end
 
   # TODO tests
-  # :contains string
-  # :contains array
   # :exists vs. :ensure -> what options are supported?
   # :mode vs. :permissions
   # :size
@@ -53,6 +51,57 @@ class TestValidateFileFunctional < Test::Unit::TestCase
     }
 
     assert_equal(true, @app.validate_file(file, expectations, false, true))
+
+  end
+
+  def test_happy_contains_string
+    file         = '/etc/hosts'
+    expectations = {
+      :ensure   => 'file',
+      :contains => 'localhost'
+    }
+
+    assert_equal(true, @app.validate_file(file, expectations, false, true))
+
+  end
+
+  def test_contains_array_ordering
+
+    file = '/etc/hosts'
+
+    expectation1 = {
+      :ensure   => 'file',
+      :contains => [ 'localhost', 'foobar' ]
+    }
+
+    expectation2 = {
+      :ensure => 'file',
+      :contains => [ 'foobar', 'localhost' ]
+    }
+
+    [expectation1, expectation2].each do |expectation|
+      assert_equal(false, @app.validate_file(file, expectation, false, true))
+    end
+
+  end
+
+  def test_not_contains_array_ordering
+    file = '/etc/hosts'
+
+
+    expectation1 = {
+      :ensure      => 'file',
+      :notcontains => [ 'localhost', 'foobar']
+    }
+
+    expectation2 = {
+      :ensure      => 'file',
+      :notcontains => [ 'foobar', 'localhost' ],
+    }
+
+    [expectation1, expectation2].each do |expectation|
+      assert_equal(false, @app.validate_file(file, expectation, false, true))
+    end
 
   end
 
