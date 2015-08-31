@@ -39,7 +39,7 @@ but no real testing has been done to confirm this. Please file issues as appropr
 ```sh
 git clone https://github.com/chorankates/rouster.git
 cd rouster
-bundle install # use :aws to pull in fog
+bundle install # use :aws or :openstack to pull in fog
 ...
 irb(main):001:0> require './path_helper.rb'
 => true
@@ -193,6 +193,51 @@ aws_start_me_up = Rouster.new(
     :key_id          => 'your-aws-key-id',     # defaults to ${AWS_ACCESS_KEY_ID}
     :secret_key      => 'your-aws-secret-key', # defaults to ${AWS_SECRET_ACCESS_KEY}
   }
+)
+
+```
+### instantiation for openstack
+
+Rouster allows connection to Openstack instances.
+
+detailed options in ```examples/openstack_example.rb```
+
+```rb
+require 'rouster'
+require 'plugins/openstack' # brings in fog and some helpers
+
+# control a remote opentack machine
+ostack = Rouster.new(
+  :name      => 'ostack-testing',
+  :passthrough => {
+    :type                => :openstack,
+    :openstack_auth_url  => 'http://hostname.domain.com:5000/v2.0/tokens',
+    :openstack_username  => 'some_console_user',
+    :openstack_tenant    => 'tenant_id',
+    :connection_options  => {},
+    :user                => 'some_ssh_userid', 
+    :keypair             => 'keypair_name',
+    :image_ref           => 'c0340afb-577d-4db6-1234-aebdd6d1838f',
+    :flavor_ref          => '547d9af5-096c-44a3-1234-7d23162556b8',
+    :openstack_api_key   => 'some_api_key',
+    :key                 => '/path/to/private/key.pem',
+  },
+  :sudo => true, # false by default, enabling requires that sshd is not enforcing 'requiretty'
+)
+
+# control a running EC2 instance
+openstack_already_running = Rouster.new(
+  :name      => 'ostack-copy',
+  :passthrough => {
+    :type                => :openstack,
+    :openstack_auth_url  => 'http://hostname.domain.com:5000/v2.0/tokens',
+    :openstack_username  => 'some_console_user',
+    :openstack_tenant    => 'tenant_id',
+    :connection_options  => {},
+    :user                => 'ssh_user',
+    :keypair             => 'keypair_name',
+    :instance            => 'your-instance-id',
+  },
 )
 
 ```
@@ -351,5 +396,19 @@ irb(main):004:0> pp (Rouster.new(:name => 'aws', :passthrough => { :type => :aws
  :find_ssh_elb,
  :instance_data,
 ...
+]
+```
+
+## Openstack methods
+
+```rb
+[
+  :ostack_connect,
+  :ostack_describe_instance,
+  :ostack_destroy,
+  :ostack_get_instance_id,
+  :ostack_get_ip,
+  :ostack_status,
+  :ostack_up
 ]
 ```

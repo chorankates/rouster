@@ -188,7 +188,29 @@ class Rouster
 
         raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:key])
         @sshkey = @passthrough[:key]
+      elsif @passthrough[:type].eql?(:openstack)
+        @logger.debug(sprintf('instantiating an %s passthrough worker', @passthrough[:type]))
+        @sshkey = @passthrough[:key]
 
+        ostack_defaults = {
+          :ssh_port              => 22,
+          :user                  => 'vagrant',
+        }
+	@passthrough = ostack_defaults.merge(@passthrough)
+
+	[:openstack_auth_url, :openstack_username, :openstack_tenant, :openstack_api_key, :connection_options,
+	   :key ].each do |r|
+	    raise ArgumentError.new(sprintf('Openstack passthrough requires %s specification', r)) if @passthrough[r].nil?
+	end
+
+        if @passthrough.has_key?(:image_ref)
+	  @logger.debug('Will start new Nova instance')
+        elsif @passthrough.has_key?(:instance)
+          @logger.debug(':instance specified, will connect to existing OpenStack instance')
+          inst_details = self.ostack_describe_instance(@passthrough[:instance])
+          raise ArgumentError.new(sprintf('No such instance found in OpenStack - %s', @passthrough[:instance])) if inst_details.nil?
+          @passthrough[:host] = self.ostack_describe_instance(@passthrough[:instance]).addresses["NextGen"][0]["addr"]
+        end
       else
         raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :aws, :local, :remote', @passthrough[:type]))
       end
