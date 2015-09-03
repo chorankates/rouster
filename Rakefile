@@ -6,6 +6,10 @@ task :buildgem do
   sh 'gem build rouster.gemspec'
 end
 
+task :clean do
+  sh 'rm /tmp/rouster-*'
+end
+
 task :default do
   sh 'ruby test/basic.rb'
 end
