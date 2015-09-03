@@ -136,6 +136,22 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
 
   end
 
+  def test_non_matching_lines
+    res = nil
+
+    tmp = sprintf('/tmp/rouster.tmp.crontab.%s.%s.%s', user. Time.now.to_i, $$)
+    @app.run("echo 'PATH=/sbin:/usr/bin:/usr/local/bin' > #{tmp}")
+    @app.run("crontab -u #{user} #{tmp}")
+
+    assert_nothing_raised do
+      res = @app.get_crontab('root', false)
+    end
+
+    assert_equal(Hash, res.class)
+    assert(res.has_key?('echo root'))
+
+  end
+
   def teardown
     @app = nil
   end
