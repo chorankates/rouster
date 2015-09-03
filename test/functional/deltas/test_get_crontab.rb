@@ -127,7 +127,7 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
     @app.run("crontab -u #{user} #{tmp}")
 
     assert_nothing_raised do
-      res = @app.get_crontab('puppet')
+      res = @app.get_crontab(user)
     end
 
     assert_equal(Hash, res.class)
@@ -137,14 +137,16 @@ class TestDeltasGetCrontab < Test::Unit::TestCase
   end
 
   def test_non_matching_lines
-    res = nil
+    res  = nil
+    user = 'root'
+    tmp  = sprintf('/tmp/rouster.tmp.crontab.%s.%s.%s', user, Time.now.to_i, $$)
 
-    tmp = sprintf('/tmp/rouster.tmp.crontab.%s.%s.%s', user. Time.now.to_i, $$)
     @app.run("echo 'PATH=/sbin:/usr/bin:/usr/local/bin' > #{tmp}")
+    @app.run("echo '5 5 * * * echo #{user}' >> #{tmp}")
     @app.run("crontab -u #{user} #{tmp}")
 
     assert_nothing_raised do
-      res = @app.get_crontab('root', false)
+      res = @app.get_crontab(user, false)
     end
 
     assert_equal(Hash, res.class)
