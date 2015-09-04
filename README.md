@@ -29,7 +29,7 @@ The first implementation of Rouster was in Perl, called [Salesforce::Vagrant](ht
   * log4r
   * net-scp
   * net-ssh
-  * fog (only if using AWS)
+  * fog (only if using AWS or OpenStack)
 
 Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX (minus rouster/deltas.rb functionality, at least currently),
 but no real testing has been done to confirm this. Please file issues as appropriate.
@@ -39,7 +39,7 @@ but no real testing has been done to confirm this. Please file issues as appropr
 ```sh
 git clone https://github.com/chorankates/rouster.git
 cd rouster
-bundle install # use :aws or :openstack to pull in fog
+bundle install # use :aws to pull in fog
 ...
 irb(main):001:0> require './path_helper.rb'
 => true
@@ -149,13 +149,14 @@ app.destroy()
 
 ### advanced instantiation (passthroughs!)
 
-detailed options in ```examples/passthrough.rb``` and ```examples/aws.rb```
+detailed options in ```examples/passthrough.rb```, ```examples/aws.rb``` and ```examples/openstack.rb```
 
 since Rouster only requires an SSH connection to control a machine, why stop at Vagrant?
 
 ```rb
 require 'rouster'
 require 'rouster/plugins/aws'
+require 'rouster/plugins/openstack'
 
 # control the machine rouster itself is running on
 local = Rouster.new(:name => 'local', :passthrough => { :type => :local } }
@@ -195,18 +196,7 @@ aws_start_me_up = Rouster.new(
   }
 )
 
-```
-### instantiation for openstack
-
-Rouster allows connection to Openstack instances.
-
-detailed options in ```examples/openstack_example.rb```
-
-```rb
-require 'rouster'
-require 'plugins/openstack' # brings in fog and some helpers
-
-# control a remote opentack machine
+# create a remote OpenStack instance
 ostack = Rouster.new(
   :name      => 'ostack-testing',
   :passthrough => {
@@ -214,7 +204,6 @@ ostack = Rouster.new(
     :openstack_auth_url  => 'http://hostname.domain.com:5000/v2.0/tokens',
     :openstack_username  => 'some_console_user',
     :openstack_tenant    => 'tenant_id',
-    :connection_options  => {},
     :user                => 'some_ssh_userid', 
     :keypair             => 'keypair_name',
     :image_ref           => 'c0340afb-577d-4db6-1234-aebdd6d1838f',
@@ -225,7 +214,7 @@ ostack = Rouster.new(
   :sudo => true, # false by default, enabling requires that sshd is not enforcing 'requiretty'
 )
 
-# control a running EC2 instance
+# control a running OpenStack instance
 openstack_already_running = Rouster.new(
   :name      => 'ostack-copy',
   :passthrough => {
@@ -233,7 +222,6 @@ openstack_already_running = Rouster.new(
     :openstack_auth_url  => 'http://hostname.domain.com:5000/v2.0/tokens',
     :openstack_username  => 'some_console_user',
     :openstack_tenant    => 'tenant_id',
-    :connection_options  => {},
     :user                => 'ssh_user',
     :keypair             => 'keypair_name',
     :instance            => 'your-instance-id',

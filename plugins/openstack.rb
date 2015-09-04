@@ -5,7 +5,6 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 
 require 'fog'
 require 'uri'
-require 'pp'
 
 class Rouster
 
@@ -35,13 +34,12 @@ class Rouster
     if status.eql?('running')
       self.passthrough[:instance] = self.ostack_get_instance_id
       @logger.debug(sprintf('Connecting to running instance [%s] while calling ostack_up()', self.passthrough[:instance]))
-      #self.connect_ssh_tunnel
+      self.connect_ssh_tunnel
     else
       server = @nova.servers.create(:name => @name, :flavor_ref => @passthrough[:flavor_ref],
 		     :image_ref => @passthrough[:image_ref], :key_name => @passthrough[:keypair])
       server.wait_for { ready? }
       @instance_data = server
-      pp(@instance_data)
       self.passthrough[:host] = server.addresses["NextGen"][0]["addr"]
       self.passthrough[:instance] = self.ostack_get_instance_id
     end
@@ -54,9 +52,7 @@ class Rouster
 
   def ostack_destroy
     server = self.ostack_describe_instance
-    if server.nil?
-       raise sprintf("instance[%s] not found by destroy()", self.ostack_get_instance_id)
-    end
+    raise sprintf("instance[%s] not found by destroy()", self.ostack_get_instance_id) if server.nil?
     server.destroy
     @instance_data = nil
     self.passthrough.delete(:instance)
@@ -64,28 +60,27 @@ class Rouster
 
   def ostack_describe_instance(instance_id = ostack_get_instance_id)
 
-    #if @cache_timeout
-    #  if @cache.has_key?(:ostack_describe_instance)
-    #    if (Time.now.to_i - @cache[:ostack_describe_instance][:time]) < @cache_timeout
-    #      @logger.debug(sprintf('using cached ostack_describe_instance?[%s] from [%s]', @cache[:ostack_describe_instance][:instance], @cache[:ostack_describe_instance][:time]))
-    #      return @cache[:ostack_describe_instance][:instance]
-    #    end
-    #  end
-    #end
+    if @cache_timeout
+      if @cache.has_key?(:ostack_describe_instance)
+        if (Time.now.to_i - @cache[:ostack_describe_instance][:time]) < @cache_timeout
+          @logger.debug(sprintf('using cached ostack_describe_instance?[%s] from [%s]', @cache[:ostack_describe_instance][:instance], @cache[:ostack_describe_instance][:time]))
+          return @cache[:ostack_describe_instance][:instance]
+        end
+      end
+    end
     # We don't have a instance.
     return nil if instance_id.nil?
     self.ostack_connect
     response = @nova.servers.get(instance_id)
     return nil if response.nil?
-    pp(response)
     @instance_data = response
 
-    #if @cache_timeout
-    #  @cache[:ostack_describe_instance] = Hash.new unless @cache[:aws_describe_instance].class.eql?(Hash)
-    #  @cache[:ostack_describe_instance][:time] = Time.now.to_i
-    #  @cache[:ostack_describe_instance][:instance] = response
-    #  @logger.debug(sprintf('caching is_available_via_ssh?[%s] at [%s]', @cache[:ostack_describe_instance][:instance], @cache[:ostack_decribe_instance][:time]))
-    #end
+    if @cache_timeout
+      @cache[:ostack_describe_instance] = Hash.new unless @cache[:ostack_describe_instance].class.eql?(Hash)
+      @cache[:ostack_describe_instance][:time] = Time.now.to_i
+      @cache[:ostack_describe_instance][:instance] = response
+      @logger.debug(sprintf('caching is_available_via_ssh?[%s] at [%s]', @cache[:ostack_describe_instance][:instance], @cache[:ostack_describe_instance][:time]))
+    end
 
     @instance_data
   end
