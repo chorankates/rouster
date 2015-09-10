@@ -54,7 +54,7 @@ class Rouster
       elsif (self.passthrough[:type].equal?(:openstack))
          self.ostack_up()
       else
-         raise InternalError.new(sprintf('failed to execute up(), unsupported passthrough type %s', self.passthrough[:type]))
+         self.vagrant(sprintf('up %s', @name))
       end
     else
       self.vagrant(sprintf('up %s', @name))

@@ -195,15 +195,15 @@ class Rouster
         ostack_defaults = {
           :ssh_port => 22,
         }
-	@passthrough = ostack_defaults.merge(@passthrough)
+        @passthrough = ostack_defaults.merge(@passthrough)
 
-	[:openstack_auth_url, :openstack_username, :openstack_tenant, :openstack_api_key,
-	   :key ].each do |r|
-	    raise ArgumentError.new(sprintf('OpenStack passthrough requires %s specification', r)) if @passthrough[r].nil?
-	end
+        [:openstack_auth_url, :openstack_username, :openstack_tenant, :openstack_api_key,
+          :key ].each do |r|
+            raise ArgumentError.new(sprintf('OpenStack passthrough requires %s specification', r)) if @passthrough[r].nil?
+end
 
         if @passthrough.has_key?(:image_ref)
-	  @logger.debug(':image_ref specified, will start new Nova instance')
+          @logger.debug(':image_ref specified, will start new Nova instance')
         elsif @passthrough.has_key?(:instance)
           @logger.debug(':instance specified, will connect to existing OpenStack instance')
           inst_details = self.ostack_describe_instance(@passthrough[:instance])

@@ -37,7 +37,7 @@ class Rouster
       self.connect_ssh_tunnel
     else
       server = @nova.servers.create(:name => @name, :flavor_ref => @passthrough[:flavor_ref],
-		     :image_ref => @passthrough[:image_ref], :key_name => @passthrough[:keypair])
+                  :image_ref => @passthrough[:image_ref], :key_name => @passthrough[:keypair])
       server.wait_for { ready? }
       @instance_data = server
       self.passthrough[:host] = server.addresses["NextGen"][0]["addr"]
