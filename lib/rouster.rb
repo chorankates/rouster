@@ -200,7 +200,7 @@ class Rouster
         [:openstack_auth_url, :openstack_username, :openstack_tenant, :openstack_api_key,
           :key ].each do |r|
             raise ArgumentError.new(sprintf('OpenStack passthrough requires %s specification', r)) if @passthrough[r].nil?
-end
+        end
 
         if @passthrough.has_key?(:image_ref)
           @logger.debug(':image_ref specified, will start new Nova instance')
