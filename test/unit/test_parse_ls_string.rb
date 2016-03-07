@@ -32,7 +32,10 @@ class TestParseLsString < Test::Unit::TestCase
       :symlink?    => false,
       :executable? => [false, false, false],
       :readable?   => [true, true, true],
-      :writeable?  => [false, false, false]
+      :writeable?  => [false, false, false],
+
+      :sticky? => [false, false, false],
+      :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -54,7 +57,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [true,  false, false],
-        :writeable?  => [false, false, false]
+        :writeable?  => [false, false, false],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -76,7 +82,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, true, false],
-        :writeable?  => [false, false, false]
+        :writeable?  => [false, false, false],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -98,7 +107,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, false, true],
-        :writeable?  => [false, false, false]
+        :writeable?  => [false, false, false],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -120,7 +132,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [true, true, true],
         :readable?   => [false, false, false],
-        :writeable?  => [false, false, false]
+        :writeable?  => [false, false, false],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -142,7 +157,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [true, false, false],
         :readable?   => [false, false, false],
-        :writeable?  => [false, false, false]
+        :writeable?  => [false, false, false],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -164,7 +182,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, true, false],
         :readable?   => [false, false, false],
-        :writeable?  => [false, false, false]
+        :writeable?  => [false, false, false],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -186,7 +207,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, false, true],
         :readable?   => [false, false, false],
-        :writeable?  => [false, false, false]
+        :writeable?  => [false, false, false],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -208,7 +232,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, false, false],
-        :writeable?  => [true, true, true]
+        :writeable?  => [true, true, true],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -230,7 +257,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, false, false],
-        :writeable?  => [true, false, false]
+        :writeable?  => [true, false, false],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -252,7 +282,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, false, false],
-        :writeable?  => [false, true, false]
+        :writeable?  => [false, true, false],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -274,7 +307,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [false, false, false],
-        :writeable?  => [false, false, true]
+        :writeable?  => [false, false, true],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -296,7 +332,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, false, true],
         :readable?   => [false, false, true],
-        :writeable?  => [false, false, true]
+        :writeable?  => [false, false, true],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -318,7 +357,10 @@ class TestParseLsString < Test::Unit::TestCase
         :symlink?    => false,
         :executable? => [false, false, false],
         :readable?   => [true, true, true],
-        :writeable?  => [true, false, false]
+        :writeable?  => [true, false, false],
+
+        :sticky? => [false, false, false],
+        :suid?   => [false, false, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -350,23 +392,24 @@ class TestParseLsString < Test::Unit::TestCase
 
   end
 
-  def test_suid
-    str = "drwxr-sr-x 2 root root 4096 Oct  7 17:09 /etc/nagios/objects\n"
-
-    omit('need to improve (read: implement) actual suid support')
-
+  def test_non_executable_suid
+    # if G is suid, always S
+    str = "drwxr-Sr-- 2 root root 4096 Oct  7 17:09 /etc/nagios/objects\n"
     expectation = {
       :directory?  => true,
       :file?       => false,
-      :mode        => '4755', # right now, we return '0755', if we detect an 's', do we just +4000?
+      :mode        => '2744',
       :name        => '/etc/nagios/objects',
       :owner       => 'root',
       :group       => 'root',
       :size        => '4096',
       :symlink?    => false,
-      :executable? => [true, true, true], # right now, we return [true,false,true]
+      :executable? => [true, true, false],
       :readable?   => [true, true, true],
       :writeable?  => [true, false, false],
+
+      :sticky? => [false, false, false],
+      :suid?   => [false, true, false],
     }
 
     res = @app.exposed_parse_ls_string(str)
@@ -374,6 +417,83 @@ class TestParseLsString < Test::Unit::TestCase
     assert_equal(expectation, res)
 
   end
+
+  def test_executable_suid
+    str = "drwSr-xr-x 2 root root 4096 Oct  7 17:09 /etc/nagios/objects\n"
+
+    expectation = {
+      :directory?  => true,
+      :file?       => false,
+      :mode        => '1755',
+      :name        => '/etc/nagios/objects',
+      :owner       => 'root',
+      :group       => 'root',
+      :size        => '4096',
+      :symlink?    => false,
+      :executable? => [true, true, true],
+      :readable?   => [true, true, true],
+      :writeable?  => [true, false, false],
+
+      :sticky? => [false, false, false],
+      :suid?   => [true, false, false],
+    }
+
+    res = @app.exposed_parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
+  def test_sticky_bit_file
+    str = "-rw-r--r-T 1 root root 7 Oct 7 17:09 /etc/sticky-file\n"
+
+    expectation = {
+      :directory?  => false,
+      :file?       => true,
+      :mode        => '1644',
+      :name        => '/etc/sticky-file',
+      :owner       => 'root',
+      :group       => 'root',
+      :size        => '7',
+      :symlink?    => false,
+      :executable? => [false, false, false],
+      :readable?   => [true, true, true],
+      :writeable?  => [true, false, false],
+
+      :sticky? => [true, true, true],
+      :suid?   => [false, false, false],
+    }
+
+    res = @app.exposed_parse_ls_string(str)
+
+    assert_equal(expectation, res)
+
+  end
+
+  def test_sticky_bit_dir
+    str = "drwxr-xr-t 2 root root 4096 Oct  7 17:09 /etc/sticky\n"
+
+    expectation = {
+      :directory?  => true,
+      :file?       => false,
+      :mode        => '1755',
+      :name        => '/etc/sticky',
+      :owner       => 'root',
+      :group       => 'root',
+      :size        => '4096',
+      :symlink?    => false,
+      :executable? => [true, true, false],
+      :readable?   => [true, true, true],
+      :writeable?  => [true, false, false],
+
+      :sticky? => [true, true, true],
+      :suid?   => [false, false, false],
+    }
+
+    res = @app.exposed_parse_ls_string(str)
+
+    assert_equal(expectation, res)
+  end
+
 
   def teardown
     # noop

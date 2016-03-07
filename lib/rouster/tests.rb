@@ -571,6 +571,10 @@ class Rouster
     modes = [ tokens[0][1..3], tokens[0][4..6], tokens[0][7..9] ]
     mode  = 0
 
+    mode += 1 if ['s', 'S'].include?(tokens[0][3].chr)
+    mode += 2 if ['s', 'S'].include?(tokens[0][6].chr)
+    mode += 1 if ['t', 'T'].include?(tokens[0][9].chr)
+
     # can't use modes.size here (or could, but would have to -1)
     for i in 0..2 do
       value   = 0
@@ -583,10 +587,9 @@ class Rouster
             value += 4
           when 'w'
             value += 2
-          when 'x', 't', 's'
-            # is 't' / 's' really right here? copying Salesforce::Vagrant
+          when 'x', 'S'
             value += 1
-          when '-'
+          when '-', 's', 't', 'T'
             # noop
           else
             raise InternalError.new(sprintf('unexpected character[%s] in string[%s]', chr, string))
@@ -605,9 +608,22 @@ class Rouster
     res[:directory?]  = tokens[0][0].chr.eql?('d')
     res[:file?]       = ! res[:directory?]
     res[:symlink?]    = tokens[0][0].chr.eql?('l')
-    res[:executable?] = [ tokens[0][3].chr.eql?('x'), tokens[0][6].chr.eql?('x'), tokens[0][9].chr.eql?('x') || tokens[0][9].chr.eql?('t') ]
+    res[:executable?] = [ tokens[0][3].chr.eql?('x') || tokens[0][3].chr.eql?('S'), tokens[0][6].chr.eql?('x') || tokens[0][6].chr.eql?('S'), tokens[0][9].chr.eql?('x') ]
     res[:writeable?]  = [ tokens[0][2].chr.eql?('w'), tokens[0][5].chr.eql?('w'), tokens[0][8].chr.eql?('w') ]
     res[:readable?]   = [ tokens[0][1].chr.eql?('r'), tokens[0][4].chr.eql?('r'), tokens[0][7].chr.eql?('r') ]
+
+
+    res[:sticky?] = [
+      ['t', 'T'].include?(tokens[0][9].chr),
+      ['t', 'T'].include?(tokens[0][9].chr),
+      ['t', 'T'].include?(tokens[0][9].chr),
+    ] # this is a little misleading, it isn't user/group/owner specific
+
+    res[:suid?]   = [
+      ['s', 'S'].include?(tokens[0][3].chr),
+      ['s', 'S'].include?(tokens[0][6].chr),
+      ['s', 'S'].include?(tokens[0][9].chr),
+    ]
 
     # TODO better here: this does not support files/dirs with spaces
     if res[:symlink?]
