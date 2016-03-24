@@ -360,7 +360,7 @@ class Rouster
     if @ssh.nil? or @ssh.closed?
       begin
         res = self.connect_ssh_tunnel()
-      rescue Rouster::InternalError, Net::SSH::Disconnect => e
+      rescue Rouster::InternalError, Net::SSH::Disconnect. Errno::ECONNREFUSED => e
         res = false
       end
 
@@ -640,7 +640,7 @@ class Rouster
 
     if wait
       inc = wait.to_i / 10
-      0..wait.each do |e|
+      0.upto(10) do |e|
         @logger.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
         return true if self.is_available_via_ssh?()
         sleep inc
