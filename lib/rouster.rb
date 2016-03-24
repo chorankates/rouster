@@ -642,10 +642,7 @@ class Rouster
       inc = wait.to_i / 10
       0.upto(10) do |e|
         @logger.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
-       begin
-         return true if self.is_available_via_ssh?()
-       rescue => ex
-       end
+       return true if self.is_available_via_ssh?()
        sleep inc
       end
 
