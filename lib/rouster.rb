@@ -360,7 +360,7 @@ class Rouster
     if @ssh.nil? or @ssh.closed?
       begin
         res = self.connect_ssh_tunnel()
-      rescue Rouster::InternalError, Net::SSH::Disconnect => e
+      rescue Rouster::InternalError, Net::SSH::Disconnect. Errno::ECONNREFUSED => e
         res = false
       end
 
