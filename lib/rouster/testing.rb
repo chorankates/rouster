@@ -581,7 +581,7 @@ class Rouster
 
         when :address
           lr = Array.new
-          if ports[expectations[:protocol]][number].has_key?(:address)
+          if ports[expectations[:protocol]][number]
             addresses = ports[expectations[:protocol]][number][:address]
             addresses.each_key do |address|
               lr.push(address.eql?(v.to_s))
