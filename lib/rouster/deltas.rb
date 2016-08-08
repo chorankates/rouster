@@ -479,7 +479,12 @@ class Rouster
     }
 
     if type.eql?(:all)
-      type = commands[os].keys
+      if commands.has_key?(os)
+        type = commands[os].keys
+      else
+        # unknown OS specified, using this to catch the exception at the end of the block
+        type = :invalid
+      end
     end
 
     type = type.class.eql?(Array) ? type : [ type ]
@@ -665,9 +670,10 @@ class Rouster
           end
 
         end
-
-        # end of os casing
+      else
+        raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os))
       end
+
 
       # end of provider processing
     end
