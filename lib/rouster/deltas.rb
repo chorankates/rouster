@@ -476,15 +476,14 @@ class Rouster
         :systemv => '/sbin/service --status-all',
         :upstart => 'initctl list',
       },
+
+      :invalid => {
+        :invalid => 'invalid',
+      },
     }
 
     if type.eql?(:all)
-      if commands.has_key?(os)
-        type = commands[os].keys
-      else
-        # unknown OS specified, using this to catch the exception at the end of the block
-        type = :invalid
-      end
+      type = commands[os].keys
     end
 
     type = type.class.eql?(Array) ? type : [ type ]

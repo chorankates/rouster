@@ -518,9 +518,9 @@ class Rouster
       :osx     => '/System/Library/CoreServices/SystemVersion.plist',
     }
 
-    res   = nil
+    res = :invalid
 
-    files.each do |os,file|
+    files.each do |os, file|
       if self.is_file?(file)
         @logger.debug(sprintf('determined OS to be[%s] via[%s]', os, file))
         res = os
