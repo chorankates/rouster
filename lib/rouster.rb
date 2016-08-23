@@ -12,7 +12,7 @@ require 'rouster/vagrant'
 class Rouster
 
   # sporadically updated version number
-  VERSION = 0.61
+  VERSION = 0.62
 
   # custom exceptions -- what else do we want them to include/do?
   class ArgumentError        < StandardError; end # thrown by methods that take parameters from users
@@ -188,9 +188,30 @@ class Rouster
 
         raise ArgumentError.new('AWS passthrough requires valid :sshkey specification, should be path to private half') unless File.file?(@passthrough[:key])
         @sshkey = @passthrough[:key]
+      elsif @passthrough[:type].eql?(:openstack)
+        @logger.debug(sprintf('instantiating an %s passthrough worker', @passthrough[:type]))
+        @sshkey = @passthrough[:key]
 
+        ostack_defaults = {
+          :ssh_port => 22,
+        }
+        @passthrough = ostack_defaults.merge(@passthrough)
+
+        [:openstack_auth_url, :openstack_username, :openstack_tenant, :openstack_api_key,
+          :key ].each do |r|
+            raise ArgumentError.new(sprintf('OpenStack passthrough requires %s specification', r)) if @passthrough[r].nil?
+        end
+
+        if @passthrough.has_key?(:image_ref)
+          @logger.debug(':image_ref specified, will start new Nova instance')
+        elsif @passthrough.has_key?(:instance)
+          @logger.debug(':instance specified, will connect to existing OpenStack instance')
+          inst_details = self.ostack_describe_instance(@passthrough[:instance])
+          raise ArgumentError.new(sprintf('No such instance found in OpenStack - %s', @passthrough[:instance])) if inst_details.nil?
+          @passthrough[:host] = inst_details.addresses["NextGen"][0]["addr"]
+        end
       else
-        raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :aws, :local, :remote', @passthrough[:type]))
+        raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :aws, :openstack, :local, :remote', @passthrough[:type]))
       end
 
     else
@@ -339,7 +360,7 @@ class Rouster
     if @ssh.nil? or @ssh.closed?
       begin
         res = self.connect_ssh_tunnel()
-      rescue Rouster::InternalError, Net::SSH::Disconnect => e
+      rescue Rouster::InternalError, Net::SSH::Disconnect, Errno::ECONNREFUSED => e
         res = false
       end
 
@@ -619,7 +640,7 @@ class Rouster
 
     if wait
       inc = wait.to_i / 10
-      0..wait.each do |e|
+      0.upto(9) do |e|
         @logger.debug(sprintf('waiting for reboot: round[%s], step[%s], total[%s]', e, inc, wait))
         return true if self.is_available_via_ssh?()
         sleep inc

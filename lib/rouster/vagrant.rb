@@ -48,8 +48,14 @@ class Rouster
     @logger.info('up()')
 
     # don't like putting this here, may be refactored
-    if self.is_passthrough? and (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
-      self.aws_up()
+    if self.is_passthrough? 
+      if (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
+         self.aws_up()
+      elsif (self.passthrough[:type].equal?(:openstack))
+         self.ostack_up()
+      else
+         self.vagrant(sprintf('up %s', @name))
+      end
     else
       self.vagrant(sprintf('up %s', @name))
     end
@@ -81,8 +87,14 @@ class Rouster
     @logger.info('destroy()')
 
     # don't like putting this here, may be refactored
-    if self.is_passthrough? and (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
-      self.aws_destroy()
+    if self.is_passthrough? 
+      if (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
+        self.aws_destroy()
+      elsif self.is_passthrough? and self.passthrough[:type].equal?(:openstack)
+        self.ostack_destroy()
+      else
+        raise InternalError.new(sprintf('failed to execute destroy(), unsupported passthrough type %s', self.passthrough[:type]))
+      end
     else
       self.vagrant(sprintf('destroy -f %s', @name))
     end
@@ -109,8 +121,14 @@ class Rouster
 
     # don't like putting this here, may be refactored
     @logger.info('status()')
-    if self.is_passthrough? and (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
-      status = self.aws_status()
+    if self.is_passthrough? 
+      if (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
+        status = self.aws_status()
+      elsif self.passthrough[:type].equal?(:openstack)
+        status = self.ostack_status()
+      else
+        raise InternalError.new(sprintf('failed to execute status(), unsupported passthrough type %s', self.passthrough[:type]))
+      end
     else
       self.vagrant(sprintf('status %s', @name))
 
@@ -273,6 +291,5 @@ class Rouster
       raise ExternalError.new('sandbox plugin not installed')
     end
   end
-
 
 end

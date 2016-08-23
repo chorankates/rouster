@@ -29,7 +29,7 @@ The first implementation of Rouster was in Perl, called [Salesforce::Vagrant](ht
   * log4r
   * net-scp
   * net-ssh
-  * fog (only if using AWS)
+  * fog (only if using AWS or OpenStack)
 
 Note: Rouster should work exactly the same on Windows as it does on \*nix and OSX (minus rouster/deltas.rb functionality, at least currently),
 but no real testing has been done to confirm this. Please file issues as appropriate.
@@ -149,13 +149,14 @@ app.destroy()
 
 ### advanced instantiation (passthroughs!)
 
-detailed options in ```examples/passthrough.rb``` and ```examples/aws.rb```
+detailed options in ```examples/passthrough.rb```, ```examples/aws.rb``` and ```examples/openstack.rb```
 
 since Rouster only requires an SSH connection to control a machine, why stop at Vagrant?
 
 ```rb
 require 'rouster'
 require 'rouster/plugins/aws'
+require 'rouster/plugins/openstack'
 
 # control the machine rouster itself is running on
 local = Rouster.new(:name => 'local', :passthrough => { :type => :local } }
@@ -193,6 +194,38 @@ aws_start_me_up = Rouster.new(
     :key_id          => 'your-aws-key-id',     # defaults to ${AWS_ACCESS_KEY_ID}
     :secret_key      => 'your-aws-secret-key', # defaults to ${AWS_SECRET_ACCESS_KEY}
   }
+)
+
+# create a remote OpenStack instance
+ostack = Rouster.new(
+  :name      => 'ostack-testing',
+  :passthrough => {
+    :type                => :openstack,
+    :openstack_auth_url  => 'http://hostname.domain.com:5000/v2.0/tokens',
+    :openstack_username  => 'some_console_user',
+    :openstack_tenant    => 'tenant_id',
+    :user                => 'some_ssh_userid', 
+    :keypair             => 'keypair_name',
+    :image_ref           => 'c0340afb-577d-4db6-1234-aebdd6d1838f',
+    :flavor_ref          => '547d9af5-096c-44a3-1234-7d23162556b8',
+    :openstack_api_key   => 'some_api_key',
+    :key                 => '/path/to/private/key.pem',
+  },
+  :sudo => true, # false by default, enabling requires that sshd is not enforcing 'requiretty'
+)
+
+# control a running OpenStack instance
+openstack_already_running = Rouster.new(
+  :name      => 'ostack-copy',
+  :passthrough => {
+    :type                => :openstack,
+    :openstack_auth_url  => 'http://hostname.domain.com:5000/v2.0/tokens',
+    :openstack_username  => 'some_console_user',
+    :openstack_tenant    => 'tenant_id',
+    :user                => 'ssh_user',
+    :keypair             => 'keypair_name',
+    :instance            => 'your-instance-id',
+  },
 )
 
 ```
@@ -351,5 +384,19 @@ irb(main):004:0> pp (Rouster.new(:name => 'aws', :passthrough => { :type => :aws
  :find_ssh_elb,
  :instance_data,
 ...
+]
+```
+
+## Openstack methods
+
+```rb
+[
+  :ostack_connect,
+  :ostack_describe_instance,
+  :ostack_destroy,
+  :ostack_get_instance_id,
+  :ostack_get_ip,
+  :ostack_status,
+  :ostack_up
 ]
 ```

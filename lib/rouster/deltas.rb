@@ -70,6 +70,12 @@ class Rouster
         next if line.match(/^#|^\s+$/)
         elements = line.split("\s")
 
+        if elements.size < 5
+          # this is usually (only?) caused by ENV_VARIABLE=VALUE directives
+          @logger.debug(sprintf('line [%s] did not match format expectations for a crontab entry, skipping', line))
+          next
+        end
+
         command = elements[5..elements.size].join(' ')
 
         res[u] ||= Hash.new
