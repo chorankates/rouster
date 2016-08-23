@@ -24,7 +24,7 @@ class Rouster
   class PassthroughError     < StandardError; end # thrown by anything Passthrough related (mostly vagrant.rb)
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_accessor :facts
+  attr_accessor :facts, :last_puppet_run
   attr_reader :cache, :cache_timeout, :deltas, :exitcode, :logger, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
 
   ##

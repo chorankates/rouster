@@ -1,0 +1,61 @@
+[0;36mDebug: Creating default schedules[0m
+[0;36mDebug: Using settings: adding file resource 'clientyamldir': 'File[/home/vagrant/.puppet/var/client_yaml]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :mode=>"750", :path=>"/home/vagrant/.puppet/var/client_yaml"}'[0m
+[0;36mDebug: Using settings: adding file resource 'lastrunreport': 'File[/home/vagrant/.puppet/var/state/last_run_report.yaml]{:loglevel=>:debug, :links=>:follow, :ensure=>:file, :backup=>false, :mode=>"640", :path=>"/home/vagrant/.puppet/var/state/last_run_report.yaml"}'[0m
+[0;36mDebug: Using settings: adding file resource 'confdir': 'File[/home/vagrant/.puppet]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :path=>"/home/vagrant/.puppet"}'[0m
+[0;36mDebug: Using settings: adding file resource 'ssldir': 'File[/home/vagrant/.puppet/ssl]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :mode=>"771", :path=>"/home/vagrant/.puppet/ssl"}'[0m
+[0;36mDebug: Using settings: adding file resource 'privatekeydir': 'File[/home/vagrant/.puppet/ssl/private_keys]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :mode=>"750", :path=>"/home/vagrant/.puppet/ssl/private_keys"}'[0m
+[0;36mDebug: Using settings: adding file resource 'client_datadir': 'File[/home/vagrant/.puppet/var/client_data]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :mode=>"750", :path=>"/home/vagrant/.puppet/var/client_data"}'[0m
+[0;36mDebug: Using settings: adding file resource 'statedir': 'File[/home/vagrant/.puppet/var/state]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :mode=>"1755", :path=>"/home/vagrant/.puppet/var/state"}'[0m
+[0;36mDebug: Using settings: adding file resource 'vardir': 'File[/home/vagrant/.puppet/var]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :path=>"/home/vagrant/.puppet/var"}'[0m
+[0;36mDebug: Using settings: adding file resource 'libdir': 'File[/home/vagrant/.puppet/var/lib]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :path=>"/home/vagrant/.puppet/var/lib"}'[0m
+[0;36mDebug: Using settings: adding file resource 'publickeydir': 'File[/home/vagrant/.puppet/ssl/public_keys]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :path=>"/home/vagrant/.puppet/ssl/public_keys"}'[0m
+[0;36mDebug: Using settings: adding file resource 'rundir': 'File[/home/vagrant/.puppet/var/run]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :mode=>"755", :path=>"/home/vagrant/.puppet/var/run"}'[0m
+[0;36mDebug: Using settings: adding file resource 'privatedir': 'File[/home/vagrant/.puppet/ssl/private]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :mode=>"750", :path=>"/home/vagrant/.puppet/ssl/private"}'[0m
+[0;36mDebug: Using settings: adding file resource 'statefile': 'File[/home/vagrant/.puppet/var/state/state.yaml]{:loglevel=>:debug, :links=>:follow, :ensure=>:file, :backup=>false, :mode=>"660", :path=>"/home/vagrant/.puppet/var/state/state.yaml"}'[0m
+[0;36mDebug: Using settings: adding file resource 'clientbucketdir': 'File[/home/vagrant/.puppet/var/clientbucket]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :mode=>"750", :path=>"/home/vagrant/.puppet/var/clientbucket"}'[0m
+[0;36mDebug: Using settings: adding file resource 'lastrunfile': 'File[/home/vagrant/.puppet/var/state/last_run_summary.yaml]{:loglevel=>:debug, :links=>:follow, :ensure=>:file, :backup=>false, :mode=>"644", :path=>"/home/vagrant/.puppet/var/state/last_run_summary.yaml"}'[0m
+[0;36mDebug: Using settings: adding file resource 'logdir': 'File[/home/vagrant/.puppet/var/log]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :mode=>"750", :path=>"/home/vagrant/.puppet/var/log"}'[0m
+[0;36mDebug: Using settings: adding file resource 'certdir': 'File[/home/vagrant/.puppet/ssl/certs]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :path=>"/home/vagrant/.puppet/ssl/certs"}'[0m
+[0;36mDebug: Using settings: adding file resource 'graphdir': 'File[/home/vagrant/.puppet/var/state/graphs]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :path=>"/home/vagrant/.puppet/var/state/graphs"}'[0m
+[0;36mDebug: Using settings: adding file resource 'requestdir': 'File[/home/vagrant/.puppet/ssl/certificate_requests]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :path=>"/home/vagrant/.puppet/ssl/certificate_requests"}'[0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var]: Autorequiring File[/home/vagrant/.puppet][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/ssl/certs]: Autorequiring File[/home/vagrant/.puppet/ssl][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/state]: Autorequiring File[/home/vagrant/.puppet/var][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/state/graphs]: Autorequiring File[/home/vagrant/.puppet/var/state][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/state/last_run_report.yaml]: Autorequiring File[/home/vagrant/.puppet/var/state][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/run]: Autorequiring File[/home/vagrant/.puppet/var][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/ssl/certificate_requests]: Autorequiring File[/home/vagrant/.puppet/ssl][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/ssl]: Autorequiring File[/home/vagrant/.puppet][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/state/last_run_summary.yaml]: Autorequiring File[/home/vagrant/.puppet/var/state][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/ssl/private_keys]: Autorequiring File[/home/vagrant/.puppet/ssl][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/client_data]: Autorequiring File[/home/vagrant/.puppet/var][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/client_yaml]: Autorequiring File[/home/vagrant/.puppet/var][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/clientbucket]: Autorequiring File[/home/vagrant/.puppet/var][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/ssl/private]: Autorequiring File[/home/vagrant/.puppet/ssl][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/ssl/public_keys]: Autorequiring File[/home/vagrant/.puppet/ssl][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/log]: Autorequiring File[/home/vagrant/.puppet/var][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/state/state.yaml]: Autorequiring File[/home/vagrant/.puppet/var/state][0m
+[0;36mDebug: /File[/home/vagrant/.puppet/var/lib]: Autorequiring File[/home/vagrant/.puppet/var][0m
+[0;36mDebug: Finishing transaction 69859761088440[0m
+[0;36mDebug: Loaded state in 0.00 seconds[0m
+[0;36mDebug: Loaded state in 0.00 seconds[0m
+[0;32mInfo: Applying configuration version '1427151219'[0m
+[0;36mDebug: /Schedule[daily]: Skipping device resources because running on a host[0m
+[0;36mDebug: /Schedule[monthly]: Skipping device resources because running on a host[0m
+[0;36mDebug: /Schedule[hourly]: Skipping device resources because running on a host[0m
+[0;36mDebug: Exec[foo](provider=posix): Executing '/bin/echo foo'[0m
+[0;36mDebug: Executing '/bin/echo foo'[0m
+[mNotice: /Stage[main]//Exec[foo]/returns: executed successfully[0m
+[0;36mDebug: /Stage[main]//Exec[foo]: The container Class[Main] will propagate my refresh event[0m
+[0;36mDebug: /Schedule[never]: Skipping device resources because running on a host[0m
+[0;36mDebug: /Schedule[weekly]: Skipping device resources because running on a host[0m
+[0;36mDebug: /Schedule[puppet]: Skipping device resources because running on a host[0m
+[0;36mDebug: Class[Main]: The container Stage[main] will propagate my refresh event[0m
+[0;36mDebug: Finishing transaction 69859760392420[0m
+[0;36mDebug: Storing state[0m
+[0;36mDebug: Stored state in 0.01 seconds[0m
+[mNotice: Finished catalog run in 0.10 seconds[0m
+[0;36mDebug: Using settings: adding file resource 'rrddir': 'File[/home/vagrant/.puppet/var/rrd]{:loglevel=>:debug, :links=>:follow, :ensure=>:directory, :backup=>false, :mode=>"750", :path=>"/home/vagrant/.puppet/var/rrd"}'[0m
+[0;36mDebug: Finishing transaction 69859760156920[0m
+[0;36mDebug: Received report to process from centos6.internal.salesforce.com[0m
+[0;36mDebug: Processing report from centos6.internal.salesforce.com with processor Puppet::Reports::Store[0m
