@@ -24,7 +24,7 @@ class Rouster
   class PassthroughError     < StandardError; end # thrown by anything Passthrough related (mostly vagrant.rb)
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_accessor :facts
+  attr_accessor :facts, :last_puppet_run
   attr_reader :cache, :cache_timeout, :deltas, :exitcode, :logger, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
 
   ##
@@ -518,9 +518,9 @@ class Rouster
       :osx     => '/System/Library/CoreServices/SystemVersion.plist',
     }
 
-    res   = nil
+    res = :invalid
 
-    files.each do |os,file|
+    files.each do |os, file|
       if self.is_file?(file)
         @logger.debug(sprintf('determined OS to be[%s] via[%s]', os, file))
         res = os
@@ -528,7 +528,7 @@ class Rouster
       end
     end
 
-    @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.nil?
+    @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.eql?(:invalid)
 
     @ostype = res
     res

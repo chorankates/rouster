@@ -47,6 +47,27 @@ class Rouster
   end
 
   ##
+  # did_exec_fire?
+  #
+  # given the name of an Exec resource, parse the output from the most recent puppet run
+  # and return true/false based on whether the exec in question was fired
+  def did_exec_fire?(resource_name, puppet_run = self.last_puppet_run)
+    # Notice: /Stage[main]//Exec[foo]/returns: executed successfully
+    # Error: /Stage[main]//Exec[bar]/returns: change from notrun to 0 failed: Could not find command '/bin/bar'
+    matchers = [
+      'Notice: /Stage\[.*\]//Exec\[%s\]/returns: executed successfully',
+      'Error: /Stage\[.*\]//Exec\[%s\]/returns: change from notrun to 0 failed'
+    ]
+
+    matchers.each do |m|
+      matcher = sprintf(m, resource_name)
+      return true if puppet_run.match(matcher)
+    end
+
+    false
+  end
+
+  ##
   # get_catalog
   #
   # not completely implemented method to get a compiled catalog about a node (based on its facts) from a puppetmaster
@@ -468,7 +489,7 @@ class Rouster
           cmd << sprintf(' %s', opts[:additional_options]) unless opts[:additional_options].nil?
           cmd << sprintf(' %s', file)
 
-          self.run(cmd, opts[:expected_exitcode])
+          self.last_puppet_run = self.run(cmd, opts[:expected_exitcode])
         end
       end
 
@@ -490,7 +511,7 @@ class Rouster
             cmd << sprintf(' %s', opts[:additional_options]) unless opts[:additional_options].nil?
             cmd << sprintf(' %s', m)
 
-            self.run(cmd, opts[:expected_exitcode])
+            self.last_puppet_run = self.run(cmd, opts[:expected_exitcode])
           end
 
         end
