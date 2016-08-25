@@ -528,7 +528,7 @@ class Rouster
       end
     end
 
-    @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.nil?
+    @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.eql?(:invalid)
 
     @ostype = res
     res
