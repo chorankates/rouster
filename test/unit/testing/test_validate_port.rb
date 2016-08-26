@@ -91,6 +91,11 @@ class TestValidatePort < Test::Unit::TestCase
 
   end
 
+  def test_negative_port_dne
+    assert_equal(false, @app.validate_port(4567, { :ensure => true, :address => '*' }))
+    assert_equal(false, @app.validate_port(4567, { :ensure => true, :address => '127.0.0.1' }))
+  end
+
   def teardown
     # noop
   end

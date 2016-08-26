@@ -581,13 +581,17 @@ class Rouster
 
         when :address
           lr = Array.new
-          addresses = ports[expectations[:protocol]][number][:address]
-          addresses.each_key do |address|
-            lr.push(address.eql?(v.to_s))
+          if ports[expectations[:protocol]][number]
+            addresses = ports[expectations[:protocol]][number][:address]
+            addresses.each_key do |address|
+              lr.push(address.eql?(v.to_s))
+            end
+
+            local = ! lr.find{|e| e.true? }.nil? # this feels jankity
+          else
+            # this port isn't open in the first place, won't match any addresses we expect to see it on
+            local = false
           end
-
-          local = ! lr.find{|e| e.true? }.nil? # this feels jankity
-
         else
           raise InternalError.new(sprintf('unknown expectation[%s / %s]', k, v))
       end
