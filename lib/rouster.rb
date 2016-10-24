@@ -12,7 +12,7 @@ require 'rouster/vagrant'
 class Rouster
 
   # sporadically updated version number
-  VERSION = 0.62
+  VERSION = 0.63
 
   # custom exceptions -- what else do we want them to include/do?
   class ArgumentError        < StandardError; end # thrown by methods that take parameters from users
@@ -24,7 +24,7 @@ class Rouster
   class PassthroughError     < StandardError; end # thrown by anything Passthrough related (mostly vagrant.rb)
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
-  attr_accessor :facts
+  attr_accessor :facts, :last_puppet_run
   attr_reader :cache, :cache_timeout, :deltas, :exitcode, :logger, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
 
   ##
@@ -360,7 +360,7 @@ class Rouster
     if @ssh.nil? or @ssh.closed?
       begin
         res = self.connect_ssh_tunnel()
-      rescue Rouster::InternalError, Net::SSH::Disconnect, Errno::ECONNREFUSED => e
+      rescue Rouster::InternalError, Net::SSH::Disconnect, Errno::ECONNREFUSED, Errno::ECONNRESET => e
         res = false
       end
 
@@ -518,9 +518,9 @@ class Rouster
       :osx     => '/System/Library/CoreServices/SystemVersion.plist',
     }
 
-    res   = nil
+    res = :invalid
 
-    files.each do |os,file|
+    files.each do |os, file|
       if self.is_file?(file)
         @logger.debug(sprintf('determined OS to be[%s] via[%s]', os, file))
         res = os
@@ -528,7 +528,7 @@ class Rouster
       end
     end
 
-    @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.nil?
+    @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.eql?(:invalid)
 
     @ostype = res
     res

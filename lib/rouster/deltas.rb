@@ -476,6 +476,10 @@ class Rouster
         :systemv => '/sbin/service --status-all',
         :upstart => 'initctl list',
       },
+
+      :invalid => {
+        :invalid => 'invalid',
+      },
     }
 
     if type.eql?(:all)
@@ -486,7 +490,7 @@ class Rouster
 
     type.each do |provider|
 
-      raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os)) unless commands.has_key?(os)
+      raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os)) if provider.eql?(:invalid)
       raise ArgumentError.new(sprintf('unable to find command provider[%s] for [%s]', provider, os))  if commands[os][provider].nil?
 
       @logger.info(sprintf('get_services using provider [%s] on [%s]', provider, os))
@@ -665,9 +669,10 @@ class Rouster
           end
 
         end
-
-        # end of os casing
+      else
+        raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os))
       end
+
 
       # end of provider processing
     end
