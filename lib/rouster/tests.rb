@@ -257,8 +257,9 @@ class Rouster
   # parameters
   # * <file> - path of filename to examine
   # * <regex> - regular expression/string to be passed to grep
+  # * <flags> - flags to include in grep command
   # * [scp] - downloads file to host machine before grepping (functionality not implemented, was planned when a new SSH connection was required for each run() command, not sure it is necessary any longer)
-  def is_in_file?(file, regex, scp=false)
+  def is_in_file?(file, regex, flags='', scp=false)
 
     res = nil
 
@@ -268,7 +269,7 @@ class Rouster
     end
 
     begin
-      command = sprintf("grep -c '%s' %s", regex, file)
+      command = sprintf("grep -c%s '%s' %s", flags, regex, file)
       res     = self.run(command)
     rescue Rouster::RemoteExecutionError
       return false
