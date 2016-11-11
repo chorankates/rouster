@@ -315,7 +315,7 @@ class Rouster
 
       end
 
-    elsif os.eql?(:redhat)
+    elsif os.eql?(:rhel)
       raw = self.run('rpm -qa --qf "%{n}@%{v}@%{arch}\n"')
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\@(.*?)\@(.*)/).nil?
@@ -383,7 +383,7 @@ class Rouster
     res = Hash.new()
     os  = self.os_type()
 
-    if os.eql?(:redhat) or os.eql?(:ubuntu) or os.eql?(:debian)
+    if os.eql?(:rhel) or os.eql?(:ubuntu) or os.eql?(:debian)
 
       raw = self.run('netstat -ln')
 
@@ -472,7 +472,7 @@ class Rouster
         :systemv => 'service --status-all 2>&1',
         :upstart => 'initctl list',
       },
-      :redhat => {
+      :rhel => {
         :systemv => '/sbin/service --status-all',
         :upstart => 'initctl list',
       },
@@ -592,7 +592,7 @@ class Rouster
           end
         end
 
-      elsif os.eql?(:redhat)
+      elsif os.eql?(:rhel)
 
         raw.split("\n").each do |line|
           if provider.eql?(:systemv)

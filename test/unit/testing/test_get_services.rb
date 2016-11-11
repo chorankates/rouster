@@ -17,7 +17,7 @@ class TestUnitGetPackages < Test::Unit::TestCase
   end
 
   def test_rhel_systemv
-    @app.instance_variable_set(:@ostype, :redhat)
+    @app.instance_variable_set(:@ostype, :rhel)
     services = {}
 
     raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-systemv', File.dirname(File.expand_path(__FILE__))))
@@ -43,7 +43,7 @@ class TestUnitGetPackages < Test::Unit::TestCase
   end
 
   def test_rhel_upstart
-    @app.instance_variable_set(:@ostype, :redhat)
+    @app.instance_variable_set(:@ostype, :rhel)
     services = {}
 
     raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-upstart', File.dirname(File.expand_path(__FILE__))))
@@ -66,7 +66,7 @@ class TestUnitGetPackages < Test::Unit::TestCase
   end
 
   def test_rhel_both
-    @app.instance_variable_set(:@ostype, :redhat)
+    @app.instance_variable_set(:@ostype, :rhel)
     services = {}
 
     systemv_contents  = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-systemv', File.dirname(File.expand_path(__FILE__))))
@@ -95,7 +95,7 @@ class TestUnitGetPackages < Test::Unit::TestCase
   end
 
   def test_rhel_both_real
-    @app.instance_variable_set(:@ostype, :redhat)
+    @app.instance_variable_set(:@ostype, :rhel)
     services = {}
 
     systemv_contents  = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-systemv', File.dirname(File.expand_path(__FILE__))))

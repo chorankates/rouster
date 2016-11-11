@@ -66,7 +66,7 @@ class TestDeltasGetPackages < Test::Unit::TestCase
     end
 
     # RHEL processing doesn't do anything different in deep/not-deep calls
-    if ! (@app.os_type.eql?(:redhat) or @app.os_type.eql?(:ubuntu))
+    if ! (@app.os_type.eql?(:rhel) or @app.os_type.eql?(:ubuntu))
       res.each_key do |k|
         assert_not_nil(res[k])
         assert_match(/\?/, res[k][:arch])
@@ -101,7 +101,7 @@ class TestDeltasGetPackages < Test::Unit::TestCase
   def test_arch_determination
     after, install = nil, nil
 
-    if @app.os_type.eql?(:redhat)
+    if @app.os_type.eql?(:rhel)
       packages = [ 'glibc.x86_64', 'glibc.i686' ]
       install  = @app.run(sprintf('yum install -y %s', packages.join(' '))) # TODO these are already in the base, but just to be safe
       after    = @app.get_packages(false, false)
