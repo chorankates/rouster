@@ -523,12 +523,12 @@ class Rouster
     files.each_pair do |os, f|
       [ f ].flatten.each do |candidate|
         if self.is_file?(candidate)
-          next if candidate.eql?('/etc/os-release') and ! self.is_in_file?(candidate, /#{os.to_s}/i) # CentOS detection
+          next if candidate.eql?('/etc/os-release') and ! self.is_in_file?(candidate, os.to_s, 'i') # CentOS detection
           @logger.debug(sprintf('determined OS to be[%s] via[%s]', os, candidate))
           res = os
-          break
         end
       end
+      break unless res.eql?(:invalid)
     end
 
     @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.eql?(:invalid)
