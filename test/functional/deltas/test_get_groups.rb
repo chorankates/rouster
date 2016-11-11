@@ -51,7 +51,7 @@ class TestDeltasGetGroups < Test::Unit::TestCase
     new_group = sprintf('rouster-%s', Time.now.to_i)
 
     ## create a group here
-    if @app.os_type.eql?(:redhat)
+    if @app.os_type.eql?(:rhel)
       @app.run(sprintf('groupadd %s', new_group))
     else
       omit('only doing group creation on RHEL hosts')
