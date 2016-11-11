@@ -514,17 +514,20 @@ class Rouster
     files = {
       :ubuntu  => '/etc/os-release', # debian too
       :solaris => '/etc/release',
-      :redhat  => '/etc/redhat-release', # centos too
+      :rhel    => ['/etc/os-release', '/etc/redhat-release'], # and centos
       :osx     => '/System/Library/CoreServices/SystemVersion.plist',
     }
 
     res = :invalid
 
-    files.each do |os, file|
-      if self.is_file?(file)
-        @logger.debug(sprintf('determined OS to be[%s] via[%s]', os, file))
-        res = os
-        break
+    files.each_pair do |os, f|
+      [ f ].flatten.each do |candidate|
+        if self.is_file?(candidate)
+          next if candidate.eql?('/etc/os-release') and ! self.is_in_file?(candidate, /#{os.to_s}/i) # CentOS detection
+          @logger.debug(sprintf('determined OS to be[%s] via[%s]', os, candidate))
+          res = os
+          break
+        end
       end
     end
 
@@ -628,7 +631,7 @@ class Rouster
     case os_type
       when :osx
         self.run('shutdown -r now')
-      when :redhat, :ubuntu, :debian
+      when :rhel, :ubuntu, :debian
         self.run('/sbin/shutdown -rf now')
       when :solaris
         self.run('shutdown -y -i5 -g0')

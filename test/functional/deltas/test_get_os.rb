@@ -11,7 +11,7 @@ class TestValidateFileFunctional < Test::Unit::TestCase
   FLAG_FILES = {
     :ubuntu  => '/etc/os-release', # debian too
     :solaris => '/etc/release',
-    :redhat  => '/etc/redhat-release', # centos too
+    :rhel    => '/etc/redhat-release', # centos too
     :osx     => '/System/Library/CoreServices/SystemVersion.plist',
   }
 
