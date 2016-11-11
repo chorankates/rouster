@@ -504,7 +504,7 @@ class Rouster
   ##
   # os_type
   #
-  # attempts to determine VM operating system based on files which are specific to an OS type
+  # attempts to determine VM operating system based on `uname -a` output, supports OSX, Sun|Solaris, Ubuntu and Redhat
   def os_type
 
     if @ostype
@@ -512,10 +512,10 @@ class Rouster
     end
 
     files = {
-      :osx     => '/System/Library/CoreServices/SystemVersion.plist',
-      :redhat  => '/usr/bin/rpm', # centos too
+      :ubuntu  => '/etc/os-release', # debian too
       :solaris => '/etc/release',
-      :ubuntu  => '/usr/bin/apt-get', # debian too
+      :redhat  => '/etc/redhat-release', # centos too
+      :osx     => '/System/Library/CoreServices/SystemVersion.plist',
     }
 
     res = :invalid
