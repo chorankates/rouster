@@ -412,11 +412,14 @@ class Rouster
         elsif line.match(/Port (\d*?)$/)
           h[:ssh_port] = $1
         elsif line.match(/IdentityFile (.*?)$/)
-          # TODO this change needs to go in a different branch
           key = $1
-          @logger.info(sprintf('using discovered key[%s] instead of specified key[%s]', key, @sshkey)) unless @sshkey.eql?(key)
-          h[:identity_file] = key
-          @sshkey = key
+
+          unless @sshkey.eql?(key)
+            h[:identity_file] = key
+          else
+            @logger.info(sprintf('using specified key[%s] instead of discovered key[%s]', @sshkey, key))
+            h[:identity_file] = @sshkey
+          end
         end
       end
 
@@ -512,7 +515,7 @@ class Rouster
 
     res = :invalid
 
-    os_files.each_pair do |os, f|
+    Rouster.os_files.each_pair do |os, f|
       [ f ].flatten.each do |candidate|
         if self.is_file?(candidate)
           next if candidate.eql?('/etc/os-release') and ! self.is_in_file?(candidate, os.to_s, 'i') # CentOS detection
@@ -538,7 +541,7 @@ class Rouster
 
     res = :invalid
 
-    [ os_files[os_type] ].flatten.each do |candidate|
+    [ Rouster.os_files[os_type] ].flatten.each do |candidate|
       if self.is_file?(candidate)
         next if candidate.eql?('/etc/os-release') and ! self.is_in_file?(candidate, os_type.to_s, 'i') # CentOS detection
         contents = self.run(sprintf('cat %s', candidate))
