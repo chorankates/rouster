@@ -523,7 +523,7 @@ class Rouster
       break unless res.eql?(:invalid)
     end
 
-    @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.eql?(:invalid)
+    @logger.error(sprintf('unable to determine OS, looking for[%s]', Rouster.os_files)) if res.eql?(:invalid)
 
     @ostype = res
     res
@@ -557,12 +557,9 @@ class Rouster
       break unless res.eql?(:invalid)
     end
 
-    @logger.error(sprintf('unable to determine OS version, looking for[%s]', files)) if res.eql?(:invalid)
+    @logger.error(sprintf('unable to determine OS version, looking for[%s]', Rouster.os_files[os_type])) if res.eql?(:invalid)
 
     @osversion = res
-
-    require 'pry'
-    binding.pry
 
     res
   end
@@ -662,9 +659,9 @@ class Rouster
       when :osx
         self.run('shutdown -r now')
       when :rhel, :ubuntu
-        cmd = ((os_type.eql?(:rhel) and os_version(os_type).match(/6/)) or os_type.eql?(:ubuntu)) ? \
-          '/sbin/shutdown -rf now' : \
-          '/sbin/shutdown --halt --reboot now'
+        cmd = (os_type.eql?(:rhel) and os_version(os_type).match(/7/)) ? \
+          '/sbin/shutdown --halt --reboot now' : \
+          '/sbin/shutdown -rf now'
         self.run(cmd)
       when :solaris
         self.run('shutdown -y -i5 -g0')
