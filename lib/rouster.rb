@@ -413,7 +413,6 @@ class Rouster
           h[:ssh_port] = $1
         elsif line.match(/IdentityFile (.*?)$/)
           key = $1
-
           unless @sshkey.eql?(key)
             h[:identity_file] = key
           else
@@ -545,15 +544,16 @@ class Rouster
       if self.is_file?(candidate)
         next if candidate.eql?('/etc/os-release') and ! self.is_in_file?(candidate, os_type.to_s, 'i') # CentOS detection
         contents = self.run(sprintf('cat %s', candidate))
-
         if os_type.eql?(:ubuntu)
-          version = $1 if contents.match(/.*VERSION\="(\d+\.\d+).*"/)
-          res = version # VERSION="13.10, Saucy Salamander"
+          version = $1 if contents.match(/.*VERSION\="(\d+\.\d+).*"/) # VERSION="13.10, Saucy Salamander"
+          res = version unless version.nil?
         elsif os_type.eql?(:rhel)
-          # TODO drop the candidate unless planning to use it
-          version = $1 if contents.match(/.*VERSION\="(\d+)"/)
-          version = $1 if version.nil? and contents.match(/.*(\d+.\d+)/)
-          res = version # VERSION="7 (Core)" or CentOS release 6.4 (Final)
+          version = $1 if contents.match(/.*VERSION\="(\d+)"/) # VERSION="7 (Core)"
+          version = $1 if version.nil? and contents.match(/.*(\d+.\d+)/) # CentOS release 6.4 (Final)
+          res = version unless version.nil?
+        elsif os_type.eql?(:osx)
+          version = $1 if contents.match(/<key>ProductVersion<\/key>.*<string>(.*)<\/string>/m) # <key>ProductVersion</key>\n          <string>10.12.1</string>
+          res = version unless version.nil?
         end
 
       end
