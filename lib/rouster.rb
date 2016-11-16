@@ -473,7 +473,7 @@ class Rouster
           @ssh_info[:hostname],
           @ssh_info[:user],
           :port => @ssh_info[:ssh_port],
-          :keys => [ @sshkey, @ssh_info[:identity_file] ], # try to use what the user specified first, but fall back to what vagrant says
+          :keys => [ @sshkey, @ssh_info[:identity_file] ].uniq, # try to use what the user specified first, but fall back to what vagrant says
           :paranoid => false
         )
       else
