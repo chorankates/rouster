@@ -7,14 +7,6 @@ require 'test/unit'
 
 class TestValidateFileFunctional < Test::Unit::TestCase
 
-  # TODO this should probably be further abstracted into the implementation, but this is fine for now
-  FLAG_FILES = {
-    :ubuntu  => '/etc/os-release', # debian too
-    :solaris => '/etc/release',
-    :rhel    => '/etc/redhat-release', # centos too
-    :osx     => '/System/Library/CoreServices/SystemVersion.plist',
-  }
-
   def setup
     # expose private methods
     Rouster.send(:public, *Rouster.private_instance_methods)
@@ -25,10 +17,12 @@ class TestValidateFileFunctional < Test::Unit::TestCase
 
   def teardown
     # put the flag file back in place
-    FLAG_FILES.each_pair do |_os, ff|
-      bkup = sprintf('%s.bkup', ff)
-      if @app.is_file?(bkup)
-        @app.run(sprintf('mv %s %s', bkup, ff))
+    Rouster.os_files.each_pair do |_os, ff|
+      [ ff ].flatten.each do |f|
+        bkup = sprintf('%s.bkup', f)
+        if @app.is_file?(bkup)
+          @app.run(sprintf('mv %s %s', bkup, f))
+        end
       end
     end
   end
@@ -39,6 +33,10 @@ class TestValidateFileFunctional < Test::Unit::TestCase
     assert_not_nil(type, sprintf('unable to determine vm[%s] OS', @app))
     assert_not_equal(:invalid, type)
 
+    version = @app.os_version(type)
+    assert_not_nil(version, sprintf('unable to determine vm[%s] OS version', @app))
+    assert_not_equal(:invalid, version)
+
     assert_nothing_raised do
       @app.get_services
     end
@@ -47,9 +45,11 @@ class TestValidateFileFunctional < Test::Unit::TestCase
 
   def test_unhappy_path
     # move the flag file out of the way
-    FLAG_FILES.each_pair do |_os, ff|
-      if @app.is_file?(ff)
-        @app.run(sprintf('mv %s %s.bkup', ff, ff))
+    Rouster.os_files.each_pair do |_os, ff|
+      [ ff ].flatten.each do |f|
+        if @app.is_file?(ff)
+          @app.run(sprintf('mv %s %s.bkup', f, f))
+        end
       end
     end
 
@@ -58,7 +58,7 @@ class TestValidateFileFunctional < Test::Unit::TestCase
     assert_equal(:invalid, type, sprintf('got wrong value for unmarked OS[%s]', type))
 
     e = assert_raise do
-        @app.get_services
+      @app.get_services
     end
 
     assert_equal(Rouster::InternalError, e.class, sprintf('wrong exception raised[%s] [%s]', e.class, e.message))
