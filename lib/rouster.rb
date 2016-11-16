@@ -412,13 +412,8 @@ class Rouster
         elsif line.match(/Port (\d*?)$/)
           h[:ssh_port] = $1
         elsif line.match(/IdentityFile (.*?)$/)
-          key = $1
-          unless @sshkey.eql?(key)
-            h[:identity_file] = key
-          else
-            @logger.info(sprintf('using specified key[%s] instead of discovered key[%s]', @sshkey, key))
-            h[:identity_file] = @sshkey
-          end
+          h[:identity_file] = $1
+          @logger.info(sprintf('vagrant specified key[%s] differs from provided[%s], will use both', @sshkey, h[:identity_file]))
         end
       end
 
@@ -478,7 +473,7 @@ class Rouster
           @ssh_info[:hostname],
           @ssh_info[:user],
           :port => @ssh_info[:ssh_port],
-          :keys => [@sshkey],
+          :keys => [ @sshkey, @ssh_info[:identity_file] ], # try to use what the user specified first, but fall back to what vagrant says
           :paranoid => false
         )
       else
