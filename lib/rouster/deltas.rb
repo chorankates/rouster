@@ -473,7 +473,7 @@ class Rouster
         :upstart => 'initctl list',
       },
       :rhel => {
-        :systemd => 'systemctl list-units --all',
+        :systemd => 'systemctl list-units --type=service --no-pager',
         :systemv => 'service --status-all',
         :upstart => 'initctl list',
       },
@@ -671,12 +671,12 @@ class Rouster
 
             res[service] = mode unless res.has_key?(service)
 
-          elsif provider.eql?(:systemv)
+          elsif provider.eql?(:systemd)
             # UNIT              LOAD   ACTIVE   SUB      DESCRIPTION
             # nfs-utils.service loaded inactive dead     NFS server and client services
             # crond.service     loaded active   running  Command Scheduler
 
-            if line.match(/^(.*?)\s+(?:.*?)\s+(.*?)\s+(.*?)\s+(?:.*?)$/) # 5 space separated characters
+            if line.match(/^\s+(.*?)\s+(?:.*?)\s+(.*?)\s+(.*?)\s+(?:.*?)$/) # 5 space separated characters
               service = $1
               active  = $2
               sub     = $3
@@ -690,8 +690,6 @@ class Rouster
               mode = 'unsure'  unless mode.eql?('stopped') or mode.eql?('running')
             end
 
-            require 'pry'
-            binding.pry
             res[service] = mode
 
           end
