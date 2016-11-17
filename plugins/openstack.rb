@@ -37,15 +37,25 @@ class Rouster
       self.connect_ssh_tunnel
     else
       server = @nova.servers.create(:name => @name, :flavor_ref => @passthrough[:flavor_ref],
-                  :image_ref => @passthrough[:image_ref], :key_name => @passthrough[:keypair])
+                  :image_ref => @passthrough[:image_ref], :key_name => @passthrough[:keypair], :user_data => @passthrough[:user_data])
       server.wait_for { ready? }
       @instance_data = server
-      self.passthrough[:host] = server.addresses["NextGen"][0]["addr"]
+      if defined?(self.addresses['NextGen'][0]['addr'])
+        self.passthrough[:host] = self.addresses['NextGen'][0]['addr']
+      else
+        server.addresses.each_key do |address_key|
+          if defined?(server.addresses[address_key])
+            self.passthrough[:host] = server.addresses[address_key][0]['addr']
+          end
+        end
+      end
       self.passthrough[:instance] = self.ostack_get_instance_id
+      @logger.debug(sprintf('Connecting to running instance [%s] while calling ostack_up()', self.passthrough[:instance]))
+      self.connect_ssh_tunnel
     end
     self.passthrough[:instance]
   end
-  
+
   def ostack_get_ip()
     self.passthrough[:host]
   end
