@@ -12,7 +12,7 @@ require 'rouster/vagrant'
 class Rouster
 
   # sporadically updated version number
-  VERSION = 0.63
+  VERSION = 0.64
 
   # custom exceptions -- what else do we want them to include/do?
   class ArgumentError        < StandardError; end # thrown by methods that take parameters from users
@@ -76,7 +76,9 @@ class Rouster
       @verbosity_logfile = 2 # this is kind of arbitrary, but won't actually be created unless opts[:logfile] is also passed
     end
 
-    @ostype = nil
+    @ostype    = nil
+    @osversion = nil
+
     @output = Array.new
     @cache  = Hash.new
     @deltas = Hash.new
@@ -410,14 +412,8 @@ class Rouster
         elsif line.match(/Port (\d*?)$/)
           h[:ssh_port] = $1
         elsif line.match(/IdentityFile (.*?)$/)
-          key = $1
-          unless @sshkey.eql?(key)
-            h[:identity_file] = key
-          else
-            @logger.info(sprintf('using specified key[%s] instead of discovered key[%s]', @sshkey, key))
-            h[:identity_file] = @sshkey
-          end
-
+          h[:identity_file] = $1
+          @logger.info(sprintf('vagrant specified key[%s] differs from provided[%s], will use both', @sshkey, h[:identity_file]))
         end
       end
 
@@ -477,7 +473,7 @@ class Rouster
           @ssh_info[:hostname],
           @ssh_info[:user],
           :port => @ssh_info[:ssh_port],
-          :keys => [@sshkey],
+          :keys => [ @sshkey, @ssh_info[:identity_file] ].uniq, # try to use what the user specified first, but fall back to what vagrant says
           :paranoid => false
         )
       else
@@ -511,16 +507,9 @@ class Rouster
       return @ostype
     end
 
-    files = {
-      :ubuntu  => '/etc/os-release', # debian too
-      :solaris => '/etc/release',
-      :rhel    => ['/etc/os-release', '/etc/redhat-release'], # and centos
-      :osx     => '/System/Library/CoreServices/SystemVersion.plist',
-    }
-
     res = :invalid
 
-    files.each_pair do |os, f|
+    Rouster.os_files.each_pair do |os, f|
       [ f ].flatten.each do |candidate|
         if self.is_file?(candidate)
           next if candidate.eql?('/etc/os-release') and ! self.is_in_file?(candidate, os.to_s, 'i') # CentOS detection
@@ -531,9 +520,45 @@ class Rouster
       break unless res.eql?(:invalid)
     end
 
-    @logger.error(sprintf('unable to determine OS, looking for[%s]', files)) if res.eql?(:invalid)
+    @logger.error(sprintf('unable to determine OS, looking for[%s]', Rouster.os_files)) if res.eql?(:invalid)
 
     @ostype = res
+    res
+  end
+
+  ##
+  # os_version
+  #
+  #
+  def os_version(os_type)
+    return @osversion if @osversion
+
+    res = :invalid
+
+    [ Rouster.os_files[os_type] ].flatten.each do |candidate|
+      if self.is_file?(candidate)
+        next if candidate.eql?('/etc/os-release') and ! self.is_in_file?(candidate, os_type.to_s, 'i') # CentOS detection
+        contents = self.run(sprintf('cat %s', candidate))
+        if os_type.eql?(:ubuntu)
+          version = $1 if contents.match(/.*VERSION\="(\d+\.\d+).*"/) # VERSION="13.10, Saucy Salamander"
+          res = version unless version.nil?
+        elsif os_type.eql?(:rhel)
+          version = $1 if contents.match(/.*VERSION\="(\d+)"/) # VERSION="7 (Core)"
+          version = $1 if version.nil? and contents.match(/.*(\d+.\d+)/) # CentOS release 6.4 (Final)
+          res = version unless version.nil?
+        elsif os_type.eql?(:osx)
+          version = $1 if contents.match(/<key>ProductVersion<\/key>.*<string>(.*)<\/string>/m) # <key>ProductVersion</key>\n          <string>10.12.1</string>
+          res = version unless version.nil?
+        end
+
+      end
+      break unless res.eql?(:invalid)
+    end
+
+    @logger.error(sprintf('unable to determine OS version, looking for[%s]', Rouster.os_files[os_type])) if res.eql?(:invalid)
+
+    @osversion = res
+
     res
   end
 
@@ -631,8 +656,11 @@ class Rouster
     case os_type
       when :osx
         self.run('shutdown -r now')
-      when :rhel, :ubuntu, :debian
-        self.run('/sbin/shutdown -rf now')
+      when :rhel, :ubuntu
+        cmd = (os_type.eql?(:rhel) and os_version(os_type).match(/7/)) ? \
+          '/sbin/shutdown --halt --reboot now' : \
+          '/sbin/shutdown -rf now'
+        self.run(cmd)
       when :solaris
         self.run('shutdown -y -i5 -g0')
       else
@@ -781,6 +809,15 @@ class Rouster
     end
 
     nil
+  end
+
+  def self.os_files
+    {
+      :ubuntu  => '/etc/os-release', # debian too
+      :solaris => '/etc/release',
+      :rhel    => ['/etc/os-release', '/etc/redhat-release'], # and centos
+      :osx     => '/System/Library/CoreServices/SystemVersion.plist',
+    }
   end
 
 end
