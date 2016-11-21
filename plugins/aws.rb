@@ -6,6 +6,7 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 require 'fog'
 require 'uri'
 
+# Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines') => true
 class Rouster
 
   attr_reader :ec2, :elb     # expose AWS workers

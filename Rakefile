@@ -1,6 +1,7 @@
 require sprintf('%s/%s', File.dirname(File.expand_path(__FILE__)), 'path_helper')
 require 'rubygems'
 require 'rake/testtask'
+require 'reek/rake/task'
 
 desc 'build the gem'
 task :build do
@@ -37,9 +38,13 @@ task :vdestroy do
   sh 'vagrant destroy -f'
 end
 
-desc 'reek validation'
-task :reek do
-  sh 'reek lib/**/*.rb'
+Reek::Rake::Task.new do |t|
+  t.config_file   = sprintf('%s/.reek', File.dirname(__FILE__))
+  #t.source_files  = FileList.new('lib/**/*.rb', 'plugins/**/*.rb')
+  t.source_files  = FileList.new('lib/**/*.rb')
+  t.reek_opts     = '--no-wiki-links'
+  t.fail_on_error = false
+  t.verbose       = true
 end
 
 namespace :test do

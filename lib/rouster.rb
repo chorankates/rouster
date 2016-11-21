@@ -9,20 +9,37 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 require 'rouster/tests'
 require 'rouster/vagrant'
 
+# Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines') => true
 class Rouster
 
   # sporadically updated version number
   VERSION = 0.65
 
   # custom exceptions -- what else do we want them to include/do?
-  class ArgumentError        < StandardError; end # thrown by methods that take parameters from users
-  class FileTransferError    < StandardError; end # thrown by get() and put()
-  class InternalError        < StandardError; end # thrown by most (if not all) Rouster methods
-  class ExternalError        < StandardError; end # thrown when external dependencies do not respond as expected
-  class LocalExecutionError  < StandardError; end # thrown by _run()
-  class RemoteExecutionError < StandardError; end # thrown by run()
-  class PassthroughError     < StandardError; end # thrown by anything Passthrough related (mostly vagrant.rb)
-  class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
+
+  # thrown by methods that take parameters from users
+  class ArgumentError < StandardError; end
+
+  # thrown by get() and put()
+  class FileTransferError < StandardError; end
+
+  # thrown by most (if not all) Rouster methods
+  class InternalError < StandardError; end
+
+  # thrown when external dependencies do not respond as expected
+  class ExternalError < StandardError; end
+
+  # thrown by _run()
+  class LocalExecutionError < StandardError; end
+
+  # thrown by run()
+  class RemoteExecutionError < StandardError; end
+
+  # thrown by anything Passthrough related (mostly vagrant.rb)
+  class PassthroughError < StandardError; end
+
+  # thrown by available_via_ssh() -- and potentially _run()
+  class SSHConnectionError < StandardError; end
 
   attr_accessor :facts, :last_puppet_run
   attr_reader :cache, :cache_timeout, :deltas, :exitcode, :logger, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
@@ -823,6 +840,7 @@ class Rouster
 
 end
 
+# probably unnecessary monkeypatch of true?/false? methods on Object objects
 class Object
   ##
   # false?

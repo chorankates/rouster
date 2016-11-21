@@ -4,6 +4,7 @@ require sprintf('%s/../../%s', File.dirname(File.expand_path(__FILE__)), 'path_h
 require 'rouster'
 require 'rouster/tests'
 
+# Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines') => true
 class Rouster
 
   ##

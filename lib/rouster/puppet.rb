@@ -5,6 +5,7 @@ require 'net/https'
 require 'socket'
 require 'uri'
 
+# Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines') => true
 class Rouster
 
   ##

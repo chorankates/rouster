@@ -3,6 +3,7 @@ require 'rouster/deltas'
 
 # TODO better document keys :constrain and :version
 
+# Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines') => true
 class Rouster
 
   ##
@@ -863,32 +864,32 @@ class Rouster
   # * <comparand1> - left side of the comparison
   # * <comparator> - comparison to make
   # * <comparand2> - right side of the comparison
-  def generic_comparator(comparand1, comparator, comparand2)
+  def generic_comparator(a, comparator, b)
 
     # TODO rewrite this as an eval so we don't have to support everything..
     # TODO come up with mechanism to determine when is it appropriate to call .to_i vs. otherwise -- comparisons will mainly be numerical (?), but need to support text matching too
     case comparator
       when '!='
         # ugh
-        if comparand1.to_s.match(/\d/) or comparand2.to_s.match(/\d/)
-          res = ! comparand1.to_i.eql?(comparand2.to_i)
+        if a.to_s.match(/\d/) or b.to_s.match(/\d/)
+          res = ! a.to_i.eql?(b.to_i)
         else
-          res = ! comparand1.eql?(comparand2)
+          res = ! a.eql?(b)
         end
       when '<'
-        res = comparand1.to_i < comparand2.to_i
+        res = a.to_i < b.to_i
       when '<='
-        res = comparand1.to_i <= comparand2.to_i
+        res = a.to_i <= b.to_i
       when '>'
-        res = comparand1.to_i > comparand2.to_i
+        res = a.to_i > b.to_i
       when '>='
-        res = comparand1.to_i >= comparand2.to_i
+        res = a.to_i >= b.to_i
       when '=='
         # ugh ugh
-        if comparand1.to_s.match(/\d/) or comparand2.to_s.match(/\d/)
-          res = comparand1.to_i.eql?(comparand2.to_i)
+        if a.to_s.match(/\d/) or b.to_s.match(/\d/)
+          res = a.to_i.eql?(b.to_i)
         else
-          res = comparand1.eql?(comparand2)
+          res = a.eql?(b)
         end
       else
         raise NotImplementedError.new(sprintf('unknown comparator[%s]', comparator))
