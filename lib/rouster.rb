@@ -12,7 +12,7 @@ require 'rouster/vagrant'
 class Rouster
 
   # sporadically updated version number
-  VERSION = 0.64
+  VERSION = 0.65
 
   # custom exceptions -- what else do we want them to include/do?
   class ArgumentError        < StandardError; end # thrown by methods that take parameters from users
@@ -645,7 +645,7 @@ class Rouster
   #
   # parameters
   # * [wait] - number of seconds to wait until is_available_via_ssh?() returns true before assuming failure
-  def restart(wait=nil)
+  def restart(wait=nil, expected_exitcodes = [0])
     @logger.debug('restart()')
 
     if self.is_passthrough? and self.passthrough[:type].eql?(:local)
@@ -655,14 +655,15 @@ class Rouster
 
     case os_type
       when :osx
-        self.run('shutdown -r now')
+        self.run('shutdown -r now', expected_exitcodes)
       when :rhel, :ubuntu
-        cmd = (os_type.eql?(:rhel) and os_version(os_type).match(/7/)) ? \
-          '/sbin/shutdown --halt --reboot now' : \
-          '/sbin/shutdown -rf now'
-        self.run(cmd)
+        if os_type.eql?(:rhel) and os_version(os_type).match(/7/)
+          self.run('shutdown --halt --reboot now', expected_exitcodes << 256)
+        else
+          self.run('shutdown -rf now')
+        end
       when :solaris
-        self.run('shutdown -y -i5 -g0')
+        self.run('shutdown -y -i5 -g0', expected_exitcodes)
       else
         raise InternalError.new(sprintf('unsupported OS[%s]', @ostype))
     end
