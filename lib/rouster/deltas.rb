@@ -494,7 +494,7 @@ class Rouster
       raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os)) if provider.eql?(:invalid)
       raise ArgumentError.new(sprintf('unable to find command provider[%s] for [%s]', provider, os))  if commands[os][provider].nil?
 
-      unless self.is_in_path?(commands[os][provider].split(' ').first)
+      unless seed or self.is_in_path?(commands[os][provider].split(' ').first)
         @logger.info(sprintf('skipping provider[%s], not in $PATH[%s]', provider, commands[os][provider]))
         next
       end
@@ -676,21 +676,21 @@ class Rouster
             # nfs-utils.service loaded inactive dead     NFS server and client services
             # crond.service     loaded active   running  Command Scheduler
 
-            if line.match(/^\s+(.*?)\s+(?:.*?)\s+(.*?)\s+(.*?)\s+(?:.*?)$/) # 5 space separated characters
+            if line.match(/^\W*(.*?)\.service\s+(?:.*?)\s+(.*?)\s+(.*?)\s+(?:.*?)$/) # 5 space separated characters
               service = $1
               active  = $2
               sub     = $3
+
+              if humanize
+                mode = sub.match('running') ? 'running' : 'stopped'
+                mode = 'unsure'  unless mode.eql?('stopped') or mode.eql?('running')
+              end
+
+              res[service] = mode
             else
               # not logging here, there is a bunch of garbage output at the end of the output that we can't seem to suppress
               next
             end
-
-            if humanize
-              mode = sub.match('running') ? 'running' : 'stopped'
-              mode = 'unsure'  unless mode.eql?('stopped') or mode.eql?('running')
-            end
-
-            res[service] = mode
 
           end
 

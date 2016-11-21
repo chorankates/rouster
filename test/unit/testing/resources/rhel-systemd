@@ -1,0 +1,46 @@
+  UNIT                                           LOAD   ACTIVE SUB     DESCRIPTION
+  crond.service                                  loaded active running Command Scheduler
+  dbus.service                                   loaded active running D-Bus System Message Bus
+  getty@tty1.service                             loaded active running Getty on tty1
+  gssproxy.service                               loaded active running GSSAPI Proxy Daemon
+● kdump.service                                  loaded failed failed  Crash recovery kernel arming
+  kmod-static-nodes.service                      loaded active exited  Create list of required static device nodes for the current kernel
+  lldpad.service                                 loaded active running Link Layer Discovery Protocol Agent Daemon.
+  mdmonitor.service                              loaded active running Software RAID monitoring and management
+  network.service                                loaded active running LSB: Bring up/down networking
+  nfs-config.service                             loaded active exited  Preprocess NFS configuration
+  ntpd.service                                   loaded active running Network Time Service
+  postfix.service                                loaded active running Postfix Mail Transport Agent
+  rhel-dmesg.service                             loaded active exited  Dump dmesg to /var/log/dmesg
+  rhel-import-state.service                      loaded active exited  Import network configuration from initramfs
+  rhel-readonly.service                          loaded active exited  Configure read-only root support
+  rsyslog.service                                loaded active running System Logging Service
+  sshd.service                                   loaded active running OpenSSH server daemon
+  systemd-fsck-root.service                      loaded active exited  File System Check on Root Device
+  systemd-fsck@dev-disk-by\x2dlabel-boot.service loaded active exited  File System Check on /dev/disk/by-label/boot
+systemd-journal-flush.service                  loaded active exited  Flush Journal to Persistent Storage
+  systemd-journald.service                       loaded active running Journal Service
+  systemd-logind.service                         loaded active running Login Service
+  systemd-random-seed.service                    loaded active exited  Load/Save Random Seed
+  systemd-remount-fs.service                     loaded active exited  Remount Root and Kernel File Systems
+  systemd-sysctl.service                         loaded active exited  Apply Kernel Variables
+  systemd-tmpfiles-setup-dev.service             loaded active exited  Create Static Device Nodes in /dev
+  systemd-tmpfiles-setup.service                 loaded active exited  Create Volatile Files and Directories
+  systemd-udev-trigger.service                   loaded active exited  udev Coldplug all Devices
+  systemd-udevd.service                          loaded active running udev Kernel Device Manager
+  systemd-update-utmp.service                    loaded active exited  Update UTMP about System Boot/Shutdown
+  systemd-user-sessions.service                  loaded active exited  Permit User Sessions
+  systemd-vconsole-setup.service                 loaded active exited  Setup Virtual Console
+  tuned.service                                  loaded active running Dynamic System Tuning Daemon
+  vboxadd-service.service                        loaded active running LSB: VirtualBox Additions service
+  vboxadd-x11.service                            loaded active exited  LSB: VirtualBox Linux Additions kernel modules
+  vboxadd.service                                loaded active exited  LSB: VirtualBox Linux Additions kernel modules
+
+LOAD   = Reflects whether the unit definition was properly loaded.
+ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+SUB    = The low-level unit activation state, values depend on unit type.
+
+36 loaded units listed. Pass --all to see loaded but inactive units, too.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+
