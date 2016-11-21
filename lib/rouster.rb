@@ -47,7 +47,7 @@ class Rouster
   ##
   # initialize - object instantiation
   #
-  # parameters
+  # +opts+ Hash containing any of the following keys:
   # * <name>                - the name of the VM as specified in the Vagrantfile
   # * [cache_timeout]       - integer specifying how long Rouster should cache status() and is_available_via_ssh?() results, default is false
   # * [logfile]             - allows logging to an external file, if passed true, generates a dynamic filename, otherwise uses what is passed, default is false
@@ -306,8 +306,8 @@ class Rouster
   # currently determines exitcode by tacking a 'echo $?' onto the command being run, which is then parsed out before returning
   #
   # parameters
-  # * <command> - the command to run (sudo will be prepended if specified in object instantiation)
-  # * [expected_exitcode] - allows for non-0 exit codes to be returned without requiring exception handling
+  # +command+ the command to run (sudo will be prepended if specified in object instantiation)
+  # +expected_exitcode+ allows for non-0 exit codes to be returned without requiring exception handling
   def run(command, expected_exitcode=[0])
 
     if @ssh.nil?
@@ -520,9 +520,7 @@ class Rouster
   # attempts to determine VM operating system based on `uname -a` output, supports OSX, Sun|Solaris, Ubuntu and Redhat
   def os_type
 
-    if @ostype
-      return @ostype
-    end
+    return @ostype if @ostype
 
     res = :invalid
 
@@ -546,7 +544,7 @@ class Rouster
   ##
   # os_version
   #
-  #
+  # +os_type+ symbol / response from self.os_type
   def os_version(os_type)
     return @osversion if @osversion
 
@@ -575,7 +573,6 @@ class Rouster
     @logger.error(sprintf('unable to determine OS version, looking for[%s]', Rouster.os_files[os_type])) if res.eql?(:invalid)
 
     @osversion = res
-
     res
   end
 
@@ -585,8 +582,8 @@ class Rouster
   # downloads a file from VM to host
   #
   # parameters
-  # * <remote_file> - full or relative path (based on ~vagrant) of file to download
-  # * [local_file] - full or relative path (based on $PWD) of file to download to
+  # +remote_file+ - full or relative path (based on ~vagrant) of file to download
+  # +local_file+ - full or relative path (based on $PWD) of file to download to
   #
   # if no local_file is specified, will be downloaded to $PWD with the same shortname as it had in the VM
   #
@@ -603,7 +600,7 @@ class Rouster
       raise FileTransferError.new(sprintf('unable to get[%s], exception[%s]', remote_file, e.message()))
     end
 
-    return true
+    true
   end
 
   ##
@@ -612,8 +609,8 @@ class Rouster
   # uploads a file from host to VM
   #
   # parameters
-  # * <local_file> - full or relative path (based on $PWD) of file to upload
-  # * [remote_file] - full or relative path (based on ~vagrant) of filename to upload to
+  # +local_file+ - full or relative path (based on $PWD) of file to upload
+  # +remote_file+ - full or relative path (based on ~vagrant) of filename to upload to
   def put(local_file, remote_file=nil)
     remote_file = remote_file.nil? ? File.basename(local_file) : remote_file
     @logger.debug(sprintf('scp from host[%s] to VM[%s]', local_file, remote_file))
@@ -626,7 +623,7 @@ class Rouster
       raise FileTransferError.new(sprintf('unable to put[%s], exception[%s]', local_file, e.message()))
     end
 
-    return true
+    true
   end
 
   ##
@@ -642,7 +639,7 @@ class Rouster
   #
   # convenience getter for @sudo truthiness
   def uses_sudo?
-     @sudo.eql?(true)
+    @sudo.eql?(true)
   end
 
   ##
@@ -661,7 +658,8 @@ class Rouster
   # runs `shutdown -rf now` in the VM, optionally waits for machine to come back to life
   #
   # parameters
-  # * [wait] - number of seconds to wait until is_available_via_ssh?() returns true before assuming failure
+  # +wait+ - number of seconds to wait until is_available_via_ssh?() returns true before assuming failure
+  # +expected_exitcodes+ - Array of allowed exit codes
   def restart(wait=nil, expected_exitcodes = [0])
     @logger.debug('restart()')
 
@@ -698,7 +696,7 @@ class Rouster
       return false
     end
 
-    return true
+    true
   end
 
   ##
@@ -710,7 +708,7 @@ class Rouster
   # sets @exitcode
   #
   # parameters
-  # * <command> - command to be run
+  # +command+ - command to be run
   def _run(command)
     tmp_file = sprintf('/tmp/rouster-cmd_output.%s.%s', Time.now.to_i, $$)
     cmd      = sprintf('%s > %s 2> %s', command, tmp_file, tmp_file) # this is a holdover from Salesforce::Vagrant, can we use '2&>1' here?
@@ -740,7 +738,7 @@ class Rouster
   # if no parameter passed, returns output from the last command run
   #
   # parameters
-  # * [index] - positive or negative indexing of LIFO datastructure
+  # +index+ - positive or negative indexing of LIFO datastructure
   def get_output(index = 1)
     index.is_a?(Fixnum) and index > 0 ? self.output[-index] : self.output[index]
   end
@@ -765,9 +763,9 @@ class Rouster
   # returns the first matching filename or nil if none found
   #
   # parameters
-  # * [startdir] - directory to start looking in, default is current directory
-  # * [filename] - filename you are looking for
-  # * [levels]   - number of directory levels to examine, default is 10
+  # +startdir+ - directory to start looking in, default is current directory
+  # +filename+ - filename you are looking for
+  # +levels+ - number of directory levels to examine, default is 10
   def traverse_up(startdir=Dir.pwd, filename=nil, levels=10)
     raise InternalError.new('must specify a filename') if filename.nil?
 
@@ -795,8 +793,8 @@ class Rouster
   # checks (and optionally fixes) permissions on the SSH key used to auth to the Vagrant VM
   #
   # parameters
-  #  * <key> - full path to SSH key
-  #  * [fix] - boolean, if true and required, will attempt to set permissions on key to 0400 - default is false
+  #  +key+ - full path to SSH key
+  #  +fix+ - boolean, if true and required, will attempt to set permissions on key to 0400 - default is false
   def check_key_permissions(key, fix=false)
     allowed_modes = ['0400', '0600']
 
@@ -829,6 +827,7 @@ class Rouster
     nil
   end
 
+  # should probably be a constant
   def self.os_files
     {
       :ubuntu  => '/etc/os-release', # debian too
