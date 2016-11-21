@@ -42,6 +42,31 @@ class TestUnitGetPackages < Test::Unit::TestCase
 
   end
 
+  def test_rhel_systemd
+    @app.instance_variable_set(:@ostype, :rhel)
+    @app.instance_variable_set(:@osversion, '7')
+    services = {}
+
+    raw = File.read(sprintf('%s/../../../test/unit/testing/resources/rhel-systemd', File.dirname(File.expand_path(__FILE__))))
+
+    assert_nothing_raised do
+      services = @app.get_services(false, true, :systemd, raw)
+    end
+
+    expected = {
+      'kdump'                => 'stopped', # ● kdump.service                                  loaded failed failed  Crash recovery kernel arming
+      'rhel-dmesg'           => 'stopped', #   rhel-dmesg.service                             loaded active exited  Dump dmesg to /var/log/dmesg
+      'sshd'                 => 'running', #   sshd.service                                   loaded active running OpenSSH server daemon
+      'systemd-journal-flush'=> 'stopped', # this is a test for output without leading spaces
+    }
+
+    expected.each_pair do |service,state|
+      assert(services.has_key?(service), "service[#{service}]")
+      assert_equal(services[service], state, "service[#{service}] state[#{state}]")
+    end
+
+  end
+
   def test_rhel_upstart
     @app.instance_variable_set(:@ostype, :rhel)
     services = {}
@@ -134,8 +159,8 @@ class TestUnitGetPackages < Test::Unit::TestCase
     end
 
     expected = {
-      'com.bigfix.BESAgent'            => 'running', # 100	-	com.bigfix.BESAgent
-      'com.trendmicro.mpm.icore.agent' => 'stopped', # -	0	com.trendmicro.mpm.icore.agent
+      'com.bigfix.BESAgent'            => 'running', # 100      -       com.bigfix.BESAgent
+      'com.trendmicro.mpm.icore.agent' => 'stopped', # -        0       com.trendmicro.mpm.icore.agent
     }
 
     expected.each_pair do |service,state|
@@ -150,3 +175,4 @@ class TestUnitGetPackages < Test::Unit::TestCase
   end
 
 end
+
