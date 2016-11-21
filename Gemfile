@@ -6,6 +6,7 @@ gem 'json'
 gem 'log4r', '~> 1.1.9'
 gem 'net-scp'
 gem 'net-ssh'
+gem 'rake', '= 10.4.2'
 
 group :development do
   gem 'test-unit', '~> 3.0.0'
