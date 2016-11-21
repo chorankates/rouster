@@ -1,0 +1,14 @@
+language: ruby
+
+rvm:
+  - 2.0.0
+
+notifications:
+  email: false
+
+bundler_args: --without test --jobs 3 --retry 3
+script: bundle exec rake test:unit reek build
+
+addons:
+  code_climate:
+  repo_token: 57e9ee501db4c30061005e99
