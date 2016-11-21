@@ -9,6 +9,7 @@ gem 'net-ssh'
 gem 'rake', '= 10.4.2'
 
 group :development do
+  gem 'reek', '= 3.10.2'
   gem 'test-unit', '~> 3.0.0'
 end
 
