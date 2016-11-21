@@ -3,7 +3,7 @@ require 'rubygems'
 require 'rake/testtask'
 
 desc 'build the gem'
-task :buildgem do
+task :build do
   sh 'gem build rouster.gemspec'
 end
 
