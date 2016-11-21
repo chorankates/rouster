@@ -676,7 +676,7 @@ class Rouster
             # nfs-utils.service loaded inactive dead     NFS server and client services
             # crond.service     loaded active   running  Command Scheduler
 
-            if line.match(/^\s+(.*?)\.service\s+(?:.*?)\s+(.*?)\s+(.*?)\s+(?:.*?)$/) # 5 space separated characters
+            if line.match(/^\W+(.*?)\.service\s+(?:.*?)\s+(.*?)\s+(.*?)\s+(?:.*?)$/) # 5 space separated characters
               service = $1
               active  = $2
               sub     = $3
