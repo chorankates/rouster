@@ -494,7 +494,7 @@ class Rouster
       raise InternalError.new(sprintf('unable to get service information from VM operating system[%s]', os)) if provider.eql?(:invalid)
       raise ArgumentError.new(sprintf('unable to find command provider[%s] for [%s]', provider, os))  if commands[os][provider].nil?
 
-      unless self.is_in_path?(commands[os][provider].split(' ').first)
+      unless seed or self.is_in_path?(commands[os][provider].split(' ').first)
         @logger.info(sprintf('skipping provider[%s], not in $PATH[%s]', provider, commands[os][provider]))
         next
       end
