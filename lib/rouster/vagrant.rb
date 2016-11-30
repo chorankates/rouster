@@ -140,8 +140,9 @@ class Rouster
         else
           status = 'not-created'
         end
-      elsif output.match(/^#{@name}\s*(.*\s?\w+)\s\((.+)\)$/)
+      elsif output.match(/^#{@name}\s+(\S+)\s+\((.+)\)/)
         # vagrant 1.2+, $1 = status, $2 = provider
+        # ppm                       running (virtualbox)
         status = $1
       elsif output.match(/^#{@name}\s+(.+)$/)
         # vagrant 1.2-, $1 = status
