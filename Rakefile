@@ -29,8 +29,8 @@ end
 
 task :examples do
   Dir['examples/**/*.rb'].each do |example|
-	  sh "ruby #{example}"
-	end
+    sh "ruby #{example}"
+  end
 end
 
 desc 'shortcut to vagrant destroy -f'

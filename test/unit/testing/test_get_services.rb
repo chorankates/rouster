@@ -54,10 +54,10 @@ class TestUnitGetPackages < Test::Unit::TestCase
     end
 
     expected = {
-      'kdump'      => 'stopped', # ● kdump.service                                  loaded failed failed  Crash recovery kernel arming
-      'rhel-dmesg' => 'stopped', #   rhel-dmesg.service                             loaded active exited  Dump dmesg to /var/log/dmesg
-      'sshd'       => 'running', #   sshd.service                                   loaded active running OpenSSH server daemon
-      'ntpd'       => 'running', # ntpd.service                                   loaded active running Network Time Service -- this is a test for output without leading spaces
+      'kdump'                => 'stopped', # ● kdump.service                                  loaded failed failed  Crash recovery kernel arming
+      'rhel-dmesg'           => 'stopped', #   rhel-dmesg.service                             loaded active exited  Dump dmesg to /var/log/dmesg
+      'sshd'                 => 'running', #   sshd.service                                   loaded active running OpenSSH server daemon
+      'systemd-journal-flush'=> 'stopped', # this is a test for output without leading spaces
     }
 
     expected.each_pair do |service,state|
@@ -159,8 +159,8 @@ class TestUnitGetPackages < Test::Unit::TestCase
     end
 
     expected = {
-      'com.bigfix.BESAgent'            => 'running', # 100	-	com.bigfix.BESAgent
-      'com.trendmicro.mpm.icore.agent' => 'stopped', # -	0	com.trendmicro.mpm.icore.agent
+      'com.bigfix.BESAgent'            => 'running', # 100      -       com.bigfix.BESAgent
+      'com.trendmicro.mpm.icore.agent' => 'stopped', # -        0       com.trendmicro.mpm.icore.agent
     }
 
     expected.each_pair do |service,state|
@@ -175,3 +175,4 @@ class TestUnitGetPackages < Test::Unit::TestCase
   end
 
 end
+

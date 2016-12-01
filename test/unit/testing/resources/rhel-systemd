@@ -18,7 +18,7 @@
   sshd.service                                   loaded active running OpenSSH server daemon
   systemd-fsck-root.service                      loaded active exited  File System Check on Root Device
   systemd-fsck@dev-disk-by\x2dlabel-boot.service loaded active exited  File System Check on /dev/disk/by-label/boot
-  systemd-journal-flush.service                  loaded active exited  Flush Journal to Persistent Storage
+systemd-journal-flush.service                  loaded active exited  Flush Journal to Persistent Storage
   systemd-journald.service                       loaded active running Journal Service
   systemd-logind.service                         loaded active running Login Service
   systemd-random-seed.service                    loaded active exited  Load/Save Random Seed
