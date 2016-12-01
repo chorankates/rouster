@@ -160,6 +160,22 @@ class Rouster
   end
 
   ##
+  # reload
+  #
+  # runs `vagrant reload <name> [--no-provision]` from the Vagrantfile path
+  # +no_provision+ Boolean whether or not to stop reprovisioning
+  def reload(no_provision = true)
+
+    if self.is_passthrough?
+      @logger.warn(sprintf('calling [vagrant reload] on a passthrough host is a noop', face))
+      return nil
+    end
+
+    @logger.info('reload()')
+    self.vagrant(sprintf('reload %s %s', @name, no_provision ? '--no-provision' : ''))
+  end
+
+  ##
   # suspend
   #
   # runs `vagrant suspend <name>` from the Vagrantfile path

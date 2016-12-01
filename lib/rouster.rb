@@ -41,6 +41,7 @@ class Rouster
   # * [sudo]                - boolean of whether or not to prefix commands run in VM with 'sudo', default is true
   # * [vagrantfile]         - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
   # * [vagrant_concurrency] - boolean controlling whether Rouster will attempt to run `vagrant *` if another vagrant process is already running, default is false
+  # * [vagrant_reboot]      - particularly sticky systems restart better if Vagrant does it for us, default is false
   # * [verbosity]           - an integer representing console level logging, or an array of integers representing console,file level logging - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     @cache_timeout       = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
@@ -53,6 +54,7 @@ class Rouster
     @unittest            = opts[:unittest].nil? ? false : opts[:unittest]
     @vagrantfile         = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
     @vagrant_concurrency = opts[:vagrant_concurrency].nil? ? false : opts[:vagrant_concurrency]
+    @vagrant_reboot      = opts[:vagrant_reboot].nil? ? false : opts[:vagrant_reboot]
 
     # TODO kind of want to invert this, 0 = trace, 1 = debug, 2 = info, 3 = warning, 4 = error
     # could do `fixed_ordering = [4, 3, 2, 1, 0]` and use user input as index instead, so an input of 4 (which should be more verbose), yields 0
@@ -653,19 +655,25 @@ class Rouster
       return nil
     end
 
-    case os_type
-      when :osx
-        self.run('shutdown -r now', expected_exitcodes)
-      when :rhel, :ubuntu
-        if os_type.eql?(:rhel) and os_version(os_type).match(/7/)
-          self.run('shutdown --halt --reboot now', expected_exitcodes << 256)
+    if @vagrant_reboot
+      # leading vagrant handle this through 'reload --no-provision'
+      self.reload
+    else
+      # trying to do it ourselves
+      case os_type
+        when :osx
+          self.run('shutdown -r now', expected_exitcodes)
+        when :rhel, :ubuntu
+          if os_type.eql?(:rhel) and os_version(os_type).match(/7/)
+            self.run('shutdown --halt --reboot now', expected_exitcodes << 256)
+          else
+            self.run('shutdown -rf now')
+          end
+        when :solaris
+          self.run('shutdown -y -i5 -g0', expected_exitcodes)
         else
-          self.run('shutdown -rf now')
-        end
-      when :solaris
-        self.run('shutdown -y -i5 -g0', expected_exitcodes)
-      else
-        raise InternalError.new(sprintf('unsupported OS[%s]', @ostype))
+          raise InternalError.new(sprintf('unsupported OS[%s]', @ostype))
+      end
     end
 
     @ssh, @ssh_info = nil # severing the SSH tunnel, getting ready in case this box is brought back up on a different port
