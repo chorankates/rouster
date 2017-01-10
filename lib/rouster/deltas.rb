@@ -146,7 +146,7 @@ class Rouster
 
     {
       :file    => self.run('cat /etc/group'),
-      :dynamic => self.run('getent group'),
+      :dynamic => self.run('getent group', [0,127]),
     }.each_pair do |source, raw|
 
       raw.split("\n").each do |line|
@@ -768,7 +768,7 @@ class Rouster
 
     {
       :file    => self.run('cat /etc/passwd'),
-      :dynamic => self.run('getent passwd'),
+      :dynamic => self.run('getent passwd', [0,127]),
     }.each do |source, raw|
 
       raw.split("\n").each do |line|
