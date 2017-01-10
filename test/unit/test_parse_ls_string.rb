@@ -326,6 +326,25 @@ class TestParseLsString < Test::Unit::TestCase
     assert_equal(expectation, res)
   end
 
+  def test_uid_forced
+    uid = 501
+    str = "-rw-r--r--  1 #{uid}  root  0 Jun 13 09:35 foo\n"
+
+    res = @app.exposed_parse_ls_string(str)
+
+    assert_equal('501', res[:owner])
+
+  end
+
+  def test_gid_forced
+    gid = 10
+    str = "-rw-r--r--  1 vagrant  #{gid}  0 Jun 13 09:35 foo\n"
+
+    res = @app.exposed_parse_ls_string(str)
+
+    assert_equal('10', res[:group])
+  end
+
   def test_dir_detection
     dir_str = "drwxrwxrwt 5 root root 4096 May 28 00:26 /tmp/\n"
     file_str  = "-rw-r--r-- 1 root    root      906 Oct  2  2012 grub.conf\n"
