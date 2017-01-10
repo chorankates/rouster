@@ -1,6 +1,8 @@
 Rouster
 ======
 
+[![build status](https://travis-ci.org/chorankates/rouster.svg)](https://travis-ci.org/chorankates/rouster) [![Gem Version](https://badge.fury.io/rb/rouster.svg)](https://rubygems.org/gems/rouster)
+
 ```rb
 Rouster.is_a?('abstraction layer for controlling Vagrant virtual machines')
 => true
@@ -60,9 +62,6 @@ irb(main):001:0> require 'rouster'
 ```
 
 ### pre-built gem installation (stable)
-
-[RubyGems](http://rubygems.org/gems/rouster)
-[![Gem Version](https://badge.fury.io/rb/rouster.png)](http://badge.fury.io/rb/rouster)
 
 ```sh
 gem install rouster

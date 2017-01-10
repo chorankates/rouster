@@ -144,22 +144,33 @@ class Rouster
 
     res = Hash.new()
 
-    raw = self.run('cat /etc/group')
+    {
+      :file    => self.run('cat /etc/group'),
+      :dynamic => self.run('getent group', [0,127]),
+    }.each_pair do |source, raw|
 
-    raw.split("\n").each do |line|
-      next unless line.match(/\w+:\w+:\w+/)
+      raw.split("\n").each do |line|
+        next unless line.match(/\w+:\w+:\w+/)
 
-      data = line.split(':')
+        data = line.split(':')
 
-      group = data[0]
-      gid   = data[2]
+        group = data[0]
+        gid   = data[2]
 
-      # this works in some cases, deep functionality picks up the others
-      users = data[3].nil? ? ['NONE'] : data[3].split(',')
+        # this works in some cases, deep functionality picks up the others
+        users = data[3].nil? ? ['NONE'] : data[3].split(',')
 
-      res[group] = Hash.new() # i miss autovivification
-      res[group][:gid]   = gid
-      res[group][:users] = users
+        if res.has_key?(group)
+          @logger.debug(sprintf('for[%s] old GID[%s] new GID[%s]', group, gid, res[group][:users])) unless gid.eql?(res[group][:gid])
+          @logger.debug(sprintf('for[%s] old users[%s] new users[%s]', group, users)) unless users.eql?(res[group][:users])
+        end
+
+        res[group] = Hash.new() # i miss autovivification
+        res[group][:gid]    = gid
+        res[group][:users]  = users
+        res[group][:source] = source
+      end
+
     end
 
     groups = res
@@ -755,20 +766,39 @@ class Rouster
 
     res = Hash.new()
 
-    raw = self.run('cat /etc/passwd')
+    {
+      :file    => self.run('cat /etc/passwd'),
+      :dynamic => self.run('getent passwd', [0,127]),
+    }.each do |source, raw|
 
-    raw.split("\n").each do |line|
-      next if line.match(/(\w+)(?::\w+){3,}/).nil?
+      raw.split("\n").each do |line|
+        next if line.match(/(\w+)(?::\w+){3,}/).nil?
 
-      user = $1
-      data = line.split(':')
+        user = $1
+        data = line.split(':')
 
-      res[user] = Hash.new()
-      res[user][:shell] = data[-1]
-      res[user][:home]  = data[-2]
-      res[user][:home_exists] = self.is_dir?(data[-2])
-      res[user][:uid]   = data[2]
-      res[user][:gid]   = data[3]
+        shell       = data[-1]
+        home        = data[-2]
+        home_exists = self.is_dir?(data[-2])
+        uid         = data[2]
+        gid         = data[3]
+
+        if res.has_key?(user)
+          @logger.info(sprintf('for[%s] old shell[%s], new shell[%s]', res[user][:shell], shell)) unless shell.eql?(res[user][:shell])
+          @logger.info(sprintf('for[%s] old home[%s], new home[%s]', res[user][:home], home)) unless home.eql?(res[user][:home])
+          @logger.info(sprintf('for[%s] old home_exists[%s], new home_exists[%s]', res[user][:home_exists], home_exists)) unless home_exists.eql?(res[user][:home_exists])
+          @logger.info(sprintf('for[%s] old UID[%s], new UID[%s]', res[user][:uid], uid)) unless uid.eql?(res[user][:uid])
+          @logger.info(sprintf('for[%s] old GID[%s], new GID[%s]', res[user][:gid], gid)) unless gid.eql?(res[user][:gid])
+        end
+
+        res[user] = Hash.new()
+        res[user][:shell]       = shell
+        res[user][:home]        = home
+        res[user][:home_exists] = home_exists
+        res[user][:uid]         = uid
+        res[user][:gid]         = gid
+        res[user][:source]      = source
+      end
     end
 
     if cache
