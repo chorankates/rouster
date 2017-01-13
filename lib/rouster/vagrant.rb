@@ -48,7 +48,7 @@ class Rouster
     @logger.info('up()')
 
     # don't like putting this here, may be refactored
-    if self.is_passthrough? 
+    if self.is_passthrough?
       if (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
          self.aws_up()
       elsif (self.passthrough[:type].equal?(:openstack))
@@ -87,7 +87,7 @@ class Rouster
     @logger.info('destroy()')
 
     # don't like putting this here, may be refactored
-    if self.is_passthrough? 
+    if self.is_passthrough?
       if (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
         self.aws_destroy()
       elsif self.is_passthrough? and self.passthrough[:type].equal?(:openstack)
@@ -121,7 +121,7 @@ class Rouster
 
     # don't like putting this here, may be refactored
     @logger.info('status()')
-    if self.is_passthrough? 
+    if self.is_passthrough?
       if (self.passthrough[:type].equal?(:aws) or self.passthrough[:type].equal?(:raiden))
         status = self.aws_status()
       elsif self.passthrough[:type].equal?(:openstack)
@@ -167,7 +167,7 @@ class Rouster
   def reload(no_provision = true)
 
     if self.is_passthrough?
-      @logger.warn(sprintf('calling [vagrant reload] on a passthrough host is a noop', face))
+      @logger.warn('calling [vagrant reload] on a passthrough host is a noop')
       return nil
     end
 
