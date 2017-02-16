@@ -40,13 +40,10 @@ class Rouster
                   :image_ref => @passthrough[:image_ref], :key_name => @passthrough[:keypair], :user_data => @passthrough[:user_data])
       server.wait_for { ready? }
       @instance_data = server
-      if defined?(self.addresses['NextGen'][0]['addr'])
-        self.passthrough[:host] = self.addresses['NextGen'][0]['addr']
-      else
-        server.addresses.each_key do |address_key|
-          if defined?(server.addresses[address_key])
-            self.passthrough[:host] = server.addresses[address_key][0]['addr']
-          end
+      server.addresses.each_key do |address_key|
+        if defined?(server.addresses[address_key])
+          self.passthrough[:host] = server.addresses[address_key].first['addr']
+          break
         end
       end
       self.passthrough[:instance] = self.ostack_get_instance_id
