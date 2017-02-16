@@ -212,14 +212,10 @@ class Rouster
           @logger.debug(':instance specified, will connect to existing OpenStack instance')
           inst_details = self.ostack_describe_instance(@passthrough[:instance])
           raise ArgumentError.new(sprintf('No such instance found in OpenStack - %s', @passthrough[:instance])) if inst_details.nil?
-          if defined?(inst_details.addresses['NextGen'].first['addr'])
-            @passthrough[:host] = inst_details.addresses['NextGen'].first['addr']
-          else
-            inst_details.addresses.each_key do |address_key|
-              if defined?(inst_details.addresses[address_key].first['addr'])
-                @passthrough[:host] = inst_details.addresses[address_key].first['addr']
-                break
-              end
+          inst_details.addresses.each_key do |address_key|
+            if defined?(inst_details.addresses[address_key].first['addr'])
+              @passthrough[:host] = inst_details.addresses[address_key].first['addr']
+              break
             end
           end
         end
