@@ -70,7 +70,7 @@ class Rouster
     # set up logging
     Log4r::YamlConfigurator.load_yaml_file(File.expand_path(sprintf('%s/../log4r.yaml', File.dirname(__FILE__))))
     @logger = Log4r::Logger.get('rouster')
-    #@logger.name = sprintf('rouster:%s', @name) # want to use the same configs for everyone, but want to distinguish between VMs
+    @logger.instance_variable_set(:@fullname, sprintf('rouster:%s', @name)) # want to use the same configs for everyone, but want to distinguish between VMs
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]
