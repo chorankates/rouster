@@ -4,13 +4,13 @@ require 'rouster'
 require 'rouster/puppet'
 require 'rouster/tests'
 
-app = Rouster.new(:name => 'app', :verbosity => 4, :sudo => true)
-ppm = Rouster.new(:name => 'ppm', :verbosity => 1, :sudo => true)
+app = Rouster.new(:name => 'app', :sudo => true)
+ppm = Rouster.new(:name => 'ppm', :sudo => true)
 
 # passthrough boxes do not need to specify a name
 # commented out currently because passthrough is not MVP
-#lpt = Rouster.new(:passthrough => 'local', :verbosity => 4)
-#rpt = Rouster.new(:passthrough => 'remote', :verbosity => 4, :sshkey => '~/.ssh/id_dsa')
+#lpt = Rouster.new(:passthrough => 'local')
+#rpt = Rouster.new(:passthrough => 'remote', :sshkey => '~/.ssh/id_dsa')
 
 workers = [app]
 

@@ -43,7 +43,6 @@ class Rouster
   # * [vagrantfile]         - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
   # * [vagrant_concurrency] - boolean controlling whether Rouster will attempt to run `vagrant *` if another vagrant process is already running, default is false
   # * [vagrant_reboot]      - particularly sticky systems restart better if Vagrant does it for us, default is false
-  # * [verbosity]           - an integer representing console level logging, or an array of integers representing console,file level logging - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     @cache_timeout       = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
     @name                = opts[:name]
@@ -248,8 +247,7 @@ class Rouster
       sshkey[#{@sshkey}],
       status[#{s}],
       sudo[#{@sudo}],
-      vagrantfile[#{@vagrantfile}],
-      verbosity console[#{@verbosity_console}] / log[#{@verbosity_logfile} - #{@logfile}]\n"
+      vagrantfile[#{@vagrantfile}]"
   end
 
   ## internal methods

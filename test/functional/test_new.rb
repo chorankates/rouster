@@ -47,9 +47,6 @@ class TestNew < Test::Unit::TestCase
     assert_equal(true, @app.instance_variable_get(:@sshtunnel))
     assert_equal(false, @app.instance_variable_get(:@unittest))
     assert_equal(false, @app.instance_variable_get(:@vagrant_concurrency))
-    assert_equal(3, @app.instance_variable_get(:@verbosity_console))
-    assert_equal(2, @app.instance_variable_get(:@verbosity_logfile))
-
   end
 
   def test_good_openssh_tunnel
@@ -66,7 +63,6 @@ class TestNew < Test::Unit::TestCase
         :name          => 'app',
         :passthrough   => false,
         :sudo          => false,
-        :verbosity     => [4,0],
         #:vagrantfile  => traverse_up(Dir.pwd, 'Vagrantfile'), # this is what happens anyway..
         :sshkey        =>  ENV['VAGRANT_HOME'].nil? ? sprintf('%s/.vagrant.d/insecure_private_key', ENV['HOME']) : sprintf('%s/insecure_private_key', ENV['VAGRANT_HOME']),
         :cache_timeout => 10,
@@ -78,8 +74,6 @@ class TestNew < Test::Unit::TestCase
     assert_equal('app', @app.name)
     assert_equal(false, @app.is_passthrough?())
     assert_equal(false, @app.uses_sudo?())
-    assert_equal(4, @app.instance_variable_get(:@verbosity_console))
-    assert_equal(0, @app.instance_variable_get(:@verbosity_logfile))
     assert_equal(true, File.file?(@app.vagrantfile))
     assert_equal(true, File.file?(@app.sshkey))
     assert_equal(10, @app.cache_timeout)
@@ -130,7 +124,7 @@ class TestNew < Test::Unit::TestCase
   def test_good_local_passthrough
 
     assert_nothing_raised do
-      @app = Rouster.new(:name => 'local', :passthrough => { :type => :local }, :verbosity => 4)
+      @app = Rouster.new(:name => 'local', :passthrough => { :type => :local })
     end
 
     assert_equal('local', @app.name)
@@ -158,8 +152,7 @@ class TestNew < Test::Unit::TestCase
           :user => ENV['USER'],
           :key  => @@user_sshkey,
           :paranoid => false,
-        },
-        :verbosity => 4,
+        },s
       )
     end
 
@@ -180,16 +173,15 @@ class TestNew < Test::Unit::TestCase
 
     assert_nothing_raised do
       @app = Rouster.new(
-          :name => 'remote',
-          :sudo => false,
-          :passthrough => {
-              :type => :remote,
-              :host => host,
-              :user => ENV['USER'],
-              :key  => @@user_sshkey,
-              :paranoid => :very,
-          },
-          :verbosity => 4,
+        :name => 'remote',
+        :sudo => false,
+        :passthrough => {
+            :type => :remote,
+            :host => host,
+            :user => ENV['USER'],
+            :key  => @@user_sshkey,
+            :paranoid => :very,
+        },
       )
     end
 
@@ -207,19 +199,19 @@ class TestNew < Test::Unit::TestCase
     # missing required parameters
 
     assert_raise Rouster::ArgumentError do
-      @app = Rouster.new(:name => 'fizzy', :passthrough => {}, :verbosity => 4)
+      @app = Rouster.new(:name => 'fizzy', :passthrough => {})
     end
 
     assert_raise Rouster::ArgumentError do
-      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => 'invalid' }, :verbosity => 4)
+      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => 'invalid' })
     end
 
     assert_raise Rouster::ArgumentError do
-      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => :remote }, :verbosity => 4)
+      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => :remote })
     end
 
     assert_raise Rouster::ArgumentError do
-      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => :remote, :user => 'foo' }, :verbosity => 4)
+      @app = Rouster.new(:name => 'fizzy', :passthrough => { :type => :remote, :user => 'foo' })
     end
 
   end
@@ -236,7 +228,6 @@ class TestNew < Test::Unit::TestCase
           :user => 'foo',
           :host => 'bar',
         },
-        :verbosity => 4,
       )
     end
 
@@ -250,7 +241,6 @@ class TestNew < Test::Unit::TestCase
             :user => 'foo',
             :host => 'bar',
         },
-        :verbosity => 4,
       )
     end
 
@@ -270,7 +260,6 @@ class TestNew < Test::Unit::TestCase
         },
 
         :sshtunnel => true,
-        :verbosity => 4,
       )
     end
 
@@ -289,7 +278,6 @@ class TestNew < Test::Unit::TestCase
         },
 
         :sshtunnel => true,
-        :verbosity => 4,
       )
     end
 

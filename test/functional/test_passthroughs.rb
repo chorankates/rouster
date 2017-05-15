@@ -69,7 +69,6 @@ class TestPassthroughs < Test::Unit::TestCase
           :user => ENV['USER'],
           :key  => @@user_sshkey,
         },
-        :verbosity => 4,
       )
     end
 

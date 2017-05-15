@@ -12,7 +12,7 @@ class TestUnitGetPackages < Test::Unit::TestCase
     Rouster.send(:public, *Rouster.private_instance_methods)
     Rouster.send(:public, *Rouster.protected_instance_methods)
 
-    @app = Rouster.new(:name => 'app', :unittest => true, :verbosity => 4)
+    @app = Rouster.new(:name => 'app', :unittest => true)
 
   end
 

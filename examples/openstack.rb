@@ -20,7 +20,6 @@ ostack = Rouster.new(
     :key                 => '/path/to/ssh_keys.pem',                      # SSH key filename
   },
   :sshtunnel => false,
-  :verbosity => 1,
 )
 
 p "UP(): #{ostack.up}"
@@ -41,7 +40,6 @@ ostack_copy = Rouster.new(
     :instance            => ostack.ostack_get_instance_id,                # ID of a running OpenStack instance.
   },
   :sshtunnel => false,
-  :verbosity => 1,
 )
 
 [ ostack, ostack_copy ].each do |o|

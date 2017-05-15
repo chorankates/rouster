@@ -10,7 +10,6 @@ aws_already_running = Rouster.new(
     :instance => 'your-instance-id',
     :key      => sprintf('%s/.ssh/id_rsa-aws', ENV['HOME'])
   },
-  :verbosity => 1,
 )
 
 a = aws_already_running.run('ls -l /etc/hosts; who')
@@ -40,7 +39,6 @@ aws = Rouster.new(
     :secret_key   => ENV['AWS_SECRET_ACCESS_KEY'],
   },
   :sshtunnel => false,
-  :verbosity => 1,
 )
 
 p "up(): #{aws.up}"
@@ -52,7 +50,6 @@ aws_clone = Rouster.new(
     :key      => sprintf('%s/.ssh/id_rsa-aws', ENV['HOME']),
     :instance => aws.aws_get_instance,
   },
-  :verbosity => 1,
 )
 
 [ aws, aws_already_running, aws_clone ].each do |a|
