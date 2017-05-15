@@ -69,7 +69,11 @@ class Rouster
     # set up logging
     Log4r::YamlConfigurator.load_yaml_file(File.expand_path(sprintf('%s/../log4r.yaml', File.dirname(__FILE__))))
     @logger = Log4r::Logger.get('rouster')
-    @logger.instance_variable_set(:@fullname, sprintf('rouster:%s', @name)) # want to use the same configs for everyone, but want to distinguish between VMs
+    begin
+      @logger.instance_variable_set(:@fullname, sprintf('rouster:%s', @name)) # want to use the same configs for everyone, but want to distinguish between VMs
+    rescue => e
+      @logger.error(sprintf('unadvised use of instance variables failed[%s], please file an issue', e.message))
+    end
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]

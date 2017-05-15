@@ -152,7 +152,7 @@ class TestNew < Test::Unit::TestCase
           :user => ENV['USER'],
           :key  => @@user_sshkey,
           :paranoid => false,
-        },s
+        },
       )
     end
 
