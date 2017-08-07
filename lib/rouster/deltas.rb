@@ -150,7 +150,7 @@ class Rouster
     }.each_pair do |source, raw|
 
       raw.split("\n").each do |line|
-        next unless line.match(/\w+:\w+:\w+/)
+        next unless line.match(/\w+:\w*:\w+/)
 
         data = line.split(':')
 
