@@ -4,8 +4,8 @@ source 'https://rubygems.org'
 
 gem 'json'
 gem 'log4r', '~> 1.1.9'
-gem 'net-scp'
-gem 'net-ssh'
+gem 'net-scp', '= 1.2.1'
+gem 'net-ssh', '= 2.9.4'
 gem 'rake', '= 10.4.2'
 
 group :development do

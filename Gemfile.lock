@@ -61,7 +61,7 @@ GEM
     multi_json (1.10.1)
     net-scp (1.2.1)
       net-ssh (>= 2.6.5)
-    net-ssh (2.9.1)
+    net-ssh (2.9.4)
     nokogiri (1.6.3.1)
       mini_portile (= 0.6.0)
     parser (2.3.3.0)
@@ -89,8 +89,8 @@ DEPENDENCIES
   fog (= 1.24.0)
   json
   log4r (~> 1.1.9)
-  net-scp
-  net-ssh
+  net-scp (= 1.2.1)
+  net-ssh (= 2.9.4)
   rake (= 10.4.2)
   reek (= 3.10.2)
   test-unit (~> 3.0.0)
@@ -99,4 +99,4 @@ RUBY VERSION
    ruby 2.0.0p648
 
 BUNDLED WITH
-   1.13.6
+   1.15.4
