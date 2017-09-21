@@ -455,9 +455,10 @@ class Rouster
             @ssh = Net::SSH.start(
               @passthrough[:host],
               @passthrough[:user],
-              :port => @passthrough[:ssh_port],
-              :keys => [ @passthrough[:key] ], # TODO this should be @sshkey
-              :paranoid => false
+              :port                       => @passthrough[:ssh_port],
+              :keys                       => [ @passthrough[:key] ], # TODO this should be @sshkey
+              :paranoid                   => false,
+              :number_of_password_prompts => 0
             )
             break
           rescue => e
