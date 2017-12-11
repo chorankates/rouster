@@ -36,8 +36,15 @@ class Rouster
       @logger.debug(sprintf('Connecting to running instance [%s] while calling ostack_up()', self.passthrough[:instance]))
       self.connect_ssh_tunnel
     else
-      server = @nova.servers.create(:name => @name, :flavor_ref => @passthrough[:flavor_ref],
+      if @passthrough[:openstack_net_id]
+        # if the user has set a net id, send it along
+        server = @nova.servers.create(:name => @name, :flavor_ref => @passthrough[:flavor_ref],
+                  :image_ref => @passthrough[:image_ref], :nics => [{:net_id => @passthrough[:openstack_net_id] }], 
+                  :key_name => @passthrough[:keypair], :user_data => @passthrough[:user_data])
+      else
+        server = @nova.servers.create(:name => @name, :flavor_ref => @passthrough[:flavor_ref],
                   :image_ref => @passthrough[:image_ref], :key_name => @passthrough[:keypair], :user_data => @passthrough[:user_data])
+      end
       server.wait_for { ready? }
       @instance_data = server
       server.addresses.each_key do |address_key|
