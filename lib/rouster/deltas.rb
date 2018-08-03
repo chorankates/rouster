@@ -772,7 +772,7 @@ class Rouster
     }.each do |source, raw|
 
       raw.split("\n").each do |line|
-        next if line.match(/([\w-]+)(?::\w+){3,}/).nil?
+        next if line.match(/([\w\.-]+)(?::\w+){3,}/).nil?
 
         user = $1
         data = line.split(':')
