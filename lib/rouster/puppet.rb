@@ -210,7 +210,12 @@ class Rouster
 
     raw = self.run(cmd)
 
-    JSON.parse(raw)
+    begin
+      JSON.parse(raw)
+    rescue => e
+      raise ExternalError.new(sprintf('unable to parse output[%s] as JSON from cmd[%s]', raw, cmd))
+    end
+
   end
 
   ##
