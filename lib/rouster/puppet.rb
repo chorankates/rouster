@@ -29,12 +29,16 @@ class Rouster
 
     end
 
-    raw  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
-    res  = Hash.new()
+    cmd = 'facter -y' # getting YAML output to handle differences in facter 1.x and 3.x default output
+    cmd << ' -p' if custom_facts.true?
 
-    raw.split("\n").each do |line|
-      next unless line.match(/(\S*?)\s\=\>\s(.*)/)
-      res[$1] = $2
+    raw = self.run(cmd)
+    res = Hash.new
+
+    begin
+      res = YAML.parse(raw)
+    rescue => e
+      raise ExternalError.new(sprintf('unable to parse facter output as YAML[%s], cmd[%s], raw[%s]', e.message, cmd, raw))
     end
 
     if cache.true?
@@ -210,7 +214,12 @@ class Rouster
 
     raw = self.run(cmd)
 
-    JSON.parse(raw)
+    begin
+      JSON.parse(raw)
+    rescue => e
+      raise ExternalError.new(sprintf('unable to parse hiera output as JSON[%s], cmd[%s], raw[%s]', e.message, cmd, raw))
+    end
+
   end
 
   ##
