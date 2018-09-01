@@ -24,7 +24,7 @@ The first implementation of Rouster was in Perl, called [Salesforce::Vagrant](ht
 
 ## Requirements
 
-* [Ruby](http://rubylang.org), version 2.0+ (best attempt made to support 1.8.7 and 1.9.3 as well)
+* [Ruby](http://rubylang.org), version 2.1+
 * [Vagrant](http://vagrantup.com), version 1.0.5+
 * Gems
   * json
