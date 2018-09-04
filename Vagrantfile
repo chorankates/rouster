@@ -10,6 +10,11 @@ boxes = {
     :box_url  => 'http://puppet-vagrant-boxes.puppetlabs.com/centos-64-x64-vbox4210.box',
   },
 
+  :centos7    => {
+    :box_name => 'centos7',
+    :box_url  => 'https://vagrantcloud.com/puppetlabs/boxes/centos-7.2-64-puppet/versions/1.0.1/providers/virtualbox.box',
+  },
+
   :ubuntu12  => {
       :box_name => 'ubuntu12',
       :box_url => 'http://puppet-vagrant-boxes.puppetlabs.com/ubuntu-server-12042-x64-vbox4210.box',
