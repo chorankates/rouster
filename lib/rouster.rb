@@ -296,8 +296,9 @@ class Rouster
   # returns output (STDOUT and STDERR) from command run, pushes to self.ssh_exitcode
   #
   # parameters
-  # * <command> - the command to run (sudo will be prepended if specified in object instantiation)
+  # * <command>           - the command to run
   # * [expected_exitcode] - allows for non-0 exit codes to be returned without requiring exception handling
+  # * [sudo]              - boolean of whether or not to prefix command with 'sudo', default is the value specified in object instantiation'
   def run( command, expected_exitcode = 0, sudo = self.uses_sudo? )
 
     cmd = {
@@ -307,9 +308,8 @@ class Rouster
       :stderr            => String.new,
       :expected_exitcode => Array( expected_exitcode ),
       :exitcode          => nil,
+      :final_command     => sudo ? sprintf( 'sudo bash -c "%s"', command ) : command,
     }
-
-    cmd[:final_command] = cmd[:sudo] ? sprintf( 'sudo bash -c "%s"', command ) : command
 
     if @ssh.nil?
       self.connect_ssh_tunnel
@@ -333,7 +333,7 @@ class Rouster
     end
 
     if cmd[:stdout].nil?
-      cmd[:stdout]   = "error gathering output, last logged output[#{self.get_ssh_stdout()}]"
+      cmd[:stdout]   = "error gathering output, last logged output:\nSTDOUT: [#{self.get_ssh_stdout}]\nSTDERR: [#{self.get_ssh_stderr}]"
       cmd[:exitcode] = 256
     elsif cmd[:exitcode].nil?
       cmd[:exitcode] = 255
@@ -342,12 +342,12 @@ class Rouster
     self.ssh_stdout.push(   cmd[:stdout]   )
     self.ssh_stderr.push(   cmd[:stderr]   )
     self.ssh_exitcode.push( cmd[:exitcode] )
-    @logger.debug( sprintf( 'output: [%s]',     cmd[:stdout] ) )
+    @logger.debug( sprintf( 'ssh_stdout: [%s]', cmd[:stdout] ) )
     @logger.debug( sprintf( 'ssh_stderr: [%s]', cmd[:stderr] ) )
 
     unless cmd[:expected_exitcode].member?( cmd[:exitcode] )
       # TODO technically this could be a 'LocalPassthroughExecutionError' now too if local passthrough.. should we update?
-      raise RemoteExecutionError.new("output[#{cmd[:stdout]}], exitcode[#{cmd[:exitcode]}], expected[#{cmd[:expected_exitcode]}]")
+      raise RemoteExecutionError.new("stdout[#{cmd[:stdout]}], stderr[#{cmd[:stderr]}], exitcode[#{cmd[:exitcode]}], expected[#{cmd[:expected_exitcode]}]")
     end
 
     cmd[:stdout]
@@ -355,21 +355,15 @@ class Rouster
 
   def remote_exec( cmd )
     @ssh.open_channel do |channel|
-      channel.exec( cmd[:final_command] ) do |ch, success|
+      channel.exec( cmd[:final_command] ) do |_ch, success|
         unless success
           error = "FAILED: couldn't execute command remotely [#{cmd[:final_command]}]"
           @logger.error( error )
           raise RemoteExecutionError.new( error )
         end
-        channel.on_data do |ch, data|
-          cmd[:stdout] << data
-        end
-        channel.on_extended_data do |ch, type, data|
-          cmd[:stderr] << data
-        end
-        channel.on_request( 'exit-status' ) do |ch, data|
-          cmd[:exitcode] = data.read_long
-        end
+        channel.on_data                   { |_ch, data|        cmd[:stdout]  << data           }
+        channel.on_extended_data          { |_ch, _type, data| cmd[:stderr]  << data           }
+        channel.on_request('exit-status') { |_ch, data|        cmd[:exitcode] = data.read_long }
       end
     end
     @ssh.loop
@@ -732,7 +726,6 @@ class Rouster
   # (should be) private method that executes commands on the local host (not guest VM)
   #
   # returns STDOUT|STDERR, raises Rouster::LocalExecutionError on non 0 exit code
-  # pushes to @ssh_exitcode
   #
   # parameters
   # * <command> - command to be run
@@ -745,15 +738,13 @@ class Rouster
 
     output = File.read(tmp_file)
     File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))
-
-    self.ssh_stdout.push(output)
+    
     @logger.debug(sprintf('output: [%s]', output))
 
     unless $?.success?
       raise LocalExecutionError.new(sprintf('command [%s] exited with code [%s], output [%s]', cmd, $?.to_i(), output))
     end
 
-    self.ssh_exitcode.push( $?.to_i() )
     output
   end
 
