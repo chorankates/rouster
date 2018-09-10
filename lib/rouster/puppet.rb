@@ -116,9 +116,9 @@ class Rouster
   # parses input for puppet errors, returns array of strings
   #
   # parameters
-  # * [input] - string to look at, defaults to self.get_output()
+  # * [input] - string to look at, defaults to self.get_ssh_stdout.to_s + self.get_ssh_stderr.to_s
   def get_puppet_errors(input=nil)
-    str       = input.nil? ? self.get_output() : input
+    str       = input.nil? ? self.get_ssh_stdout.to_s + self.get_ssh_stderr.to_s : input
     errors    = nil
     errors_27 = str.scan(/35merr:.*/)
     errors_30 = str.scan(/Error:.*/)
@@ -139,9 +139,9 @@ class Rouster
   # parses input for puppet notices, returns array of strings
   #
   # parameters
-  # * [input] - string to look at, defaults to self.get_output()
+  # * [input] - string to look at, defaults to self.get_ssh_stdout.to_s + self.get_ssh_stderr.to_s
   def get_puppet_notices(input=nil)
-    str        = input.nil? ? self.get_output() : input
+    str        = input.nil? ? self.get_ssh_stdout.to_s + self.get_ssh_stderr.to_s : input
     notices    = nil
     notices_27 = str.scan(/36mnotice:.*/) # not sure when this stopped working
     notices_30 = str.scan(/Notice:.*/)

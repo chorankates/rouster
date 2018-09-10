@@ -25,7 +25,7 @@ class Rouster
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_accessor :facts, :last_puppet_run
-  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :logger, :name, :output, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
+  attr_reader :cache, :cache_timeout, :deltas, :logger, :name, :ssh_stdout, :ssh_stderr, :ssh_exitcode, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
 
   ##
   # initialize - object instantiation
@@ -81,11 +81,12 @@ class Rouster
     @ostype    = nil
     @osversion = nil
 
-    @output = Array.new
-    @cache  = Hash.new
-    @deltas = Hash.new
+    @ssh_stdout   = Array.new
+    @ssh_stderr   = Array.new
+    @ssh_exitcode = Array.new
+    @cache        = Hash.new
+    @deltas       = Hash.new
 
-    @exitcode = nil
     @ssh      = nil # hash containing the SSH connection object
     @ssh_info = nil # hash containing connection information
 
@@ -292,60 +293,81 @@ class Rouster
   #
   # runs a command inside the Vagrant VM
   #
-  # returns output (STDOUT and STDERR) from command run, sets @exitcode
-  # currently determines exitcode by tacking a 'echo $?' onto the command being run, which is then parsed out before returning
+  # returns output (STDOUT and STDERR) from command run, pushes to self.ssh_exitcode
   #
   # parameters
-  # * <command> - the command to run (sudo will be prepended if specified in object instantiation)
+  # * <command>           - the command to run
   # * [expected_exitcode] - allows for non-0 exit codes to be returned without requiring exception handling
-  def run(command, expected_exitcode=[0])
+  # * [sudo]              - boolean of whether or not to prefix command with 'sudo', default is the value specified in object instantiation'
+  def run( command, expected_exitcode = 0, sudo = self.uses_sudo? )
+
+    cmd = {
+      :command           => command,
+      :sudo              => sudo,
+      :stdout            => String.new,
+      :stderr            => String.new,
+      :expected_exitcode => Array( expected_exitcode ),
+      :exitcode          => nil,
+      :final_command     => sudo ? sprintf( 'sudo bash -c "%s"', command ) : command,
+    }
 
     if @ssh.nil?
       self.connect_ssh_tunnel
     end
 
-    output = nil
-    expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
-
-    cmd = sprintf('%s%s; echo ec[$?]', self.uses_sudo? ? 'sudo ' : '', command)
-    @logger.info(sprintf('vm running: [%s]', cmd)) # TODO decide whether this should be changed in light of passthroughs.. 'remotely'?
+    @logger.info( sprintf( 'vm running: [%s]', cmd[:final_command] ) ) # TODO decide whether this should be changed in light of passthroughs.. 'remotely'?
 
     0.upto(@retries) do |try|
       begin
         if self.is_passthrough? and self.passthrough[:type].eql?(:local)
-          output = `#{cmd}`
+          cmd[:stdout]   = `#{cmd[:final_command]}`
+          cmd[:exitcode] = $?
         else
-          output = @ssh.exec!(cmd)
+          cmd = remote_exec( cmd )
         end
-
         break
       rescue => e
-        @logger.error(sprintf('failed to run [%s] with [%s], attempt[%s/%s]', cmd, e, try, retries)) if self.retries > 0
+        @logger.error(sprintf('failed to run [%s] with [%s], attempt[%s/%s]', cmd[:final_command], e, try, retries)) if self.retries > 0
         sleep 10 # TODO need to expose this as a variable
       end
-
     end
 
-    if output.nil?
-      output    = "error gathering output, last logged output[#{self.get_output()}]"
-      @exitcode = 256
-    elsif output.match(/ec\[(\d+)\]/)
-      @exitcode = $1.to_i
-      output.gsub!(/ec\[(\d+)\]\n/, '')
-    else
-      @exitcode = 1
+    if cmd[:stdout].nil?
+      cmd[:stdout]   = "error gathering output, last logged output:\nSTDOUT: [#{self.get_ssh_stdout}]\nSTDERR: [#{self.get_ssh_stderr}]"
+      cmd[:exitcode] = 256
+    elsif cmd[:exitcode].nil?
+      cmd[:exitcode] = 255
     end
 
-    self.output.push(output)
-    @logger.debug(sprintf('output: [%s]', output))
+    self.ssh_stdout.push(   cmd[:stdout]   )
+    self.ssh_stderr.push(   cmd[:stderr]   )
+    self.ssh_exitcode.push( cmd[:exitcode] )
+    @logger.debug( sprintf( 'ssh_stdout: [%s]', cmd[:stdout] ) )
+    @logger.debug( sprintf( 'ssh_stderr: [%s]', cmd[:stderr] ) )
 
-    unless expected_exitcode.member?(@exitcode)
+    unless cmd[:expected_exitcode].member?( cmd[:exitcode] )
       # TODO technically this could be a 'LocalPassthroughExecutionError' now too if local passthrough.. should we update?
-      raise RemoteExecutionError.new("output[#{output}], exitcode[#{@exitcode}], expected[#{expected_exitcode}]")
+      raise RemoteExecutionError.new("stdout[#{cmd[:stdout]}], stderr[#{cmd[:stderr]}], exitcode[#{cmd[:exitcode]}], expected[#{cmd[:expected_exitcode]}]")
     end
 
-    @exitcode ||= 0
-    output
+    cmd[:stdout]
+  end
+
+  def remote_exec( cmd )
+    @ssh.open_channel do |channel|
+      channel.exec( cmd[:final_command] ) do |_ch, success|
+        unless success
+          error = "FAILED: couldn't execute command remotely [#{cmd[:final_command]}]"
+          @logger.error( error )
+          raise RemoteExecutionError.new( error )
+        end
+        channel.on_data                   { |_ch, data|        cmd[:stdout]  << data           }
+        channel.on_extended_data          { |_ch, _type, data| cmd[:stderr]  << data           }
+        channel.on_request('exit-status') { |_ch, data|        cmd[:exitcode] = data.read_long }
+      end
+    end
+    @ssh.loop
+    cmd
   end
 
   ##
@@ -704,7 +726,6 @@ class Rouster
   # (should be) private method that executes commands on the local host (not guest VM)
   #
   # returns STDOUT|STDERR, raises Rouster::LocalExecutionError on non 0 exit code
-  # sets @exitcode
   #
   # parameters
   # * <command> - command to be run
@@ -717,15 +738,13 @@ class Rouster
 
     output = File.read(tmp_file)
     File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))
-
-    self.output.push(output)
+    
     @logger.debug(sprintf('output: [%s]', output))
 
     unless $?.success?
       raise LocalExecutionError.new(sprintf('command [%s] exited with code [%s], output [%s]', cmd, $?.to_i(), output))
     end
 
-    @exitcode = $?.to_i()
     output
   end
 
@@ -739,7 +758,47 @@ class Rouster
   # parameters
   # * [index] - positive or negative indexing of LIFO datastructure
   def get_output(index = 1)
-    index.is_a?(Fixnum) and index > 0 ? self.output[-index] : self.output[index]
+    @logger.warn( 'get_output has been deprecated, please replace with get_ssh_stdout' )
+    get_ssh_stdout( index )
+  end
+
+  ##
+  # get_ssh_stdout
+  #
+  # returns output from commands passed through _run() and run()
+  #
+  # if no parameter passed, returns stdout from the last command run
+  #
+  # parameters
+  # * [index] - positive or negative indexing of LIFO datastructure
+  def get_ssh_stdout(index = 1)
+    index.is_a?(Fixnum) and index > 0 ? self.ssh_stdout[-index] : self.ssh_stdout[index]
+  end
+
+  ##
+  # get_ssh_stderr
+  #
+  # returns stderr from commands passed through run()
+  #
+  # if no parameter passed, returns stderr from the last command run
+  #
+  # parameters
+  # * [index] - positive or negative indexing of LIFO datastructure
+  def get_ssh_stderr( index = 1 )
+    index.is_a?(Fixnum) and index > 0 ? self.ssh_stderr[-index] : self.ssh_stderr[index]
+  end
+
+  ##
+  # get_ssh_exitcode
+  #
+  # returns exitcode from commands passed through run()
+  #
+  # if no parameter passed, returns exitcode from the last command run
+  #
+  # parameters
+  # * [index] - positive or negative indexing of LIFO datastructure
+  def get_ssh_exitcode( index = 1 )
+    index.is_a?(Fixnum) and index > 0 ? self.ssh_exitcode[-index] : self.ssh_exitcode[index]
   end
 
   ##
