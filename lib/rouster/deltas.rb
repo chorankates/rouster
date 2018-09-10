@@ -642,6 +642,9 @@ class Rouster
               elsif line.match(/^(\w+?):.*?\sis\snot\srunning\.$/)
                 # ip6tables: Firewall is not running.
                 res[$1] = 'stopped'
+              elsif line.match(/Chain [A-Z]+ \(policy [A-Z]+\)/)
+                # see https://github.com/chorankates/rouster/issues/84
+                res['iptables'] = 'running'
               elsif line.match(/^(\w+?)\s.*?\s(.*)$/)
                 # netconsole module not loaded
                 state = $2
