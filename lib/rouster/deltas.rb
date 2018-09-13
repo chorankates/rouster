@@ -327,7 +327,7 @@ class Rouster
       end
 
     elsif os.eql?(:rhel)
-      raw = self.run('rpm -qa --qf "%{n}@%{v}@%{arch}\n"')
+      raw = self.run('rpm -qa --qf "%{n}@%{v}@%{arch}\n"', 0, false)
       raw.split("\n").each do |line|
         next if line.match(/(.*?)\@(.*?)\@(.*)/).nil?
         name    = $1

@@ -36,7 +36,7 @@ class Rouster
     res = Hash.new
 
     begin
-      res = YAML.parse(raw)
+      res = YAML.load(raw)
     rescue => e
       raise ExternalError.new(sprintf('unable to parse facter output as YAML[%s], cmd[%s], raw[%s]', e.message, cmd, raw))
     end
