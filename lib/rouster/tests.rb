@@ -117,7 +117,7 @@ class Rouster
     begin
       raw = self.run(sprintf('ls -l %s', file))
     rescue Rouster::RemoteExecutionError
-      raw = self.get_ssh_stdout()
+      raw = self.get_ssh_stdout().to_s + self.get_ssh_stderr().to_s
     end
 
     if raw.match(/No such file or directory/)
