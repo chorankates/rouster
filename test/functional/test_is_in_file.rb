@@ -20,7 +20,7 @@ class TestIsInFile < Test::Unit::TestCase
     @app.run(sprintf('mkdir %s', @dir_tmp))
 
     @file = sprintf('%s/file', @dir_tmp)
-    @app.run(sprintf('echo "%s" >> %s', SHIBBOLETH, @file))
+    @app.run(sprintf('echo %s >> %s', SHIBBOLETH, @file))
   end
 
   def teardown; end
