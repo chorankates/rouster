@@ -130,10 +130,9 @@ class Rouster
         raise InternalError.new(sprintf('failed to execute status(), unsupported passthrough type %s', self.passthrough[:type]))
       end
     else
-      self.vagrant(sprintf('status %s', @name))
+      output = self.vagrant(sprintf('status %s', @name))
 
       # else case here (both for nil/non-matching output) is handled by non-0 exit code
-      output = self.get_output()
       if output.nil?
         if self.is_passthrough?() and self.passthrough[:type].eql?(:local)
           status = 'running'
@@ -221,15 +220,17 @@ class Rouster
       return @cache[:sandbox_available?]
     end
 
+    output = ''
     @logger.info('sandbox_available()')
     begin
       # at some point, vagrant changed its behavior on exit code here, so rescuing
-      self._run(sprintf('cd %s; vagrant', File.dirname(@vagrantfile))) # calling 'vagrant' without parameters to determine available faces
-    rescue
+      output = self._run(sprintf('cd %s; vagrant', File.dirname(@vagrantfile))) # calling 'vagrant' without parameters to determine available faces
+    rescue => e
+      output = e.message # this.. only works becasue the exception contains the raw output
     end
 
     sandbox_available = false
-    if self.get_output().match(/^\s+sandbox$/)
+    if output.match(/^\s+sandbox/)
       sandbox_available = true
     end
 
