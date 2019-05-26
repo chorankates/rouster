@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'log4r'
+require 'log4r/yamlconfigurator'
 require 'json'
 require 'net/scp'
 require 'net/ssh'
@@ -42,10 +43,8 @@ class Rouster
   # * [vagrantfile]         - the full or relative path to the Vagrantfile to use, if not specified, will look for one in 5 directories above current location
   # * [vagrant_concurrency] - boolean controlling whether Rouster will attempt to run `vagrant *` if another vagrant process is already running, default is false
   # * [vagrant_reboot]      - particularly sticky systems restart better if Vagrant does it for us, default is false
-  # * [verbosity]           - an integer representing console level logging, or an array of integers representing console,file level logging - DEBUG (0) < INFO (1) < WARN (2) < ERROR (3) < FATAL (4)
   def initialize(opts = nil)
     @cache_timeout       = opts[:cache_timeout].nil? ? false : opts[:cache_timeout]
-    @logfile             = opts[:logfile].nil? ? false : opts[:logfile]
     @name                = opts[:name]
     @passthrough         = opts[:passthrough].nil? ? false : opts[:passthrough]
     @retries             = opts[:retries].nil? ? 0 : opts[:retries]
@@ -55,28 +54,6 @@ class Rouster
     @vagrantfile         = opts[:vagrantfile].nil? ? traverse_up(Dir.pwd, 'Vagrantfile', 5) : opts[:vagrantfile]
     @vagrant_concurrency = opts[:vagrant_concurrency].nil? ? false : opts[:vagrant_concurrency]
     @vagrant_reboot      = opts[:vagrant_reboot].nil? ? false : opts[:vagrant_reboot]
-
-    # TODO kind of want to invert this, 0 = trace, 1 = debug, 2 = info, 3 = warning, 4 = error
-    # could do `fixed_ordering = [4, 3, 2, 1, 0]` and use user input as index instead, so an input of 4 (which should be more verbose), yields 0
-    if opts[:verbosity]
-      # TODO decide how to handle this case -- currently #2 is implemented
-      # - option 1, if passed a single integer, use that level for both loggers
-      # - option 2, if passed a single integer, use that level for stdout, and a hardcoded level (probably INFO) to logfile
-
-      # kind of want to do if opts[:verbosity].respond_to?(:[]), but for 1.87 compatability, going this way..
-      if ! opts[:verbosity].is_a?(Array) or opts[:verbosity].is_a?(Integer)
-        @verbosity_console = opts[:verbosity].to_i
-        @verbosity_logfile = 2
-      elsif opts[:verbosity].is_a?(Array)
-        # TODO more error checking here when we are sure this is the right way to go
-        @verbosity_console = opts[:verbosity][0].to_i
-        @verbosity_logfile = opts[:verbosity][1].to_i
-        @logfile = true if @logfile.eql?(false) # overriding the default setting
-      end
-    else
-      @verbosity_console = 3
-      @verbosity_logfile = 2 # this is kind of arbitrary, but won't actually be created unless opts[:logfile] is also passed
-    end
 
     @ostype    = nil
     @osversion = nil
@@ -91,19 +68,13 @@ class Rouster
     @ssh_info = nil # hash containing connection information
 
     # set up logging
-    require 'log4r/config'
-    Log4r.define_levels(*Log4r::Log4rConfig::LogLevels)
-
-    @logger            = Log4r::Logger.new(sprintf('rouster:%s', @name))
-    @logger.outputters << Log4r::Outputter.stderr
-    #@log.outputters << Log4r::Outputter.stdout
-
-    if @logfile
-      @logfile = @logfile.eql?(true) ? sprintf('/tmp/rouster-%s.%s.%s.log', @name, Time.now.to_i, $$) : @logfile
-      @logger.outputters << Log4r::FileOutputter.new(sprintf('rouster:%s', @name), :filename => @logfile, :level => @verbosity_logfile)
+    Log4r::YamlConfigurator.load_yaml_file(File.expand_path(sprintf('%s/../log4r.yaml', File.dirname(__FILE__))))
+    @logger = Log4r::Logger.get('rouster')
+    begin
+      @logger.instance_variable_set(:@fullname, sprintf('rouster:%s', @name)) # want to use the same configs for everyone, but want to distinguish between VMs
+    rescue => e
+      @logger.error(sprintf('unadvised use of instance variables failed[%s], please file an issue', e.message))
     end
-
-    @logger.outputters[0].level = @verbosity_console # can't set this when instantiating a .std* logger, and want the FileOutputter at a different level
 
     if opts.has_key?(:sudo)
       @sudo = opts[:sudo]
@@ -281,8 +252,7 @@ class Rouster
       sshkey[#{@sshkey}],
       status[#{s}],
       sudo[#{@sudo}],
-      vagrantfile[#{@vagrantfile}],
-      verbosity console[#{@verbosity_console}] / log[#{@verbosity_logfile} - #{@logfile}]\n"
+      vagrantfile[#{@vagrantfile}]"
   end
 
   ## internal methods

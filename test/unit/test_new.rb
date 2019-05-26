@@ -33,7 +33,6 @@ class TestNew < Test::Unit::TestCase
         :cache_timeout => 10,
         :name          => 'ppm',
         :retries       => 3,
-        :verbosity     => [3,2],
         :unittest      => true,
       )
     end
@@ -41,9 +40,6 @@ class TestNew < Test::Unit::TestCase
     assert_equal(10, @app.cache_timeout)
     assert_equal('ppm', @app.name)
     assert_equal(3, @app.retries)
-
-    assert_equal(3, @app.instance_variable_get(:@verbosity_console))
-    assert_equal(2, @app.instance_variable_get(:@verbosity_logfile))
 
   end
 

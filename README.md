@@ -239,7 +239,7 @@ require 'test/unit'
 class TestPuppetRun < Test::Unit::TestCase
 
   def setup
-    @ppm = Rouster.new(:name => 'ppm', :verbose => 4)
+    @ppm = Rouster.new(:name => 'ppm')
     @app = Rouster.new(:name => 'app')
   end
 

@@ -4,14 +4,11 @@ require 'rouster'
 require 'rouster/puppet'
 require 'rouster/tests'
 
-verbosity = ENV['VERBOSE'].nil? ? 4 : 0
-
 # .inspect of this is blank for sshkey and status, looks ugly, but is ~accurate.. fix this?
 local = Rouster.new(
   :name        => 'local',
   :sudo        => false,
   :passthrough => { :type => :local },
-  :verbosity   => verbosity,
 )
 
 remote = Rouster.new(
@@ -23,20 +20,17 @@ remote = Rouster.new(
     :user => ENV['USER'],
     :key  => sprintf('%s/.ssh/id_dsa', ENV['HOME']),
   },
-  :verbosity => verbosity,
 )
 
 sudo = Rouster.new(
   :name        => 'sudo',
   :sudo        => true,
   :passthrough => { :type => :local },
-  :verbosity   => verbosity,
 )
 
 vagrant = Rouster.new(
   :name        => 'ppm',
   :sudo        => true,
-  :verbosity   => verbosity,
 )
 
 workers = [ local, remote, vagrant ]

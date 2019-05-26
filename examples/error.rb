@@ -2,7 +2,7 @@ require sprintf('%s/../%s', File.dirname(File.expand_path(__FILE__)), 'path_help
 require 'rouster'
 
 begin
-  badkey = Rouster.new(:name => 'whatever', :verbosity => 4, :sshkey => __FILE__)
+  badkey = Rouster.new(:name => 'whatever', :sshkey => __FILE__)
 rescue Rouster::InternalError => e
   p "caught #{e.class}: #{e.message}"
 rescue => e
@@ -22,7 +22,7 @@ end
 p badvagrantfile
 
 begin
-  good = Rouster.new(:name => 'app', verbosity => 4)
+  good = Rouster.new(:name => 'app')
 rescue => e
   p "caught unexpected exception #{e.class}: #{e.message}"
 end

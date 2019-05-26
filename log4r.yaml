@@ -1,0 +1,22 @@
+---
+log4r_config:
+  loggers:
+  - name: 'rouster'
+    outputters:
+      - stdout
+      - stderr
+  outputters:
+  - type: StdoutOutputter
+    level: INFO
+    name: stdout
+    formatter:
+      type: PatternFormatter
+      date_pattern: '%Y/%m/%d %H:%M.%S'
+      pattern: '%d | %C | %l | %m'
+  - type: StderrOutputter
+    level: ERROR
+    name: stderr
+    formatter:
+      type: PatternFormatter
+      date_pattern: '%Y/%m/%d %H:%M.%S'
+      pattern: '%d | %C | %l | %m'
